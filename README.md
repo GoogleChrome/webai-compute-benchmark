@@ -8,10 +8,10 @@ See the Speedometer repo for a more detailed explanation, e.g., in which phases 
 
 ## Setup Instructions, How to Run Workloads
 
-TODO(dlehmann): Once the first real workloads lands.
+TODO(dlehmann): Expand on this.
 
-- Prerequisites.
-- Starting the web server.
+- Prerequisites: NPM, node. `npm install` to install the dependencies of the runner.
+- Starting the web server: `npm run dev` in the root directory.
 - Running a workload in the browser.
 - Inspecting and understanding metrics.
 - A screenshot.
