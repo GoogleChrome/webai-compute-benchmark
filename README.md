@@ -15,6 +15,11 @@ TODO(dlehmann): Once the first real workloads lands.
 - Running a workload in the browser.
 - Inspecting and understanding metrics.
 - A screenshot.
+- Most important files:
+    - Workloads are in `resources/*/`, each being an NPM package.
+    - Shared files are in `resources/shared/`, which is depended-upon as a local package.
+    - The default suite / tests to run are in `resources/default-tests.mjs`.
+    - An example config (which can be loaded from externally) is in `resources/config.json`, but it is not used (more an example).
 
 ## Source Code Headers
 
