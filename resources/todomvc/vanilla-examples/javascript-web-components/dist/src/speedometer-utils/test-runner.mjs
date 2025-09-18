@@ -67,12 +67,11 @@ export class TestRunner {
             asyncStartTime = syncEndTime;
         };
         const measureAsync = () => {
-            const bodyReference = this.#frame ? this.#frame.contentDocument.body : document.body;
-            const windowReference = this.#frame ? this.#frame.contentWindow : window;
             // Some browsers don't immediately update the layout for paint.
             // Force the layout here to ensure we're measuring the layout time.
-            const height = bodyReference.getBoundingClientRect().height;
-            windowReference._unusedHeightValue = height; // Prevent dead code elimination.
+            // FIXME: This seems to be broken when building the TodoMVC workload from sources.
+            // Compare the rebuilt dist/ output with the scripts in resources/shared/*.mjs.
+            // this.page.layout();
 
             const asyncEndTime = performance.now();
             performance.mark(asyncEndLabel);

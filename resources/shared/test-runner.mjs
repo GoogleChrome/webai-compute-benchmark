@@ -69,7 +69,9 @@ export class TestRunner {
         const measureAsync = () => {
             // Some browsers don't immediately update the layout for paint.
             // Force the layout here to ensure we're measuring the layout time.
-            this.page.layout();
+            // FIXME: This seems to be broken when building the TodoMVC workload from sources.
+            // Compare the rebuilt dist/ output with the scripts in resources/shared/*.mjs.
+            // this.page.layout();
 
             const asyncEndTime = performance.now();
             performance.mark(asyncEndLabel);
