@@ -17,5 +17,12 @@ export const defaultSuites = [
         tags: ["default", "empty"],
         async prepare() {},
         type: "remote",
+    },
+    {
+        name: "Feature Extraction",
+        url: "resources/feature-extraction/dist/index.html",
+        tags: ["default", "feature-extraction"],
+        async prepare() {},
+        type: "remote",
     }
 ];
