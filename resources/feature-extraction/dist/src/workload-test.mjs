@@ -1,5 +1,5 @@
-import { BenchmarkStep, BenchmarkSuite } from "./speedometer-utils/benchmark.mjs";
-import { getAllElements, getElement } from "./speedometer-utils/helpers.mjs";
+import { BenchmarkStep, AsyncBenchmarkStep, AsyncBenchmarkSuite } from "./speedometer-utils/benchmark.mjs";
+import { getAllElements, getElement, forceLayout } from "./speedometer-utils/helpers.mjs";
 import { pipeline } from 'https://cdn.jsdelivr.net/npm/@xenova/transformers@2.17.2';
 
 export const appName = "Feature extraction";
@@ -7,10 +7,10 @@ export const appVersion = "1.0.0";
 
 
 async function runFeatureExtraction() {
-    SENTENCE_1 = "Today is sunny."
-    const output = document.getElement('embeddingOutput');
+    const SENTENCE_1 = "Today is sunny."
+    const output = document.getElementById('embeddingOutput');
 
-    document.getElement('sentenceText').textContent = `"${SENTENCE_1}"`;
+    document.getElementById('sentenceText').textContent = `"${SENTENCE_1}"`;
 
     const model = await pipeline('feature-extraction', "Xenova/UAE-Large-V1");
 
@@ -22,11 +22,13 @@ async function runFeatureExtraction() {
 }
 
 const suites = {
-    default: new BenchmarkSuite("default", [
-        new BenchmarkStep("Extract features in example text", () => {
-            document.addEventListener('DOMContentLoaded', runFeatureExtraction);
+    default: new AsyncBenchmarkSuite("default", [
+        new AsyncBenchmarkStep("Extract features in example text", async () => {
+            forceLayout();
+            await runFeatureExtraction();
+            forceLayout();   
         }),
-    ]),
+    ], true),
 };
 
 export default suites;

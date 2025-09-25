@@ -71,7 +71,8 @@ export class TestRunner {
             // Force the layout here to ensure we're measuring the layout time.
             // FIXME: This seems to be broken when building the TodoMVC workload from sources.
             // Compare the rebuilt dist/ output with the scripts in resources/shared/*.mjs.
-            // this.page.layout();
+            
+            this.page?.layout();
 
             const asyncEndTime = performance.now();
             performance.mark(asyncEndLabel);
@@ -95,7 +96,7 @@ export class TestRunner {
 
 export class AsyncTestRunner extends TestRunner {
     constructor(frame, page, params, suite, test, callback, type) {
-        super(frame, page, params, suite, test, callback, type);
+        super(frame, page, params, suite, test, callback, type = "async");
     }
 
     async _runSyncStep(test, page) {
