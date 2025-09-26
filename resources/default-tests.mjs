@@ -19,8 +19,15 @@ export const defaultSuites = [
         type: "remote",
     },
     {
-        name: "Feature Extraction",
-        url: "resources/feature-extraction/dist/index.html",
+        name: "Feature Extraction on cpu",
+        url: "resources/feature-extraction-cpu/dist/index.html",
+        tags: ["default", "feature-extraction"],
+        async prepare() {},
+        type: "remote",
+    },
+    {
+        name: "Feature Extraction on gpu",
+        url: "resources/feature-extraction-gpu/dist/index.html",
         tags: ["default", "feature-extraction"],
         async prepare() {},
         type: "remote",
