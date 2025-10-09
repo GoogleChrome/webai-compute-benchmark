@@ -16,22 +16,31 @@ TODO(dlehmann): Expand on this.
 - Inspecting and understanding metrics.
 - A screenshot.
 - Most important files:
-    - Workloads are in `resources/*/`, each being an NPM package.
+    - Workloads are in `resources/*/`.
     - Shared files are in `resources/shared/`, which is depended-upon as a local package.
     - The default suite / tests to run are in `resources/default-tests.mjs`.
     - An example config (which can be loaded from externally) is in `resources/config.json`, but it is not used (more an example).
 
 ## How to Add a New Workload
 
-- Copy the dummy empty workload from `resources/empty` to `resources/<your-workload-name>`.
-- Rename the `name` field in `resources/<your-workload-name>/package.json` and in `resources/<your-workload-name>/src/index.js`.
-- Run `npm install` inside `resources/<your-workload-name>`, e.g., to copy over the shared scripts local package.
-- Adjust the benchmarking steps in `resources/<your-workload-name>/src/workload-test.mjs`, e.g., click on a button, or if run automatically at startup no steps are needed.
-- Run `npm run build` inside `resources/<your-workload-name>` to produce output in `dist/`
-- Test the workload individually (without the runner) via `npm run serve` inside `resources/<your-workload-name>`. Browser to http://localhost:7006/.
-- Add the workload to `resources/default-tests.mjs`, analogous to the existing `empty` workload.
+### Transformers.js-based workloads
+
+- Inside `resources/transformers-js` folder, add a new async function and `ModelConfig` for your workload.
+- Run `npm install` and `npm run build` inside `resources/transformers-js` to produce output in `dist/`.
+- Add the workload to `resources/default-tests.mjs`, analogous to the existing workloads.
 - Serve the overall runner via `npm run dev` in the repository root directory.
 - Browse to http://localhost:8080, click on run to see the new workload.
+
+### Other workloads
+
+- Make a copy of `resources/transformers-js` and rename it to `resources/<your-selected-name>`.
+- Update the `description` and `dependencies` field in `resources/<your-selected-name>/package.json`.
+- Adjust the code inside `resources/<your-selectedname>/src/index.html` and `resources/<your-selected-name>/src/index.mjs` .
+- Run `npm install` and `npm run build` inside `resources/<your-selected-name>` to produce output in `dist/`.
+- Add the workload to `resources/default-tests.mjs`, analogous to the existing workloads.
+- Serve the overall runner via `npm run dev` in the repository root directory.
+- Browse to http://localhost:8080, click on run to see the new workload.
+
 
 ## Source Code Headers
 

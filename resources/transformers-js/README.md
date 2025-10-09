@@ -1,4 +1,4 @@
-An empty, minimal workload, without any functionality.
+A transformer.js workload runner
 
 ## Build steps
 
@@ -16,15 +16,4 @@ The only requirement is an installation of Node, to be able to install dependenc
 ```
 * Node (min version: 18.13.0)
 * NPM (min version: 8.19.3)
-```
-
-## Local preview
-
-```
-terminal:
-1. npm install
-2. npm run dev
-
-browser:
-1. http://localhost:7005/
 ```

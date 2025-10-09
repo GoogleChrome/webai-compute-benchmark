@@ -36,22 +36,17 @@ export const defaultSuites = [
     },
     {
         name: "Sentence Similarity on cpu",
-        url: "resources/sentence-similarity-cpu/dist/index.html",
+        url: "resources/transformers-js/dist/index.html",
+        extraParams: { type: 'sentence-similarity-cpu' },
         tags: ["default", "sentence-similarity"],
         async prepare() {},
         type: "remote",
     },
     {
         name: "Sentence Similarity on gpu",
-        url: "resources/sentence-similarity-gpu/dist/index.html",
+        url: "resources/transformers-js/dist/index.html",
+        extraParams: { type: 'sentence-similarity-gpu' },
         tags: ["default", "sentence-similarity"],
-        async prepare() {},
-        type: "remote",
-    },
-    {
-        name: "Speech Recognition on cpu",
-        url: "resources/speech-recognition-cpu/dist/index.html",
-        tags: ["default", "speech-recognition"],
         async prepare() {},
         type: "remote",
     }

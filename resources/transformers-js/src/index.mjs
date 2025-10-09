@@ -1,7 +1,8 @@
 import { BenchmarkConnector } from "speedometer-utils/benchmark.mjs";
 import { AsyncBenchmarkStep, AsyncBenchmarkSuite } from "speedometer-utils/benchmark.mjs";
 import { forceLayout } from "speedometer-utils/helpers.mjs";
-import { pipeline, env } from '@huggingface/transformers';
+import { pipeline, env, dot } from '@huggingface/transformers';
+
 /*
 Paste below into dev console for manual testing:
 window.addEventListener("message", (event) => console.log(event.data));
@@ -15,14 +16,17 @@ env.allowLocalModels = true;
 // Set location of .wasm files so the CDN is not used.
 env.backends.onnx.wasm.wasmPaths = '';
 
+/*--------- Feature extraction workload using Xenova/UAE-Large-V1 model ---------*/
+
 async function runFeatureExtraction(device) {
     const SENTENCE_1 = `San Francisco has a unique Mediterranean climate characterized by mild,
                         wet winters and dry, cool summers. The city is famous for its persistent
                         fog which keeps temperatures comfortable and often cool near the coast.`
-    const output = document.getElementById('embeddingOutput');
+    const output = document.getElementById('output');
 
     document.getElementById('device').textContent = device;
-    document.getElementById('sentenceText').textContent = `"${SENTENCE_1}"`;
+    document.getElementById('workload').textContent = "Feature extraction";
+    document.getElementById('input').textContent = `"${SENTENCE_1}"`;
 
     const model = await pipeline('feature-extraction', "Xenova/UAE-Large-V1", { device, dtype: "fp32" },);
 
@@ -31,6 +35,30 @@ async function runFeatureExtraction(device) {
 
     output.textContent = JSON.stringify(embedding.slice(0, 5) + '...', null, 2);
 }
+
+/*--------- Sentence similarity workload using Alibaba-NLP/gte-base-en-v1.5 model ---------*/
+
+async function runSentenceSimilarity(device) {
+    const SENTENCES = ["San Francisco has a unique Mediterranean climate characterized by mild, wet winters and dry, cool summers",
+                        "The city is famous for its persistent fog which keeps temperatures comfortable and often cool near the coast"]
+
+    const output = document.getElementById('output');
+
+    document.getElementById('device').textContent = device;
+    document.getElementById('workload').textContent = "sentence similarity";
+    document.getElementById('input').textContent = `"${SENTENCES}"`;
+
+    const model = await pipeline('feature-extraction', "Alibaba-NLP/gte-base-en-v1.5", { device, dtype: "fp32" },);
+
+    const result = await model(SENTENCES, { pooling: 'cls', normalize: true });
+    
+    const [source_embeddings, ...document_embeddings ] = result.tolist();
+    const similarities = document_embeddings.map(x => 100 * dot(source_embeddings, x));
+
+    output.textContent = similarities;
+}
+
+/*--------- Workload configurations ---------*/
 
 const modelConfigs = {
   'feature-extraction-cpu': {
@@ -41,20 +69,31 @@ const modelConfigs = {
     description: 'Feature extraction on gpu',
     run: () => { return runFeatureExtraction("webgpu"); },
   },
+  'sentence-similarity-cpu': {
+    description: 'Sentence similarity on cpu',
+    run: () => { return runSentenceSimilarity("wasm"); },
+  },
+  'sentence-similarity-gpu': {
+    description: 'Sentence similarity on gpu',
+    run: () => { return runSentenceSimilarity("webgpu"); },
+  },
 };
 const urlParams = new URLSearchParams(window.location.search);
 const modelType = urlParams.get('type');
-if (![modelConfigs[modelType]]) {
+if (!modelType || !modelConfigs[modelType]) {
   throw new Error(`Invalid configuration '${modelType}.'`);
 }
 
-const appName = modelConfigs[modelType].name;
+const appName = modelConfigs[modelType].description;
+
 const appVersion = "1.0.0";
 const run =  modelConfigs[modelType].run;
 
+/*--------- Running test suites ---------*/
+
 const suites = {
     default: new AsyncBenchmarkSuite("default", [
-        new AsyncBenchmarkStep("Extract features in example text", async () => {
+        new AsyncBenchmarkStep("Benchmark", async () => {
             forceLayout();
             await run();
             forceLayout();
