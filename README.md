@@ -33,6 +33,7 @@ TODO(dlehmann): Expand on this.
 ### Transformers.js-based workloads
 
 - Inside `resources/transformers-js/src/index.mjs`, add a new async function and `ModelConfig` for your workload.
+- Add the name of your model to `MODELS_TO_DOWNLOAD` in `resources/transformers-js/src/download-models.mjs`.
 - Add `<your-new-workload-name>.mjs` inside `resources/transformers-js/src`, similar to the existing ones.
 - Add an entry and a plugin for the new workload in `resources/transformers-js/webpack.commom.js`.
 - Run `npm install` and `npm run build` inside `resources/transformers-js` to produce output in `dist/`.
