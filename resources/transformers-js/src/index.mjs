@@ -5,8 +5,7 @@ import { pipeline, env, dot } from '@huggingface/transformers';
 
 /*
 Paste below into dev console for manual testing:
-window.addEventListener("message", (event) => console.log(event.data));
-window.postMessage({ id: "empty-1.0.0", key: "benchmark-connector", type: "benchmark-suite", name: "default" }, "*");
+manualRun();
 */
 
 // Disable the loading of remote models from the Hugging Face Hub:
@@ -78,28 +77,35 @@ const modelConfigs = {
     run: () => { return runSentenceSimilarity("webgpu"); },
   },
 };
-const urlParams = new URLSearchParams(window.location.search);
-const modelType = urlParams.get('type');
-if (!modelType || !modelConfigs[modelType]) {
-  throw new Error(`Invalid configuration '${modelType}.'`);
-}
-
-const appName = modelConfigs[modelType].description;
 
 const appVersion = "1.0.0";
-const run =  modelConfigs[modelType].run;
+let appName;
 
-/*--------- Running test suites ---------*/
+export function initializeBenchmark(modelType) {
+  if (!modelType || !modelConfigs[modelType]) {
+    throw new Error(`Invalid configuration '${modelType}.'`);
+  }
 
-const suites = {
-    default: new AsyncBenchmarkSuite("default", [
-        new AsyncBenchmarkStep("Benchmark", async () => {
-            forceLayout();
-            await run();
-            forceLayout();
-        }),
-    ], true),
-};
+  appName = modelConfigs[modelType].description;
+  const run =  modelConfigs[modelType].run;
 
-const benchmarkConnector = new BenchmarkConnector(suites, appName, appVersion);
-benchmarkConnector.connect();
+  /*--------- Running test suites ---------*/
+
+  const suites = {
+      default: new AsyncBenchmarkSuite("default", [
+          new AsyncBenchmarkStep("Benchmark", async () => {
+              forceLayout();
+              await run();
+              forceLayout();
+          }),
+      ], true),
+  };
+
+  const benchmarkConnector = new BenchmarkConnector(suites, appName, appVersion);
+  benchmarkConnector.connect();
+}
+
+globalThis.manualRun = () => {
+  window.addEventListener("message", (event) => console.log(event.data));
+  window.postMessage({ id: appName + '-' + appVersion, key: "benchmark-connector", type: "benchmark-suite", name: "default" }, "*");
+}

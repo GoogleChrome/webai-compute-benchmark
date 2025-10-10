@@ -106,10 +106,7 @@ export class SuiteRunner {
             frame.onload = () => resolve();
             frame.onerror = () => reject();
             let suiteParams = '';
-            if (this.#suite.extraParams) {
-                suiteParams = `${new URLSearchParams(this.#suite.extraParams).toString()}&`;
-            }
-            frame.src = `${this.#suite.url}?${suiteParams}${this.#params.toSearchParams()}`;
+            frame.src = `${this.#suite.url}?${this.#params.toSearchParams()}`;
         });
     }
 
