@@ -26,7 +26,7 @@ TODO(dlehmann): Expand on this.
 
 - If you have not done that yet, run `npm install` and `npm run build` inside `resources/<working-benchmarks>` to produce output in `dist/` (Currently the only working benchmark is `transformers-js`)
 - `npm run dev` in the root directory to start the server
--  Navigate to http://localhost:8080/resources/<working-benchmarks>/dist/<workload>.html (e.g. http://localhost:8080/resources/transformers-js/dist/feature-extraction-cpu.html ) then do `manualRun()` in dev console.
+-  Navigate to http://localhost:8080/resources/\<working-benchmarks\>/dist/\<workload\>.html (e.g. http://localhost:8080/resources/transformers-js/dist/feature-extraction-cpu.html ) then do `manualRun()` in dev console.
 
 ## How to Add a New Workload
 
