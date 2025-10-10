@@ -11,6 +11,7 @@ See the Speedometer repo for a more detailed explanation, e.g., in which phases 
 TODO(dlehmann): Expand on this.
 
 - Prerequisites: NPM, node. `npm install` to install the dependencies of the runner.
+- Creating `dist/` for workloads: Run `npm install` and `npm run build` inside `resources/<working-benchmarks>` to produce output in `dist/` (Currently the only working benchmark is `transformers-js`).
 - Starting the web server: `npm run dev` in the root directory.
 - Running a workload in the browser.
 - Inspecting and understanding metrics.
@@ -21,11 +22,19 @@ TODO(dlehmann): Expand on this.
     - The default suite / tests to run are in `resources/default-tests.mjs`.
     - An example config (which can be loaded from externally) is in `resources/config.json`, but it is not used (more an example).
 
+## How to Run Individual Workload
+
+- If you have not done that yet, run `npm install` and `npm run build` inside `resources/<working-benchmarks>` to produce output in `dist/` (Currently the only working benchmark is `transformers-js`)
+- `npm run dev` in the root directory to start the server
+-  Navigate to http://localhost:8080/resources/<working-benchmarks>/dist/<workload>.html (e.g. http://localhost:8080/resources/transformers-js/dist/feature-extraction-cpu.html ) then do `manualRun()` in dev console.
+
 ## How to Add a New Workload
 
 ### Transformers.js-based workloads
 
-- Inside `resources/transformers-js` folder, add a new async function and `ModelConfig` for your workload.
+- Inside `resources/transformers-js/src/index.mjs`, add a new async function and `ModelConfig` for your workload.
+- Add `<your-new-workload-name>.mjs` inside `resources/transformers-js/src`, similar to the existing ones.
+- Add an entry and a plugin for the new workload in `resources/transformers-js/webpack.commom.js`.
 - Run `npm install` and `npm run build` inside `resources/transformers-js` to produce output in `dist/`.
 - Add the workload to `resources/default-tests.mjs`, analogous to the existing workloads.
 - Serve the overall runner via `npm run dev` in the repository root directory.
