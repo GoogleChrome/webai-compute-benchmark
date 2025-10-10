@@ -15,46 +15,59 @@ env.allowLocalModels = true;
 // Set location of .wasm files so the CDN is not used.
 env.backends.onnx.wasm.wasmPaths = '';
 
+// TODO: Model loading time is not currently included in the benchmark. We should
+// investigate if the model loading code is different for the different device types.
+
 /*--------- Feature extraction workload using Xenova/UAE-Large-V1 model ---------*/
 
-async function runFeatureExtraction(device) {
-    const SENTENCE_1 = `San Francisco has a unique Mediterranean climate characterized by mild,
-                        wet winters and dry, cool summers. The city is famous for its persistent
-                        fog which keeps temperatures comfortable and often cool near the coast.`
-    const output = document.getElementById('output');
+class FeatureExtraction {
+  constructor(device) {
+    this.device = device;
+    this.SENTENCE_1 = `San Francisco has a unique Mediterranean climate characterized by mild,
+                       wet winters and dry, cool summers. The city is famous for its persistent
+                       fog which keeps temperatures comfortable and often cool near the coast.`
+  }
 
-    document.getElementById('device').textContent = device;
+  async init() {
+    document.getElementById('device').textContent = this.device;
     document.getElementById('workload').textContent = "Feature extraction";
-    document.getElementById('input').textContent = `"${SENTENCE_1}"`;
+    document.getElementById('input').textContent = `"${this.SENTENCE_1}"`;
+    this.model = await pipeline('feature-extraction', "Xenova/UAE-Large-V1", { device: this.device, dtype: "fp32" },);
+  }
 
-    const model = await pipeline('feature-extraction', "Xenova/UAE-Large-V1", { device, dtype: "fp32" },);
-
-    const result = await model(SENTENCE_1, { pooling: 'mean', normalize: true });
+  async run() {
+    const result = await this.model(this.SENTENCE_1, { pooling: 'mean', normalize: true });
     const embedding = Array.from(result.data);
-
+    const output = document.getElementById('output');
     output.textContent = JSON.stringify(embedding.slice(0, 5) + '...', null, 2);
+  }
 }
 
 /*--------- Sentence similarity workload using Alibaba-NLP/gte-base-en-v1.5 model ---------*/
 
-async function runSentenceSimilarity(device) {
-    const SENTENCES = ["San Francisco has a unique Mediterranean climate characterized by mild, wet winters and dry, cool summers",
-                        "The city is famous for its persistent fog which keeps temperatures comfortable and often cool near the coast"]
+class SentenceSimilarity {
+  constructor(device) {
+    this.device = device;
+    this.SENTENCES = ["San Francisco has a unique Mediterranean climate characterized by mild, wet winters and dry, cool summers",
+                      "The city is famous for its persistent fog which keeps temperatures comfortable and often cool near the coast"]
 
-    const output = document.getElementById('output');
+  }
 
-    document.getElementById('device').textContent = device;
+  async init() {
+    document.getElementById('device').textContent = this.device;
     document.getElementById('workload').textContent = "sentence similarity";
-    document.getElementById('input').textContent = `"${SENTENCES}"`;
+    document.getElementById('input').textContent = `"${this.SENTENCES}"`;
+    this.model = await pipeline('feature-extraction', "Alibaba-NLP/gte-base-en-v1.5", { device: this.device, dtype: "fp32" },);
+  }
 
-    const model = await pipeline('feature-extraction', "Alibaba-NLP/gte-base-en-v1.5", { device, dtype: "fp32" },);
-
-    const result = await model(SENTENCES, { pooling: 'cls', normalize: true });
+  async run() {
+    const result = await this.model(this.SENTENCES, { pooling: 'cls', normalize: true });
     
     const [source_embeddings, ...document_embeddings ] = result.tolist();
     const similarities = document_embeddings.map(x => 100 * dot(source_embeddings, x));
-
+    const output = document.getElementById('output');
     output.textContent = similarities;
+  }
 }
 
 /*--------- Workload configurations ---------*/
@@ -62,40 +75,40 @@ async function runSentenceSimilarity(device) {
 const modelConfigs = {
   'feature-extraction-cpu': {
     description: 'Feature extraction on cpu',
-    run: () => { return runFeatureExtraction("wasm"); },
+    create: () => { return new FeatureExtraction('wasm'); },
   },
   'feature-extraction-gpu': {
     description: 'Feature extraction on gpu',
-    run: () => { return runFeatureExtraction("webgpu"); },
+    create: () => { return new FeatureExtraction('webgpu'); },
   },
   'sentence-similarity-cpu': {
     description: 'Sentence similarity on cpu',
-    run: () => { return runSentenceSimilarity("wasm"); },
+    create: () => { return new SentenceSimilarity('wasm'); },
   },
   'sentence-similarity-gpu': {
     description: 'Sentence similarity on gpu',
-    run: () => { return runSentenceSimilarity("webgpu"); },
+    create: () => { return new SentenceSimilarity('webgpu'); },
   },
 };
 
 const appVersion = "1.0.0";
 let appName;
 
-export function initializeBenchmark(modelType) {
+export async function initializeBenchmark(modelType) {
   if (!modelType || !modelConfigs[modelType]) {
     throw new Error(`Invalid configuration '${modelType}.'`);
   }
 
   appName = modelConfigs[modelType].description;
-  const run =  modelConfigs[modelType].run;
+  const benchmark = modelConfigs[modelType].create();
+  await benchmark.init();
 
   /*--------- Running test suites ---------*/
-
   const suites = {
       default: new AsyncBenchmarkSuite("default", [
           new AsyncBenchmarkStep("Benchmark", async () => {
               forceLayout();
-              await run();
+              await benchmark.run();
               forceLayout();
           }),
       ], true),
