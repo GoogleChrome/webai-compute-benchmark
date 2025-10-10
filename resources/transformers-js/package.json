@@ -9,6 +9,7 @@
     "private": true,
     "scripts": {
         "dev": "http-server ./dist -p 7005 -c-1 --cors -o",
+        "prebuild": "node src/download-models.mjs",
         "build": "webpack --config webpack.prod.js",
         "serve": "http-server ./dist -p 7006 -c-1 --cors -o"
     },

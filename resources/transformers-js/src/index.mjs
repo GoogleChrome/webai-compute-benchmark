@@ -1,20 +1,20 @@
 import { BenchmarkConnector } from "speedometer-utils/benchmark.mjs";
 import { AsyncBenchmarkStep, AsyncBenchmarkSuite } from "speedometer-utils/benchmark.mjs";
 import { forceLayout } from "speedometer-utils/helpers.mjs";
-import { pipeline, env, dot } from 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.5';
+import { pipeline, env, dot } from '@huggingface/transformers';
 
 /*
 Paste below into dev console for manual testing:
 manualRun();
 */
 
-// TODO: bundle all the dependencies from hugging face and re-enable this code.
-// import { pipeline, env, dot } from '@huggingface/transformers';
 // Disable the loading of remote models from the Hugging Face Hub:
-// env.allowRemoteModels = false;
-// env.allowLocalModels = true;
+env.localModelPath = '../models';
+env.allowRemoteModels = false;
+env.allowLocalModels = true;
+
 // Set location of .wasm files so the CDN is not used.
-// env.backends.onnx.wasm.wasmPaths = '';
+env.backends.onnx.wasm.wasmPaths = '';
 
 // TODO: Model loading time is not currently included in the benchmark. We should
 // investigate if the model loading code is different for the different device types.

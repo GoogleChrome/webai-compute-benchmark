@@ -6,6 +6,7 @@
 
 /resources/transformers-js/node_modules/
 /resources/transformers-js/dist/
+/resources/transformers-js/models/
 
 .vscode
 .angular
