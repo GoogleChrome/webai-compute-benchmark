@@ -2,6 +2,7 @@ const path = require("path");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 
 module.exports = {
+    target: ["web", "es2020"],
     entry: {
         'feature-extraction-cpu': './src/feature-extraction-cpu.mjs',
         'feature-extraction-gpu': './src/feature-extraction-gpu.mjs',
