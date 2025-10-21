@@ -6,8 +6,21 @@ const MODEL_DIR = './models';
 env.localModelPath = MODEL_DIR;
 
 const MODELS_TO_DOWNLOAD = [
-    'Xenova/UAE-Large-V1',
-    'Alibaba-NLP/gte-base-en-v1.5',
+    { 
+        id: 'Xenova/UAE-Large-V1', 
+        task: 'feature-extraction', 
+        dtype: 'fp32'
+    },
+    { 
+        id: 'Alibaba-NLP/gte-base-en-v1.5', 
+        task: 'feature-extraction', 
+        dtype: 'fp32'
+    },
+    { 
+        id: 'Xenova/whisper-small', 
+        task: 'automatic-speech-recognition', 
+        dtype: 'fp32'
+    }
 ];
 
 async function downloadModels() {
@@ -22,12 +35,18 @@ async function downloadModels() {
     env.allowRemoteModels = true; 
 
     try {
-        for (const modelId of MODELS_TO_DOWNLOAD) {
-            console.log(`Downloading all files for ${modelId}...`);
+        for (const modelInfo of MODELS_TO_DOWNLOAD) {
+            const { id: modelId, task: modelTask, dtype: modelDType } = modelInfo;
             
-            await pipeline('feature-extraction', modelId, { 
-                cache_dir: env.localModelPath 
-            });
+            console.log(`Downloading files for ${modelId} (${modelTask}, dtype: ${modelDType})...`);
+            
+            await pipeline(
+                modelTask, 
+                modelId, 
+                { 
+                    cache_dir: env.localModelPath,
+                    dtype: modelDType
+                });
             
             console.log(`Successfully downloaded and cached ${modelId}`);
         }

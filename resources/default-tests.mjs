@@ -45,5 +45,19 @@ export const defaultSuites = [
         tags: ["default", "sentence-similarity"],
         async prepare() {},
         type: "remote",
+    },
+    {
+        name: "Speech Recognition on cpu",
+        url: "resources/transformers-js/dist/speech-recognition-cpu.html",
+        tags: ["default", "speech-recognition"],
+        async prepare() {},
+        type: "remote",
+    },
+    {
+        name: "Speech Recognition on gpu",
+        url: "resources/transformers-js/dist/speech-recognition-gpu.html",
+        tags: ["default", "speech-recognition"],
+        async prepare() {},
+        type: "remote",
     }
 ];

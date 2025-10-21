@@ -1,7 +1,8 @@
 import { BenchmarkConnector } from "speedometer-utils/benchmark.mjs";
 import { AsyncBenchmarkStep, AsyncBenchmarkSuite } from "speedometer-utils/benchmark.mjs";
 import { forceLayout } from "speedometer-utils/helpers.mjs";
-import { pipeline, env, dot } from '@huggingface/transformers';
+import { pipeline, env, dot, read_audio } from '@huggingface/transformers';
+import jfkAudio from '../media/jfk_1962_0912_spaceeffort.wav';
 
 /*
 Paste below into dev console for manual testing:
@@ -71,6 +72,31 @@ class SentenceSimilarity {
   }
 }
 
+/*--------- Automatic speech recognition workload using Xenova/whisper-small model ---------*/
+
+class SpeechRecognition {
+  constructor(device) {
+    this.device = device;
+    this.audioURL = jfkAudio;
+  }
+  async init() {
+    document.getElementById('device').textContent = this.device;
+    document.getElementById('workload').textContent = "speech recognition";
+    document.getElementById('input').textContent = `Transcribing local audio file.`;
+
+    this.audioData = await read_audio(this.audioURL, 16000);
+    
+    // TODO: Initially we wanted to use distil-whisper/distil-large-v3 model, but the onnx files seems to be broken.
+    // We should check if we can resolve this issue or select another model. In the meanwhile, we will use Xenova/whisper-small
+    this.model = await pipeline('automatic-speech-recognition', "Xenova/whisper-small", { device: this.device, dtype: "fp32" },);
+  }
+
+  async run() {
+    const result = await this.model(this.audioData);
+    console.log(result.text);
+  }
+}
+
 /*--------- Workload configurations ---------*/
 
 const modelConfigs = {
@@ -89,6 +115,14 @@ const modelConfigs = {
   'sentence-similarity-gpu': {
     description: 'Sentence similarity on gpu',
     create: () => { return new SentenceSimilarity('webgpu'); },
+  },
+  'speech-recognition-cpu': {
+    description: 'Speech recognition on cpu',
+    create: () => { return new SpeechRecognition('wasm'); },
+  },
+  'speech-recognition-gpu': {
+    description: 'Speech recognition on gpu',
+    create: () => { return new SpeechRecognition('webgpu'); },
   },
 };
 
