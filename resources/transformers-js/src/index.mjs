@@ -2,8 +2,8 @@ import { BenchmarkConnector } from "speedometer-utils/benchmark.mjs";
 import { AsyncBenchmarkStep, AsyncBenchmarkSuite } from "speedometer-utils/benchmark.mjs";
 import { forceLayout } from "speedometer-utils/helpers.mjs";
 import { pipeline, env, dot, read_audio } from '@huggingface/transformers';
-import jfkAudio from '../media/jfk_1962_0912_spaceeffort.wav';
-import imageWithBackground from '../media/image.jpg';
+import jfkAudio from '../../media/jfk_1962_0912_spaceeffort.wav';
+import imageWithBackground from '../../media/image.jpg';
 
 /*
 Paste below into dev console for manual testing:

@@ -3,7 +3,7 @@ import { AsyncBenchmarkStep, AsyncBenchmarkSuite } from "speedometer-utils/bench
 import { forceLayout } from "speedometer-utils/helpers.mjs";
 import * as tf from '@tensorflow/tfjs';
 import { loadAndCompile, loadLiteRt, Tensor } from '@litertjs/core';
-import imageWithBackground from '../media/image.jpg';
+import imageWithBackground from '../../media/image.jpg';
 
 /*
 Paste below into dev console for manual testing:
