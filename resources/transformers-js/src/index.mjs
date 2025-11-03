@@ -35,7 +35,7 @@ class FeatureExtraction {
     document.getElementById('device').textContent = this.device;
     document.getElementById('workload').textContent = "Feature extraction";
     document.getElementById('input').textContent = `"${this.SENTENCE_1}"`;
-    this.model = await pipeline('feature-extraction', "Xenova/UAE-Large-V1", { device: this.device, dtype: "fp32" },);
+    this.model = await pipeline('feature-extraction', "Xenova/UAE-Large-V1", { device: this.device, dtype: "q4" },);
   }
 
   async run() {
@@ -60,7 +60,8 @@ class SentenceSimilarity {
     document.getElementById('device').textContent = this.device;
     document.getElementById('workload').textContent = "sentence similarity";
     document.getElementById('input').textContent = `"${this.SENTENCES}"`;
-    this.model = await pipeline('feature-extraction', "Alibaba-NLP/gte-base-en-v1.5", { device: this.device, dtype: "fp32" },);
+    // The int8 model does not perform well on WebGPU. We may want to use another dtype for WebGPU workload.
+    this.model = await pipeline('feature-extraction', "Alibaba-NLP/gte-base-en-v1.5", { device: this.device, dtype: "int8" },);
   }
 
   async run() {
@@ -89,7 +90,7 @@ class SpeechRecognition {
     
     // TODO: Initially we wanted to use distil-whisper/distil-large-v3 model, but the onnx files seems to be broken.
     // We should check if we can resolve this issue or select another model. In the meanwhile, we will use Xenova/whisper-small
-    this.model = await pipeline('automatic-speech-recognition', "Xenova/whisper-small", { device: this.device, dtype: "fp32" },);
+    this.model = await pipeline('automatic-speech-recognition', "Xenova/whisper-small", { device: this.device, dtype: "q4f16" },);
   }
 
   async run() {
@@ -113,7 +114,7 @@ class BackgroundRemoval {
     
     // TODO: Initially we wanted to use briaai/RMBG-2.0 model, but it has a known issue (https://github.com/microsoft/onnxruntime/issues/21968) cause it to be not usable.
     // We should check later if the issue has been resolved or select another model. In the meanwhile, we will use Xenova/modnet
-    this.model = await pipeline('background-removal', "Xenova/modnet", { device: this.device, dtype: "fp32" },);
+    this.model = await pipeline('background-removal', "Xenova/modnet", { device: this.device, dtype: "uint8" },);
   }
 
   async run() {

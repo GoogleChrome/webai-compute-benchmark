@@ -9,22 +9,22 @@ const MODELS_TO_DOWNLOAD = [
     { 
         id: 'Xenova/UAE-Large-V1', 
         task: 'feature-extraction', 
-        dtype: 'fp32'
+        dtype: 'q4'
     },
     { 
         id: 'Alibaba-NLP/gte-base-en-v1.5', 
         task: 'feature-extraction', 
-        dtype: 'fp32'
+        dtype: 'int8'
     },
     { 
         id: 'Xenova/whisper-small', 
         task: 'automatic-speech-recognition', 
-        dtype: 'fp32'
+        dtype: 'q4f16'
     },
     { 
         id: 'Xenova/modnet', 
         task: 'background-removal', 
-        dtype: 'fp32'
+        dtype: 'uint8'
     }
 ];
 
