@@ -1,7 +1,9 @@
 import { BenchmarkConnector } from "speedometer-utils/benchmark.mjs";
 import { AsyncBenchmarkStep, AsyncBenchmarkSuite } from "speedometer-utils/benchmark.mjs";
 import { forceLayout } from "speedometer-utils/helpers.mjs";
-import { pipeline, env, dot } from '@huggingface/transformers';
+import { pipeline, env, dot, read_audio } from '@huggingface/transformers';
+import jfkAudio from '../media/jfk_1962_0912_spaceeffort.wav';
+import imageWithBackground from '../media/image.jpg';
 
 /*
 Paste below into dev console for manual testing:
@@ -33,7 +35,7 @@ class FeatureExtraction {
     document.getElementById('device').textContent = this.device;
     document.getElementById('workload').textContent = "Feature extraction";
     document.getElementById('input').textContent = `"${this.SENTENCE_1}"`;
-    this.model = await pipeline('feature-extraction', "Xenova/UAE-Large-V1", { device: this.device, dtype: "fp32" },);
+    this.model = await pipeline('feature-extraction', "Xenova/UAE-Large-V1", { device: this.device, dtype: "q4" },);
   }
 
   async run() {
@@ -58,7 +60,8 @@ class SentenceSimilarity {
     document.getElementById('device').textContent = this.device;
     document.getElementById('workload').textContent = "sentence similarity";
     document.getElementById('input').textContent = `"${this.SENTENCES}"`;
-    this.model = await pipeline('feature-extraction', "Alibaba-NLP/gte-base-en-v1.5", { device: this.device, dtype: "fp32" },);
+    // The int8 model does not perform well on WebGPU. We may want to use another dtype for WebGPU workload.
+    this.model = await pipeline('feature-extraction', "Alibaba-NLP/gte-base-en-v1.5", { device: this.device, dtype: "int8" },);
   }
 
   async run() {
@@ -68,6 +71,57 @@ class SentenceSimilarity {
     const similarities = document_embeddings.map(x => 100 * dot(source_embeddings, x));
     const output = document.getElementById('output');
     output.textContent = similarities;
+  }
+}
+
+/*--------- Automatic speech recognition workload using Xenova/whisper-small model ---------*/
+
+class SpeechRecognition {
+  constructor(device) {
+    this.device = device;
+    this.audioURL = jfkAudio;
+  }
+  async init() {
+    document.getElementById('device').textContent = this.device;
+    document.getElementById('workload').textContent = "speech recognition";
+    document.getElementById('input').textContent = `Transcribing local audio file.`;
+
+    this.audioData = await read_audio(this.audioURL, 16000);
+    
+    // TODO: Initially we wanted to use distil-whisper/distil-large-v3 model, but the onnx files seems to be broken.
+    // We should check if we can resolve this issue or select another model. In the meanwhile, we will use Xenova/whisper-small
+    this.model = await pipeline('automatic-speech-recognition', "Xenova/whisper-small", { device: this.device, dtype: "q4f16" },);
+  }
+
+  async run() {
+    const result = await this.model(this.audioData);
+    const output = document.getElementById('output');
+    output.textContent = result.text;
+  }
+}
+
+/*--------- Background removal workload using Xenova/modnet model ---------*/
+
+class BackgroundRemoval {
+  constructor(device) {
+    this.device = device;
+    this.imageURL = imageWithBackground;
+  }
+  async init() {
+    document.getElementById('device').textContent = this.device;
+    document.getElementById('workload').textContent = "background removal";
+    document.getElementById('input').textContent = `Removing background from local image.`;
+    
+    // TODO: Initially we wanted to use briaai/RMBG-2.0 model, but it has a known issue (https://github.com/microsoft/onnxruntime/issues/21968) cause it to be not usable.
+    // We should check later if the issue has been resolved or select another model. In the meanwhile, we will use Xenova/modnet
+    this.model = await pipeline('background-removal', "Xenova/modnet", { device: this.device, dtype: "uint8" },);
+  }
+
+  async run() {
+    const result = await this.model(this.imageURL);
+    const output = document.getElementById('output');
+    // result is a raw image so nothing meaningful will be shown. Kept this line to be consistent with other workloads.
+    output.textContent = result;
   }
 }
 
@@ -89,6 +143,22 @@ const modelConfigs = {
   'sentence-similarity-gpu': {
     description: 'Sentence similarity on gpu',
     create: () => { return new SentenceSimilarity('webgpu'); },
+  },
+  'speech-recognition-cpu': {
+    description: 'Speech recognition on cpu',
+    create: () => { return new SpeechRecognition('wasm'); },
+  },
+  'speech-recognition-gpu': {
+    description: 'Speech recognition on gpu',
+    create: () => { return new SpeechRecognition('webgpu'); },
+  },
+  'background-removal-cpu': {
+    description: 'Background removal on cpu',
+    create: () => { return new BackgroundRemoval('wasm'); },
+  },
+  'background-removal-gpu': {
+    description: 'Background removal on gpu',
+    create: () => { return new BackgroundRemoval('webgpu'); },
   },
 };
 

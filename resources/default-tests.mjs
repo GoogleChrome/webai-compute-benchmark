@@ -45,5 +45,33 @@ export const defaultSuites = [
         tags: ["default", "sentence-similarity"],
         async prepare() {},
         type: "remote",
+    },
+    {
+        name: "Speech Recognition on cpu",
+        url: "resources/transformers-js/dist/speech-recognition-cpu.html",
+        tags: ["default", "speech-recognition"],
+        async prepare() {},
+        type: "remote",
+    },
+    {
+        name: "Speech Recognition on gpu",
+        url: "resources/transformers-js/dist/speech-recognition-gpu.html",
+        tags: ["default", "speech-recognition"],
+        async prepare() {},
+        type: "remote",
+    },
+        {
+        name: "Background Removal on cpu",
+        url: "resources/transformers-js/dist/background-removal-cpu.html",
+        tags: ["default", "background-removal"],
+        async prepare() {},
+        type: "remote",
+    },
+    {
+        name: "Background Removal on gpu",
+        url: "resources/transformers-js/dist/background-removal-gpu.html",
+        tags: ["default", "background-removal"],
+        async prepare() {},
+        type: "remote",
     }
 ];
