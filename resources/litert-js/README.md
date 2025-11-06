@@ -1,4 +1,4 @@
-A transformer.js workload runner
+A LiteRT.js workload runner
 
 ## Build steps
 

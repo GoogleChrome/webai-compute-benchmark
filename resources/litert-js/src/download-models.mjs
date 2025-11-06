@@ -27,8 +27,7 @@ async function downloadModels() {
 
     console.log(`Starting TFLite model downloads to: **${MODEL_DIR}**`);
 
-    for (const modelConfig of MODELS_TO_DOWNLOAD) {
-        const { repo, filename, branch } = modelConfig;
+    for (const { repo, filename, branch } of MODELS_TO_DOWNLOAD) {
         const modelUrl = getDownloadUrl(repo, filename, branch);
         const outputPath = path.join(MODEL_DIR, path.basename(filename));
 

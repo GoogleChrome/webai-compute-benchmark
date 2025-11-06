@@ -120,7 +120,7 @@ class BackgroundRemoval {
   async run() {
     const result = await this.model(this.imageURL);
     const output = document.getElementById('output');
-    // result is a raw image so nothing meaningful will be shown. Kept this line to be consistent with other workloads.
+    // TODO(rezvan): Add image visualization.
     output.textContent = result;
   }
 }

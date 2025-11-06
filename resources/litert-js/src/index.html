@@ -5,15 +5,32 @@
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="description" content="Benchmark workloads" />
         <title>Workload on ...</title>
+        <style>
+        .image-container { display: flex; justify-content: center; gap: 30px; margin-top: 20px; }
+        #inputImage, #outputCanvas { width: 256px; height: 256px; border: 1px solid #ccc; }
+        #textContainer { display: none; } /* Initially hidden */
+    </style>
     </head>
 
     <body>
         <p>This is a <span id="workload">...</span> workload on <span id="device">...</span></p>
 
-        <p>Input</p>
-        <p id="input">...</p>
+        <div id="imageContainer" class="image-container">
+        <div>
+            <h2>Input Image</h2>
+            <img id="inputImage" src="../../media/image.jpg" width="256" height="256" crossorigin="anonymous" alt="Input Selfie">
+        </div>
+        <div>
+            <h2>Output Mask</h2>
+            <canvas id="outputCanvas" width="256" height="256"></canvas>
+        </div>
+        </div>
 
-        <p>Result</p>
-        <pre id="output">N/A</pre>
+        <div id="textContainer">
+            <p>Input</p>
+            <p id="input">...</p>
+            <p>Result</p>
+            <pre id="output">N/A</pre>
+        </div>
     </body>
 </html>

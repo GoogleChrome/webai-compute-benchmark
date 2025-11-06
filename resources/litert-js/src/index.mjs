@@ -18,6 +18,7 @@ const MODEL_URL = '../models/MediaPipe-Selfie-Segmentation_float.tflite';
 const INPUT_WIDTH = 256;
 const INPUT_HEIGHT = 256;
 const WASM_PATH = 'resources/wasm/';
+const THRESHOLD = 0.99; // Threshold for determining person vs. background
 
 /**
  * Loads image from URL, and converts it to a normalized Float32 Tensor.
@@ -43,6 +44,64 @@ async function processImageToTensor() {
     });
 }
 
+/**
+ * Renders the segmentation mask onto the output canvas.
+ * @param {Float32Array} maskData - Raw probability scores for the mask (0.0 to 1.0).
+ * @param {HTMLImageElement} originalImage - Reference to the loaded <img> element.
+ */
+async function renderSegmentation(maskData, originalImage) {
+    const outputCanvas = document.getElementById('outputCanvas');
+    const ctx = outputCanvas.getContext('2d');
+    // 1. Draw the original image onto the canvas
+    ctx.clearRect(0, 0, outputCanvas.width, outputCanvas.height);
+    ctx.drawImage(originalImage, 0, 0, outputCanvas.width, outputCanvas.height);
+
+    // 2. Get the pixel data array (RGBA) from the drawn image
+    const imageData = ctx.getImageData(0, 0, outputCanvas.width, outputCanvas.height);
+    const pixels = imageData.data; 
+
+    // 3. Apply the Mask: Modify the background pixels based on the LiteRT output
+    for (let i = 0; i < maskData.length; i++) {
+        const maskValue = maskData[i];
+        
+        // If mask value is below threshold, it's considered BACKGROUND
+        const isBackground = maskValue < THRESHOLD; 
+        const pixelIndex = i * 4;
+
+        if (isBackground) {
+            // Highlight background in bright GREEN
+            pixels[pixelIndex] = 0;
+            pixels[pixelIndex + 1] = 255; 
+            pixels[pixelIndex + 2] = 0;
+        }
+    }
+    
+    // 4. Put the modified image data back onto the canvas
+    ctx.putImageData(imageData, 0, 0);
+}
+
+   /**
+   * Handles the output tensor: copies it to CPU if needed, renders the visualization,
+   * and cleans up the tensor memory.
+   * @param {Tensor} maskTensor The output tensor from the model run.
+   */
+  async function visualizeOutput(maskTensor) {
+    // If the output tensor is on the GPU, we must copy it to the CPU first.
+    let cpuMaskTensor;
+    if (maskTensor.accelerator === 'webgpu') {
+      cpuMaskTensor = await maskTensor.copyTo('wasm');
+      maskTensor.delete(); // The original GPU tensor is no longer needed.
+    } else {
+      cpuMaskTensor = maskTensor;
+    }
+
+    const maskData = cpuMaskTensor.toTypedArray();
+    const inputImage = document.getElementById('inputImage'); 
+    await renderSegmentation(maskData, inputImage);
+
+    cpuMaskTensor.delete();
+  }
+
 class ImageSegmentation {
   constructor(device) {
     this.device = device;
@@ -51,7 +110,7 @@ class ImageSegmentation {
   async init() {
     document.getElementById('device').textContent = this.device;
     document.getElementById('workload').textContent = "Image segmentation";
-    document.getElementById('input').textContent = `Image segmentation on local image.`;
+    // document.getElementById('input').textContent = `Image segmentation on local image.`;
     
     // Loading model
     await loadLiteRt(WASM_PATH, {threads: false});
@@ -71,16 +130,8 @@ class ImageSegmentation {
   }
 
   async run() {
-    const [maskTensor] = this.model.run([this.litertImageTensor]);
-
-    const output = document.getElementById('output');
-    // result is a raw image so nothing meaningful will be shown. Kept this line to be consistent with other workloads.
-    output.textContent = maskTensor;
-
-    maskTensor.delete();
-  }
-
-  cleanup() {
+    const [maskTensor] = await this.model.run([this.litertImageTensor]);
+    await visualizeOutput(maskTensor);
     this.litertImageTensor.delete();
   }
 }
@@ -106,6 +157,15 @@ export async function initializeBenchmark(modelType) {
     throw new Error(`Invalid configuration '${modelType}.'`);
   }
 
+  // To make sure image container is not showing in case of having non-image workloads in future.
+  if (modelType === 'image-segmentation-cpu' || modelType === 'image-segmentation-gpu') {
+    document.getElementById('imageContainer').style.display = 'block';
+    document.getElementById('textContainer').style.display = 'none';
+  } else {
+    document.getElementById('imageContainer').style.display = 'none'; 
+    document.getElementById('textContainer').style.display = 'block';
+  }
+
   appName = modelConfigs[modelType].description;
   const benchmark = modelConfigs[modelType].create();
   await benchmark.init();
@@ -122,14 +182,6 @@ export async function initializeBenchmark(modelType) {
   };
 
   const benchmarkConnector = new BenchmarkConnector(suites, appName, appVersion);
-
-  // Monkey-patch the disconnect method to call our cleanup function.
-  const originalDisconnect = benchmarkConnector.disconnect.bind(benchmarkConnector);
-  benchmarkConnector.disconnect = () => {
-    benchmark.cleanup();
-    originalDisconnect();
-  };
-
   benchmarkConnector.connect();
 }
 
