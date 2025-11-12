@@ -41,11 +41,25 @@ TODO(dlehmann): Expand on this.
 - Serve the overall runner via `npm run dev` in the repository root directory.
 - Browse to http://localhost:8080, click on run to see the new workload.
 
+### LiteRT.js-based workloads
+
+- Inside `resources/litert-js/src/index.mjs`, add a new async function and `ModelConfig` for your workload.
+- Add the name of your model to `MODELS_TO_DOWNLOAD` in `resources/litert-js/src/download-models.mjs`.
+- Add `<your-new-workload-name>.mjs` inside `resources/litert-js/src`, similar to the existing ones.
+- Add an entry and a plugin for the new workload in `resources/litert-js/webpack.commom.js`.
+- Run `npm install` and `npm run build` inside `resources/litert-js` to produce output in `dist/`.
+- Add the workload to `resources/default-tests.mjs`, analogous to the existing workloads.
+- Serve the overall runner via `npm run dev` in the repository root directory.
+- Browse to http://localhost:8080, click on run to see the new workload.
+
 ### Other workloads
 
 - Make a copy of `resources/transformers-js` and rename it to `resources/<your-selected-name>`.
-- Update the `description` and `dependencies` field in `resources/<your-selected-name>/package.json`.
-- Adjust the code inside `resources/<your-selectedname>/src/index.html` and `resources/<your-selected-name>/src/index.mjs` .
+- Update the `description` and `dependencies` in `resources/<your-selected-name>/package.json`.
+- Adjust the code inside `resources/<your-selectedname>/src/index.html`, `resources/<your-selected-name>/src/index.mjs` and `resources/<your-selected-name>/src/download-models.mjs`.
+- Update entries and a plugins in `resources/<your-selected-name>/webpack.commom.js`.
+- Update `.gitignore`.
+- Delete `resources/<your-selected-name>/models` if you have any.
 - Run `npm install` and `npm run build` inside `resources/<your-selected-name>` to produce output in `dist/`.
 - Add the workload to `resources/default-tests.mjs`, analogous to the existing workloads.
 - Serve the overall runner via `npm run dev` in the repository root directory.

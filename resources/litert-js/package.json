@@ -1,0 +1,33 @@
+{
+    "name": "litert-js",
+    "version": "1.0.0",
+    "description": "LiteRT.js benchmark runner",
+    "engines": {
+        "node": ">=18.13.0",
+        "npm": ">=8.19.3"
+    },
+    "private": true,
+    "scripts": {
+        "dev": "http-server ./dist -p 7005 -c-1 --cors -o",
+        "prebuild": "node src/download-models.mjs",
+        "build": "webpack --config webpack.prod.js",
+        "serve": "http-server ./dist -p 7006 -c-1 --cors -o"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "dependencies": {
+        "@litertjs/core": "^0.2.1",
+        "@tensorflow/tfjs": "^4.22.0",
+        "@tensorflow/tfjs-node": "^4.22.0",
+        "html-webpack-plugin": "^5.6.4",
+        "http-server": "^14.1.1",
+        "speedometer-utils": "../shared",
+        "webpack": "^5.102.1",
+        "webpack-merge": "^6.0.1"
+    },
+    "devDependencies": {
+        "copy-webpack-plugin": "^13.0.1",
+        "webpack-cli": "^6.0.1"
+    }
+}

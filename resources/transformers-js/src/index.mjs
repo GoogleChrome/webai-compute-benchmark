@@ -2,8 +2,8 @@ import { BenchmarkConnector } from "speedometer-utils/benchmark.mjs";
 import { AsyncBenchmarkStep, AsyncBenchmarkSuite } from "speedometer-utils/benchmark.mjs";
 import { forceLayout } from "speedometer-utils/helpers.mjs";
 import { pipeline, env, dot, read_audio } from '@huggingface/transformers';
-import jfkAudio from '../media/jfk_1962_0912_spaceeffort.wav';
-import imageWithBackground from '../media/image.jpg';
+import jfkAudio from '../../media/jfk_1962_0912_spaceeffort.wav';
+import imageWithBackground from '../../media/image.jpg';
 
 /*
 Paste below into dev console for manual testing:
@@ -120,7 +120,7 @@ class BackgroundRemoval {
   async run() {
     const result = await this.model(this.imageURL);
     const output = document.getElementById('output');
-    // result is a raw image so nothing meaningful will be shown. Kept this line to be consistent with other workloads.
+    // TODO(rezvan): Add image visualization.
     output.textContent = result;
   }
 }

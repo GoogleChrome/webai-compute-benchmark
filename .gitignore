@@ -8,5 +8,9 @@
 /resources/transformers-js/dist/
 /resources/transformers-js/models/
 
+/resources/litert-js/node_modules/
+/resources/litert-js/dist/
+/resources/litert-js/models/
+
 .vscode
 .angular
