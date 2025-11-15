@@ -12,6 +12,12 @@ module.exports = {
         'speech-recognition-gpu': './src/speech-recognition-gpu.mjs',
         'background-removal-cpu': './src/background-removal-cpu.mjs',
         'background-removal-gpu': './src/background-removal-gpu.mjs',
+        'text-classification-cpu': './src/text-classification-cpu.mjs',
+        'text-classification-gpu': './src/text-classification-gpu.mjs',
+        'image-classification-cpu': './src/image-classification-cpu.mjs',
+        'image-classification-gpu': './src/image-classification-gpu.mjs',
+        'text-to-speech-cpu': './src/text-to-speech-cpu.mjs',
+        'text-to-speech-gpu': './src/text-to-speech-gpu.mjs',
     },
     plugins: [
         new HtmlWebpackPlugin({
@@ -61,6 +67,42 @@ module.exports = {
             template: path.resolve(__dirname, "src", "index.html"),
             filename: 'background-removal-gpu.html',
             chunks: ['background-removal-gpu'],
+        }),
+        new HtmlWebpackPlugin({
+            title: "Transfomers.js Runner",
+            template: path.resolve(__dirname, "src", "index.html"),
+            filename: 'text-classification-cpu.html',
+            chunks: ['text-classification-cpu'],
+        }),
+        new HtmlWebpackPlugin({
+            title: "Transfomers.js Runner",
+            template: path.resolve(__dirname, "src", "index.html"),
+            filename: 'text-classification-gpu.html',
+            chunks: ['text-classification-gpu'],
+        }),
+        new HtmlWebpackPlugin({
+            title: "Transfomers.js Runner",
+            template: path.resolve(__dirname, "src", "index.html"),
+            filename: 'image-classification-cpu.html',
+            chunks: ['image-classification-cpu'],
+        }),
+        new HtmlWebpackPlugin({
+            title: "Transfomers.js Runner",
+            template: path.resolve(__dirname, "src", "index.html"),
+            filename: 'image-classification-gpu.html',
+            chunks: ['image-classification-gpu'],
+        }),
+        new HtmlWebpackPlugin({
+            title: "Transfomers.js Runner",
+            template: path.resolve(__dirname, "src", "index.html"),
+            filename: 'text-to-speech-cpu.html',
+            chunks: ['text-to-speech-cpu'],
+        }),
+        new HtmlWebpackPlugin({
+            title: "Transfomers.js Runner",
+            template: path.resolve(__dirname, "src", "index.html"),
+            filename: 'text-to-speech-gpu.html',
+            chunks: ['text-to-speech-gpu'],
         }),
     ],
     output: {

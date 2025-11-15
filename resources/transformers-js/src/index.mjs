@@ -1,7 +1,8 @@
 import { BenchmarkConnector } from "speedometer-utils/benchmark.mjs";
 import { AsyncBenchmarkStep, AsyncBenchmarkSuite } from "speedometer-utils/benchmark.mjs";
 import { forceLayout } from "speedometer-utils/helpers.mjs";
-import { pipeline, env, dot, read_audio } from '@huggingface/transformers';
+import { pipeline, env, dot, read_audio, AutoTokenizer, AutoModelForSequenceClassification } from '@huggingface/transformers';
+import { KokoroTTS } from "kokoro-js";
 import jfkAudio from '../../media/jfk_1962_0912_spaceeffort.wav';
 import imageWithBackground from '../../media/image.jpg';
 
@@ -33,7 +34,7 @@ class FeatureExtraction {
 
   async init() {
     document.getElementById('device').textContent = this.device;
-    document.getElementById('workload').textContent = "Feature extraction";
+    document.getElementById('workload').textContent = "feature extraction";
     document.getElementById('input').textContent = `"${this.SENTENCE_1}"`;
     this.model = await pipeline('feature-extraction', "Xenova/UAE-Large-V1", { device: this.device, dtype: "q4" },);
   }
@@ -125,6 +126,116 @@ class BackgroundRemoval {
   }
 }
 
+/*--------- Text classificatiom workload using mixedbread-ai/mxbai-rerank-base-v1 model ---------*/
+
+class TextClassification {
+  constructor(device) {
+    this.device = device;
+    this.query = "Who wrote 'To Kill a Mockingbird'?"
+    this.documents = ["'To Kill a Mockingbird' is a novel by Harper Lee published in 1960. It was immediately successful, winning the Pulitzer Prize, and has become a classic of modern American literature.",
+    "The novel 'Moby-Dick' was written by Herman Melville and first published in 1851. It is considered a masterpiece of American literature and deals with complex themes of obsession, revenge, and the conflict between good and evil.",
+    "Harper Lee, an American novelist widely known for her novel 'To Kill a Mockingbird', was born in 1926 in Monroeville, Alabama. She received the Pulitzer Prize for Fiction in 1961.",
+    "Jane Austen was an English novelist known primarily for her six major novels, which interpret, critique and comment upon the British landed gentry at the end of the 18th century.",
+    "The 'Harry Potter' series, which consists of seven fantasy novels written by British author J.K. Rowling, is among the most popular and critically acclaimed books of the modern era.",
+    "'The Great Gatsby', a novel written by American author F. Scott Fitzgerald, was published in 1925. The story is set in the Jazz Age and follows the life of millionaire Jay Gatsby and his pursuit of Daisy Buchanan."]
+  }
+  async init() {
+    document.getElementById('device').textContent = this.device;
+    document.getElementById('workload').textContent = "text classification";
+    document.getElementById('input').textContent = `"${this.documents}"`;
+    
+    const model_id = 'mixedbread-ai/mxbai-rerank-base-v1';
+    this.model = await AutoModelForSequenceClassification.from_pretrained(model_id, { device: this.device, dtype: "fp32" });
+    this.tokenizer = await AutoTokenizer.from_pretrained(model_id);
+
+  }
+
+    /**
+   * Performs ranking with the CrossEncoder on the given query and documents. Returns a sorted list with the document indices and scores.
+   * @param {string} query A single query
+   * @param {string[]} documents A list of documents
+   * @param {Object} options Options for ranking
+   * @param {number} [options.top_k=undefined] Return the top-k documents. If undefined, all documents are returned.
+   * @param {number} [options.return_documents=false] If true, also returns the documents. If false, only returns the indices and scores.
+   */
+  async rank(query, documents, {
+      top_k = undefined,
+      return_documents = false,} = {}) {
+      const inputs = this.tokenizer(
+          new Array(documents.length).fill(query),
+          {
+              text_pair: documents,
+              padding: true,
+              truncation: true,
+          }
+      )
+      const { logits } = await this.model(inputs);
+      return logits
+          .sigmoid()
+          .tolist()
+          .map(([score], i) => ({
+              corpus_id: i,
+              score,
+              ...(return_documents ? { text: documents[i] } : {})
+          }))
+          .sort((a, b) => b.score - a.score)
+          .slice(0, top_k);
+  }
+
+  async run() {
+    const results = await this.rank(this.query, this.documents, { return_documents: true, top_k: 3 });
+    const output = document.getElementById('output');
+    output.textContent = JSON.stringify(results, null, 2);
+  }
+}
+
+/*--------- Image classification workload using AdamCodd/vit-base-nsfw-detector ---------*/
+
+class ImageClassification {
+  constructor(device) {
+    this.device = device;
+    this.imageURL = imageWithBackground;
+  }
+  async init() {
+    document.getElementById('device').textContent = this.device;
+    document.getElementById('workload').textContent = "image classification";
+    document.getElementById('input').textContent = `Image classification of a local image.`;
+    
+    this.model = await pipeline('image-classification', "AdamCodd/vit-base-nsfw-detector", { device: this.device, dtype: "q4f16" },);
+  }
+
+  async run() {
+    const result = await this.model(this.imageURL);
+    const output = document.getElementById('output');
+    output.textContent = result[0].label;
+  }
+}
+
+/*--------- Text to speech workload using onnx-community/Kokoro-82M-v1.0-ONNX model ---------*/
+
+class TextToSpeech {
+  constructor(device) {
+    this.device = device;
+    this.text = "Web AI is a new frontier for machine learning, enabling powerful applications to run directly in your browser."
+  }
+  async init() {
+    document.getElementById('device').textContent = this.device;
+    document.getElementById('workload').textContent = "text to speech";
+    document.getElementById('input').textContent = `"${this.text}"`;
+    this.model = await KokoroTTS.from_pretrained("onnx-community/Kokoro-82M-v1.0-ONNX", {
+      device: this.device,
+      dtype: "q4f16",
+    });
+  }
+
+  async run() {
+    const result = await this.model.generate(this.text);
+    const output = document.getElementById('output');
+    // TODO: find a way to show the duration of the model. result.save("ausio.wav") downloaded an audio file successfully.
+    output.textContent = `Generated audio of length ${result.audio.length}`;
+  }
+}
+
 /*--------- Workload configurations ---------*/
 
 const modelConfigs = {
@@ -159,6 +270,30 @@ const modelConfigs = {
   'background-removal-gpu': {
     description: 'Background removal on gpu',
     create: () => { return new BackgroundRemoval('webgpu'); },
+  },
+  'text-classification-cpu': {
+    description: 'Text classification on cpu',
+    create: () => { return new TextClassification('wasm'); },
+  },
+  'text-classification-gpu': {
+    description: 'Text classification on gpu',
+    create: () => { return new TextClassification('webgpu'); },
+  },
+  'image-classification-cpu': {
+    description: 'Image classification on cpu',
+    create: () => { return new ImageClassification('wasm'); },
+  },
+  'image-classification-gpu': {
+    description: 'Image classification on gpu',
+    create: () => { return new ImageClassification('webgpu'); },
+  },
+  'text-to-speech-cpu': {
+    description: 'Text to speech on cpu',
+    create: () => { return new TextToSpeech('wasm'); },
+  },
+  'text-to-speech-gpu': {
+    description: 'Text to speech on gpu',
+    create: () => { return new TextToSpeech('webgpu'); },
   },
 };
 
