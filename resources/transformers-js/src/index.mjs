@@ -116,6 +116,20 @@ class BackgroundRemoval {
     document.getElementById('workload').textContent = "background removal";
     document.getElementById('input').textContent = `Removing background from local image.`;
     
+    // Dynamically create and inject the CSS for the output container.
+    const style = document.createElement('style');
+    style.textContent = `
+        #output {
+            border: 1px solid #ccc;
+            width: 256px;
+            height: 256px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    `;
+    document.head.appendChild(style);
+
     // TODO: Initially we wanted to use briaai/RMBG-2.0 model, but it has a known issue (https://github.com/microsoft/onnxruntime/issues/21968) cause it to be not usable.
     // We should check later if the issue has been resolved or select another model. In the meanwhile, we will use Xenova/modnet
     this.model = await pipeline('background-removal', "Xenova/modnet", { device: this.device, dtype: "uint8" },);
@@ -123,11 +137,20 @@ class BackgroundRemoval {
 
   async run() {
     const result = await this.model(this.imageURL);
-    const canvas = result[0].toCanvas();
+    
+    // Prepare result to display
+    const offscreenCanvas = await result[0].toCanvas(); 
+    const imageBitmap = offscreenCanvas.transferToImageBitmap();
+    const finalCanvas = document.createElement('canvas');
+    finalCanvas.width = imageBitmap.width;
+    finalCanvas.height = imageBitmap.height;
+    finalCanvas.style.width = "100%";
+    finalCanvas.style.height = "100%";
+    const ctx = finalCanvas.getContext('2d');
+    ctx.drawImage(imageBitmap, 0, 0);
     const output = document.getElementById('output');
     output.innerHTML = '';
-    output.appendChild(canvas);
-    await new Promise(resolve => setTimeout(resolve, 3000));
+    output.appendChild(finalCanvas);
   }
 }
 
