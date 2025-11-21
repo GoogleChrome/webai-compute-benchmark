@@ -139,18 +139,29 @@ class BackgroundRemoval {
     const result = await this.model(this.imageURL);
     
     // Prepare result to display
-    const offscreenCanvas = await result[0].toCanvas(); 
-    const imageBitmap = offscreenCanvas.transferToImageBitmap();
-    const finalCanvas = document.createElement('canvas');
-    finalCanvas.width = imageBitmap.width;
-    finalCanvas.height = imageBitmap.height;
-    finalCanvas.style.width = "100%";
-    finalCanvas.style.height = "100%";
-    const ctx = finalCanvas.getContext('2d');
-    ctx.drawImage(imageBitmap, 0, 0);
+    const offscreenCanvas = await result[0].toCanvas();
+
     const output = document.getElementById('output');
-    output.innerHTML = '';
-    output.appendChild(finalCanvas);
+    let finalCanvas = output.querySelector('canvas');
+
+    // If canvas doesn't exist, create and append it.
+    if (!finalCanvas) {
+      finalCanvas = document.createElement('canvas');
+      finalCanvas.style.width = "100%";
+      finalCanvas.style.height = "100%";
+      output.innerHTML = '';
+      output.appendChild(finalCanvas);
+    }
+
+      finalCanvas.width = offscreenCanvas.width;
+      finalCanvas.height = offscreenCanvas.height;
+
+    const ctx = finalCanvas.getContext('2d');
+    if (ctx) {
+      ctx.drawImage(offscreenCanvas, 0, 0);
+    } else {
+      console.error("Could not get 2D context from the canvas.");
+    }
   }
 }
 
