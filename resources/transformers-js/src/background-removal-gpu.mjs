@@ -1,3 +1,3 @@
 import { initializeBenchmark } from './index.mjs';
 
-initializeBenchmark('background-removal-cpu');
+initializeBenchmark('background-removal-gpu');

@@ -117,6 +117,20 @@ class BackgroundRemoval {
     document.getElementById('workload').textContent = "background removal";
     document.getElementById('input').textContent = `Removing background from local image.`;
     
+    // Dynamically create and inject the CSS for the output container.
+    const style = document.createElement('style');
+    style.textContent = `
+        #output {
+            border: 1px solid #ccc;
+            width: 256px;
+            height: 256px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    `;
+    document.head.appendChild(style);
+
     // TODO: Initially we wanted to use briaai/RMBG-2.0 model, but it has a known issue (https://github.com/microsoft/onnxruntime/issues/21968) cause it to be not usable.
     // We should check later if the issue has been resolved or select another model. In the meanwhile, we will use Xenova/modnet
     this.model = await pipeline('background-removal', "Xenova/modnet", { device: this.device, dtype: "uint8" },);
@@ -124,9 +138,31 @@ class BackgroundRemoval {
 
   async run() {
     const result = await this.model(this.imageURL);
+    
+    // Prepare result to display
+    const offscreenCanvas = await result[0].toCanvas();
+
     const output = document.getElementById('output');
-    // TODO(rezvan): Add image visualization.
-    output.textContent = result;
+    let finalCanvas = output.querySelector('canvas');
+
+    // If canvas doesn't exist, create and append it.
+    if (!finalCanvas) {
+      finalCanvas = document.createElement('canvas');
+      finalCanvas.style.width = "100%";
+      finalCanvas.style.height = "100%";
+      output.innerHTML = '';
+      output.appendChild(finalCanvas);
+    }
+
+      finalCanvas.width = offscreenCanvas.width;
+      finalCanvas.height = offscreenCanvas.height;
+
+    const ctx = finalCanvas.getContext('2d');
+    if (ctx) {
+      ctx.drawImage(offscreenCanvas, 0, 0);
+    } else {
+      console.error("Could not get 2D context from the canvas.");
+    }
   }
 }
 
