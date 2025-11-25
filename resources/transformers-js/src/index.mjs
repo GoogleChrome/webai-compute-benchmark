@@ -65,7 +65,7 @@ class SentenceSimilarity {
     document.getElementById('workload').textContent = "sentence similarity";
     document.getElementById('input').textContent = `"${this.SENTENCES}"`;
     // The int8 model does not perform well on WebGPU. We may want to use another dtype for WebGPU workload.
-    this.model = await pipeline('feature-extraction', "Alibaba-NLP/gte-base-en-v1.5", { device: this.device, dtype: "int8" },);
+    this.model = await pipeline('feature-extraction', "Alibaba-NLP/gte-base-en-v1.5", { device: this.device, dtype: "fp16" },);
   }
 
   async run() {
@@ -266,9 +266,9 @@ class ZeroShotImageClassification {
     const model_id = "Marqo/marqo-fashionSigLIP";
 
     this.tokenizer = await AutoTokenizer.from_pretrained(model_id, { device: this.device});
-    this.text_model = await SiglipTextModel.from_pretrained(model_id, { device: this.device, dtype: "q4f16" });
+    this.text_model = await SiglipTextModel.from_pretrained(model_id, { device: this.device, dtype: "bnb4" });
     this.processor = await AutoImageProcessor.from_pretrained(model_id, { device: this.device});
-    this.vision_model = await SiglipVisionModel.from_pretrained(model_id, { device: this.device, dtype: "q4f16" });
+    this.vision_model = await SiglipVisionModel.from_pretrained(model_id, { device: this.device, dtype: "bnb4" });
 
     this.image = await RawImage.read(this.imageURL);
   }
@@ -303,7 +303,7 @@ class TextToSpeech {
     document.getElementById('input').textContent = `"${this.text}"`;
     this.model = await KokoroTTS.from_pretrained("onnx-community/Kokoro-82M-v1.0-ONNX", {
       device: this.device,
-      dtype: "q4f16",
+      dtype: "fp32",
     });
   }
 

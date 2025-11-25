@@ -16,7 +16,7 @@ const MODELS_TO_DOWNLOAD = [
     { 
         id: 'Alibaba-NLP/gte-base-en-v1.5', 
         task: 'feature-extraction', 
-        dtype: 'int8'
+        dtype: 'fp16'
     },
     { 
         id: 'Xenova/whisper-small', 
@@ -42,7 +42,7 @@ const MODELS_TO_DOWNLOAD = [
 
 const KOKORO_REPO = 'onnx-community/Kokoro-82M-v1.0-ONNX';
 const KOKORO_FILES = [
-   'model_q4f16.onnx',
+   'model.onnx',
    'config.json',
    'tokenizer.json',
    'tokenizer_config.json',
@@ -85,17 +85,17 @@ async function downloadModels() {
         }
 
         // Download Marqo/marqo-fashionSigLIP model
-        console.log(`Downloading files for Marqo/marqo-fashionSigLIP (zero-shot-image-classification, dtype: q4f16)...`);
+        console.log(`Downloading files for Marqo/marqo-fashionSigLIP (zero-shot-image-classification, dtype: bnb4)...`);
         await SiglipVisionModel.from_pretrained("Marqo/marqo-fashionSigLIP" ,{ 
                     cache_dir: env.localModelPath,
-                    dtype: 'q4f16'
+                    dtype: 'bnb4'
                 });
         await AutoImageProcessor.from_pretrained("Marqo/marqo-fashionSigLIP", {
             cache_dir: env.localModelPath,
         });
         await SiglipTextModel.from_pretrained("Marqo/marqo-fashionSigLIP", {
             cache_dir: env.localModelPath,
-            dtype: 'q4f16'
+            dtype: 'bnb4'
         });
         await AutoTokenizer.from_pretrained("Marqo/marqo-fashionSigLIP", {
             cache_dir: env.localModelPath,
