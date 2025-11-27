@@ -285,7 +285,6 @@ class ZeroShotImageClassification {
     const text_probs = softmax(normalized_text_embeds.map((text_embed) => 100.0 * dot(normalized_image_embeds, text_embed)));
 
     const output = document.getElementById('output');
-    // To save space, we use a smaller model here which results in different output on wasm and webgpu. The result on webgpu seems incorrect when using models other than fp32 model.
     output.textContent = JSON.stringify(Object.fromEntries(this.texts.map((text, i) => [text, text_probs[i]])), null, 2);
   }
 }
@@ -311,8 +310,6 @@ class TextToSpeech {
     const result = await this.model.generate(this.text);
     const output = document.getElementById('output');
     const durationInMs = (result.audio.length / 24000) * 1000;
-    // With wasm the audio file looks good. With webgpu, the size of the audio file and its duration is the same as the wasm generated audio but the audio sounds corrupted.
-    // To get the correct webgpu audio, we should use the fp32 version of the model.
     output.textContent = `Generated audio of duration ${durationInMs.toFixed(2)} ms`;
   }
 }
