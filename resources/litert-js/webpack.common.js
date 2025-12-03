@@ -7,6 +7,10 @@ module.exports = {
     entry: {
         'image-segmentation-cpu': './src/image-segmentation-cpu.mjs',
         'image-segmentation-gpu': './src/image-segmentation-gpu.mjs',
+        'image-classification-cpu': './src/image-classification-cpu.mjs',
+        'image-classification-gpu': './src/image-classification-gpu.mjs',
+        'hand-detection-cpu': './src/hand-detection-cpu.mjs',
+        'hand-detection-gpu': './src/hand-detection-gpu.mjs',
     },
     plugins: [
         new HtmlWebpackPlugin({
@@ -20,6 +24,30 @@ module.exports = {
             template: path.resolve(__dirname, "src", "index.html"),
             filename: 'image-segmentation-gpu.html',
             chunks: ['image-segmentation-gpu'],
+        }),
+        new HtmlWebpackPlugin({
+            title: "LiteRT.js Runner",
+            template: path.resolve(__dirname, "src", "index.html"),
+            filename: 'image-classification-cpu.html',
+            chunks: ['image-classification-cpu'],
+        }),
+        new HtmlWebpackPlugin({
+            title: "LiteRT.js Runner",
+            template: path.resolve(__dirname, "src", "index.html"),
+            filename: 'image-classification-gpu.html',
+            chunks: ['image-classification-gpu'],
+        }),
+        new HtmlWebpackPlugin({
+            title: "LiteRT.js Runner",
+            template: path.resolve(__dirname, "src", "index.html"),
+            filename: 'hand-detection-cpu.html',
+            chunks: ['hand-detection-cpu'],
+        }),
+        new HtmlWebpackPlugin({
+            title: "LiteRT.js Runner",
+            template: path.resolve(__dirname, "src", "index.html"),
+            filename: 'hand-detection-gpu.html',
+            chunks: ['hand-detection-gpu'],
         }),
         new CopyPlugin({
             patterns: [

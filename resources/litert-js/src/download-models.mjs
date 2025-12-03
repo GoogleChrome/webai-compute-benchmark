@@ -7,14 +7,32 @@ const MODEL_DIR = './models';
 const HUGGINGFACE_RESOLVE_URL = 'https://huggingface.co';
 
 const MODELS_TO_DOWNLOAD = [
-    { 
+    {
+        // https://huggingface.co/qualcomm/MediaPipe-Selfie-Segmentation/blob/main/MediaPipe-Selfie-Segmentation_float.tflite 
         repo: 'qualcomm/MediaPipe-Selfie-Segmentation', 
         filename: 'MediaPipe-Selfie-Segmentation_float.tflite',
         branch: 'main'
     },
+    { 
+        // https://huggingface.co/qualcomm/MobileNet-v3-Small/blob/main/MobileNet-v3-Small_float.tflite
+        repo: 'qualcomm/MobileNet-v3-Small', 
+        filename: 'MobileNet-v3-Small_float.tflite',
+        branch: 'main'
+    },
+    {
+        // This is a standard file for ImageNet class labels, hosted by Google.
+        repo: 'google-storage',
+        filename: 'imagenet_class_index.json',
+        url: 'https://storage.googleapis.com/download.tensorflow.org/data/imagenet_class_index.json'
+    },
+    { 
+        // https://huggingface.co/qualcomm/MediaPipe-Hand-Detection/blob/main/MediaPipe-Hand-Detection_HandLandmarkDetector_float.tflite
+        repo: 'qualcomm/MediaPipe-Hand-Detection', 
+        filename: 'MediaPipe-Hand-Detection_HandLandmarkDetector_float.tflite',
+        branch: 'main'
+    }
 ];
 
-// https://huggingface.co/qualcomm/MediaPipe-Selfie-Segmentation/blob/main/MediaPipe-Selfie-Segmentation_float.tflite
 function getDownloadUrl(repo, filename, branch) {
     return `${HUGGINGFACE_RESOLVE_URL}/${repo}/resolve/${branch}/${filename}`;
 }
@@ -27,8 +45,9 @@ async function downloadModels() {
 
     console.log(`Starting TFLite model downloads to: **${MODEL_DIR}**`);
 
-    for (const { repo, filename, branch } of MODELS_TO_DOWNLOAD) {
-        const modelUrl = getDownloadUrl(repo, filename, branch);
+    for (const modelInfo of MODELS_TO_DOWNLOAD) {
+        const { repo, filename, branch, url } = modelInfo;
+        const modelUrl = url || getDownloadUrl(repo, filename, branch);
         const outputPath = path.join(MODEL_DIR, path.basename(filename));
 
         console.log(`\nAttempting to download **${filename}** from **${repo}**...`);
