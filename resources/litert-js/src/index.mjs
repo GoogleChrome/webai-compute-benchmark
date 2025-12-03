@@ -83,6 +83,7 @@ async renderSegmentation(maskData, originalImage) {
   */
  async visualizeOutput(maskTensor, originalImage) {
    // If the output tensor is on the GPU, we must copy it to the CPU first.
+   // To use result in javascript logic and DOM manipulation, we need CPU tensors.
    let cpuMaskTensor;
    if (maskTensor.accelerator === 'webgpu') {
      cpuMaskTensor = await maskTensor.copyTo('wasm');
