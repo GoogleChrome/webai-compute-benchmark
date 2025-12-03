@@ -25,9 +25,14 @@ const WASM_PATH = 'resources/wasm/';
 */
 function processImageToTensor(image, height, width) {
    return tf.tidy(() => {
+       // Convert the image data to a tensor [H, W, 3]
        const tensor = tf.browser.fromPixels(image);
+
+       // Resize and Normalize
        const resized = tf.image.resizeBilinear(tensor, [height, width]);
        const normalized = resized.div(255.0);
+
+       // Add batch dimension: [H, W, 3] -> [1, H, W, 3]
        return normalized.expandDims(0);
    });
 }
