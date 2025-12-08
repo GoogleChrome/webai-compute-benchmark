@@ -1,4 +1,4 @@
-A transformer.js workload runner
+An experimental workload runner.
 
 ## Build steps
 
