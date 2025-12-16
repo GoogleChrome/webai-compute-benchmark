@@ -11,7 +11,7 @@ See the Speedometer repo for a more detailed explanation, e.g., in which phases 
 TODO(dlehmann): Expand on this.
 
 - Prerequisites: NPM, node. `npm install` to install the dependencies of the runner.
-- Creating `dist/` for workloads: Run `npm install` and `npm run build` inside `resources/<working-benchmarks>` to produce output in `dist/` (Currently the only working benchmark is `transformers-js`).
+- Building the individual workloads: Run `npm run build` in the root directory. This will install dependencies and build all workloads in `resources/`. Alternatively, you can also manually run `npm install` and `npm run build` inside `resources/<workload>/` to produce output in `resources/<workload>/dist/`.
 - Starting the web server: `npm run dev` in the root directory.
 - Running a workload in the browser.
 - Inspecting and understanding metrics.
@@ -24,7 +24,7 @@ TODO(dlehmann): Expand on this.
 
 ## How to Run Individual Workload
 
-- If you have not done that yet, run `npm install` and `npm run build` inside `resources/<working-benchmarks>` to produce output in `dist/` (Currently the only working benchmark is `transformers-js`)
+- If you have not done that yet, run `npm install` and `npm run build` inside `resources/<working-benchmarks>` to produce output in `dist/`.
 - `npm run dev` in the root directory to start the server
 -  Navigate to `http://localhost:8080/resources/<working-benchmarks>/dist/<workload>.html` (e.g. http://localhost:8080/resources/transformers-js/dist/feature-extraction-cpu.html ) then do `manualRun()` in dev console.
 
