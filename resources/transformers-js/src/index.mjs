@@ -64,8 +64,9 @@ class SentenceSimilarity {
     document.getElementById('device').textContent = this.device;
     document.getElementById('workload').textContent = "sentence similarity";
     document.getElementById('input').textContent = `"${this.SENTENCES}"`;
-    // The int8 model does not perform well on WebGPU. We may want to use another dtype for WebGPU workload.
-    this.model = await pipeline('feature-extraction', "Alibaba-NLP/gte-base-en-v1.5", { device: this.device, dtype: "fp16" },);
+    // fp16 model is the best option in terms of size and correctness of the result, but unfortunately in not working
+    // on glinux. For now, we are using fp32 model.
+    this.model = await pipeline('feature-extraction', "Alibaba-NLP/gte-base-en-v1.5", { device: this.device, dtype: "fp32" },);
   }
 
   async run() {
@@ -95,6 +96,7 @@ class SpeechRecognition {
     
     // TODO: Initially we wanted to use distil-whisper/distil-large-v3 model, but the onnx files seems to be broken.
     // We should check if we can resolve this issue or select another model. In the meanwhile, we will use Xenova/whisper-small
+    // None of the available models returned correct answer on webGPU on gLinux machine. We use q4f16 here which is one of the small models.
     this.model = await pipeline('automatic-speech-recognition', "Xenova/whisper-small", { device: this.device, dtype: "q4f16" },);
   }
 
@@ -239,8 +241,8 @@ class ImageClassification {
     document.getElementById('device').textContent = this.device;
     document.getElementById('workload').textContent = "image classification";
     document.getElementById('input').textContent = `Image classification of a local image.`;
-    
-    this.model = await pipeline('image-classification', "AdamCodd/vit-base-nsfw-detector", { device: this.device, dtype: "q4f16" },);
+    // On gLinux machines, none of the quantized models produce correct results in webGPU backend. Using fp32 model for now.
+    this.model = await pipeline('image-classification', "AdamCodd/vit-base-nsfw-detector", { device: this.device, dtype: "fp32" },);
   }
 
   async run() {

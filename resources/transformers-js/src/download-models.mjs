@@ -16,7 +16,7 @@ const MODELS_TO_DOWNLOAD = [
     { 
         id: 'Alibaba-NLP/gte-base-en-v1.5', 
         task: 'feature-extraction', 
-        dtype: 'fp16'
+        dtype: 'fp32'
     },
     { 
         id: 'Xenova/whisper-small', 
@@ -36,7 +36,7 @@ const MODELS_TO_DOWNLOAD = [
     { 
         id: 'AdamCodd/vit-base-nsfw-detector', 
         task: 'image-classification', 
-        dtype: 'q4f16'
+        dtype: 'fp32'
     }
 ];
 
