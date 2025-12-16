@@ -2,8 +2,6 @@ import fs from 'fs';
 
 const MODEL_DIR = './models';
 
-env.localModelPath = MODEL_DIR;
-
 async function downloadModels() {
     if (!fs.existsSync(MODEL_DIR)) {
         console.log(`Creating directory: ${MODEL_DIR}`);
@@ -11,9 +9,6 @@ async function downloadModels() {
     }
 
     console.log(`Starting model downloads to: ${MODEL_DIR}`);
-
-    const originalAllowRemote = env.allowRemoteModels;
-    env.allowRemoteModels = true;
 
     try {
       // Download models here!  

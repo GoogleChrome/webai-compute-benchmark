@@ -7,11 +7,7 @@ Paste below into dev console for manual testing:
 manualRun();
 */
 
-// Disable the loading of remote models from the Hugging Face Hub:
-env.localModelPath = '../models';
-env.allowRemoteModels = false;
-env.allowLocalModels = true;
-
+// Please ensure that models are self-contained for this benchmark and not loaded remotely from a CDN or the Hugging Face Hub.
 
 /*--------- Empty extraction workload ---------*/
 
