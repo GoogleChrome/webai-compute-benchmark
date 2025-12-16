@@ -120,13 +120,13 @@ async renderSegmentation(maskData, originalImage) {
    // Preparing image
    const imageTensor = processImageToTensor(this.originalImage, this.INPUT_HEIGHT, this.INPUT_WIDTH);
    const imageData = imageTensor.dataSync();
-   const cpuTensor = new Tensor(imageData, [1, this.INPUT_HEIGHT, this.INPUT_WIDTH, 3]);
+   const tensor = new Tensor(imageData, [1, this.INPUT_HEIGHT, this.INPUT_WIDTH, 3]);
    imageTensor.dispose();
 
    if (this.device === 'webgpu') {
-     this.litertImageTensor = await cpuTensor.moveTo('webgpu');
+     this.litertImageTensor = await tensor.moveTo('webgpu');
    } else {
-     this.litertImageTensor = cpuTensor;
+     this.litertImageTensor = tensor;
    }
  }
 
@@ -189,13 +189,13 @@ class ImageClassification {
    // Preparing image
    const imageTensor = processImageToTensor(this.originalImage, this.INPUT_HEIGHT, this.INPUT_WIDTH);
    const imageData = imageTensor.dataSync();
-   const cpuTensor = new Tensor(imageData, [1, this.INPUT_HEIGHT, this.INPUT_WIDTH, 3]);
+   const tensor = new Tensor(imageData, [1, this.INPUT_HEIGHT, this.INPUT_WIDTH, 3]);
    imageTensor.dispose();
 
    if (this.device === 'webgpu') {
-     this.litertImageTensor = await cpuTensor.moveTo('webgpu');
+     this.litertImageTensor = await tensor.moveTo('webgpu');
    } else {
-     this.litertImageTensor = cpuTensor;
+     this.litertImageTensor = tensor;
    }
  }
 
@@ -290,13 +290,13 @@ class HandDetection {
  
     const imageTensor = processImageToTensor(this.originalImage, this.INPUT_HEIGHT, this.INPUT_WIDTH);
     const imageData = imageTensor.dataSync();
-    const cpuTensor = new Tensor(imageData, [1, this.INPUT_HEIGHT, this.INPUT_WIDTH, 3], 'float32');
+    const tensor = new Tensor(imageData, [1, this.INPUT_HEIGHT, this.INPUT_WIDTH, 3], 'float32');
     imageTensor.dispose();
  
     if (this.device === 'webgpu') {
-      this.litertImageTensor = await cpuTensor.moveTo('webgpu');
+      this.litertImageTensor = await tensor.moveTo('webgpu');
     } else {
-      this.litertImageTensor = cpuTensor;
+      this.litertImageTensor = tensor;
     }
   }
  
