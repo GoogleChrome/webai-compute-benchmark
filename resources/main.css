@@ -1,12 +1,12 @@
 :root {
     --viewport-width: 800px;
     --viewport-height: 600px;
-    --foreground: rgb(235, 235, 235);
+    --foreground: rgb(233, 234, 216);
     --foreground-alpha: rgba(235, 235, 235, 0.2);
     --inactive-color: rgb(128, 128, 128);
-    --background: rgb(46, 51, 55);
+    --background: rgb(43, 59, 59);
     --running-background: #f5f5f5;
-    --highlight: rgb(232, 79, 79);
+    --highlight: #eee0a5;
     --text-width: 650px;
     --metrics-line-height: 25px;
     --scrollbar-width: 10px;
@@ -97,14 +97,13 @@ main {
     font-size: 65px;
     font-family: Futura-Medium, Futura, Roboto, "Helvetica Neue", Helvetica, Verdana, sans-serif;
     font-style: italic;
-    letter-spacing: -0.05em;
     position: absolute;
     right: 0;
     top: -105px;
 }
 
 .next {
-    right: -13px;
+    right: -18px;
     top: -110px;
     color: var(--highlight);
 }
@@ -200,11 +199,14 @@ button,
     min-width: 200px;
     padding: 5px 0px;
     margin: 0 20px;
-    font-size: 25px;
     color: var(--foreground);
     background-color: transparent;
     cursor: pointer;
     user-select: none;
+}
+
+.buttons button {
+    font-size: 25px;
 }
 
 .buttons button:active {
@@ -217,6 +219,11 @@ button,
     outline: none;
     border-color: var(--highlight);
 }
+
+#home .button-row {
+    margin-top: 3em;
+}
+
 
 .developer-mode {
     border-radius: 10px;
