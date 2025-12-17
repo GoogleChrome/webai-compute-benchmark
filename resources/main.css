@@ -5,8 +5,8 @@
     --foreground-alpha: rgba(235, 235, 235, 0.2);
     --inactive-color: rgb(128, 128, 128);
     --background: rgb(43, 59, 59);
-    --running-background: #f5f5f5;
-    --highlight: #eee0a5;
+    --running-background: rgb(245, 245, 245);
+    --highlight: rgb(237, 223, 166);
     --text-width: 650px;
     --metrics-line-height: 25px;
     --scrollbar-width: 10px;
