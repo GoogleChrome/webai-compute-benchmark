@@ -75,7 +75,7 @@ export class BenchmarkSuite {
             type: "suite-tests-complete",
             status: "success",
             result: measuredValues,
-            suitename: this.name,
+            suiteName: this.name,
         };
     }
 }

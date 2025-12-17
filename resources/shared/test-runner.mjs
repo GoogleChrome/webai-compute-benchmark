@@ -1,3 +1,4 @@
+import { isExclamationToken } from "typescript";
 import { TEST_INVOKER_LOOKUP } from "./test-invoker.mjs";
 
 export class TestRunner {
@@ -71,7 +72,6 @@ export class TestRunner {
             // Force the layout here to ensure we're measuring the layout time.
             // FIXME: This seems to be broken when building the TodoMVC workload from sources.
             // Compare the rebuilt dist/ output with the scripts in resources/shared/*.mjs.
-            
             this.page?.layout();
 
             const asyncEndTime = performance.now();
@@ -86,11 +86,17 @@ export class TestRunner {
         };
 
         const report = () => this.#callback(this.#test, syncTime, asyncTime);
-        const invokerType = this.#suite.type === "async" || this.#params.useAsyncSteps ? "async" : this.#params.measurementMethod;
+        const invokerType = this.invokerType;
         const invokerClass = TEST_INVOKER_LOOKUP[invokerType];
         const invoker = new invokerClass(runSync, measureAsync, report, this.#params);
 
         return invoker.start();
+    }
+
+    get invokerType() {
+        if (this.#suite.type === "async") return "async";
+        if (this.#params.useAsyncSteps) return "async";
+        return this.#params.measurementMethod
     }
 }
 
@@ -104,9 +110,13 @@ export class AsyncTestRunner extends TestRunner {
     }
 }
 
-export const TEST_RUNNER_LOOKUP = {
+export class RemoteTestRunner extends TestRunner {
+}
+
+
+export const TEST_RUNNER_LOOKUP = Object.freeze({
     __proto__: null,
     default: TestRunner,
     async: AsyncTestRunner,
-    remote: TestRunner,
-};
+    remote: RemoteTestRunner,
+});
