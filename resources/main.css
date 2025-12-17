@@ -90,11 +90,9 @@ main {
     height: 406px;
     cursor: pointer;
     text-decoration: none;
-}
-
-.logo img {
-    width: 100%;
-    height: auto;
+    background-image: image-set(url("logo.png") 2x);
+    background-repeat: no-repeat;
+    background-size: contain; 
 }
 
 .version {
