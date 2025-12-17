@@ -6,6 +6,10 @@ Those workloads help us to evaluate the performance of the implementation, e.g.,
 The runner, which allows to select workloads, including ones from external sources, and collects and displays metrics, is based on the [Speedometer runner](https://github.com/WebKit/Speedometer).
 See the Speedometer repo for a more detailed explanation, e.g., in which phases workloads are run and measured.
 
+## Platform Support
+
+The `main` branch is tested and is runnable on MacBook Pro (M3). If you want to run the benchmark on gLinux machines, please use the `running-models-on-glinux` branch.
+
 ## Setup Instructions, How to Run Workloads
 
 - Prerequisites: NPM, node. `npm install` to install the dependencies of the runner.
