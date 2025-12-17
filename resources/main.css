@@ -92,6 +92,11 @@ main {
     text-decoration: none;
 }
 
+.logo img {
+    width: 100%;
+    height: auto;
+}
+
 .version {
     transform: rotate(-90deg);
     font-size: 65px;
@@ -103,8 +108,8 @@ main {
 }
 
 .next {
-    right: -18px;
-    top: -110px;
+    right: -16px;
+    top: -115px;
     color: var(--highlight);
 }
 

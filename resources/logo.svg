@@ -25,12 +25,12 @@
      inkscape:deskcolor="#505050"
      inkscape:document-units="mm"
      inkscape:zoom="2.4455751"
-     inkscape:cx="22.8985"
-     inkscape:cy="169.28534"
+     inkscape:cx="22.694049"
+     inkscape:cy="169.28533"
      inkscape:window-width="1856"
      inkscape:window-height="1385"
      inkscape:window-x="2309"
-     inkscape:window-y="399"
+     inkscape:window-y="371"
      inkscape:window-maximized="0"
      inkscape:current-layer="layer1" />
   <defs
@@ -62,7 +62,7 @@
        x2="1.8651497"
        y2="10.74007"
        gradientUnits="userSpaceOnUse"
-       gradientTransform="translate(0.18324391,-2.2234895)" />
+       gradientTransform="translate(4.4165774,-2.2234895)" />
   </defs>
   <g
      inkscape:label="Layer 1"
@@ -75,21 +75,30 @@
        style="text-align:start;writing-mode:lr-tb;direction:ltr;white-space:pre;shape-inside:url(#rect3);display:inline;fill:#000000" />
     <text
        xml:space="preserve"
-       style="font-size:16.9333px;text-align:start;writing-mode:lr-tb;direction:ltr;text-anchor:start;fill:#000000;stroke:url(#linearGradient11);stroke-width:0.261;stroke-dasharray:none"
-       x="-52.114872"
+       style="font-size:16.9333px;text-align:end;writing-mode:lr-tb;direction:ltr;text-anchor:end;fill:#000000;stroke:none;stroke-width:0.261;stroke-dasharray:none"
+       x="-0.29797053"
        y="15.089809"
        id="text4"
        transform="rotate(-90)"><tspan
          sodipodi:role="line"
-         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:16.9333px;font-family:Futura;-inkscape-font-specification:'Futura, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#f9f9bb;fill-opacity:1;stroke:none;stroke-width:0.261;stroke-dasharray:none;stroke-opacity:1"
-         x="-52.114872"
+         style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:16.9333px;font-family:Futura;-inkscape-font-specification:'Futura, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;text-align:end;text-anchor:end;fill:#f9f9bb;fill-opacity:1;stroke:none;stroke-width:0.261;stroke-dasharray:none;stroke-opacity:1"
+         x="4.9275374"
          y="15.089809"
          id="tspan3"><tspan
-           style="font-style:italic;font-variant:normal;font-weight:500;font-stretch:normal;font-size:16.9333px;font-family:Futura;-inkscape-font-specification:'Futura, Medium Italic';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#eee0a5;fill-opacity:1;stroke:none;stroke-opacity:1"
+           style="font-style:italic;font-variant:normal;font-weight:500;font-stretch:normal;font-size:16.9333px;font-family:Futura;-inkscape-font-specification:'Futura, Medium Italic';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;text-align:end;text-anchor:end;fill:#eee0a5;fill-opacity:1;stroke:none;stroke-opacity:1"
            id="tspan14">web</tspan><tspan
            id="tspan11"
-           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:16.9333px;font-family:Futura;-inkscape-font-specification:'Futura, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.261;stroke-dasharray:none;stroke-opacity:1">Ai</tspan><tspan
-           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:16.9333px;font-family:Futura;-inkscape-font-specification:'Futura, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#ffffff;fill-opacity:1;stroke:none;stroke-opacity:1"
+           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:16.9333px;font-family:Futura;-inkscape-font-specification:'Futura, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;text-align:end;text-anchor:end;fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.261;stroke-dasharray:none;stroke-opacity:1">ai</tspan><tspan
+           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:16.9333px;font-family:Futura;-inkscape-font-specification:'Futura, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;text-align:end;text-anchor:end;fill:#ffffff;fill-opacity:1;stroke:none;stroke-opacity:1"
            id="tspan13"> </tspan></tspan></text>
+    <text
+       xml:space="preserve"
+       style="font-weight:800;font-stretch:condensed;font-size:16.9333px;font-family:Futura;-inkscape-font-specification:'Futura, Ultra-Bold Condensed';text-align:start;writing-mode:lr-tb;direction:ltr;text-anchor:start;fill:#eee0a5;stroke-width:0.261"
+       x="-27.371714"
+       y="9.6287851"
+       id="text1"><tspan
+         sodipodi:role="line"
+         id="tspan1"
+         style="stroke-width:0.261"></tspan></text>
   </g>
 </svg>
