@@ -59,7 +59,6 @@
         "typescript": "^5.0.4"
     },
     "dependencies": {
-        "@actions/core": "^2.0.1",
-        "@tensorflow/tfjs": "^4.22.0"
+        "@actions/core": "^2.0.1"
     }
 }
