@@ -1,4 +1,3 @@
-import { isExclamationToken } from "typescript";
 import { TEST_INVOKER_LOOKUP } from "./test-invoker.mjs";
 
 export class TestRunner {
