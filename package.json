@@ -15,6 +15,7 @@
     },
     "license": "SEE LICENSE IN LICENSE",
     "scripts": {
+        "build": "node script/build.mjs",
         "dev": "node tests/server.mjs",
         "lint:check": "eslint **/*.{js,mjs,jsx,ts,tsx}",
         "lint:fix": "eslint \"**/*.{js,mjs,jsx,ts,tsx}\" --fix",
@@ -58,6 +59,7 @@
         "typescript": "^5.0.4"
     },
     "dependencies": {
+        "@actions/core": "^2.0.1",
         "@tensorflow/tfjs": "^4.22.0"
     }
 }
