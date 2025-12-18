@@ -1,4 +1,4 @@
-import { TEST_RUNNER_LOOKUP } from "./shared/test-runner.mjs";
+import { STEP_RUNNER_LOOKUP } from "./shared/step-runner.mjs";
 import { WarmupSuite } from "./benchmark-runner.mjs";
 
 export class SuiteRunner {
@@ -82,7 +82,7 @@ export class SuiteRunner {
                 await this.#client.willRunTest(this.#suite, test);
 
             const testRunnerType = this.testRunnerType;
-            const testRunnerClass = TEST_RUNNER_LOOKUP[testRunnerType];
+            const testRunnerClass = STEP_RUNNER_LOOKUP[testRunnerType];
             const testRunner = new testRunnerClass(this.#frame, this.#page, this.#params, this.#suite, test, this._recordTestResults, testRunnerType);
             await testRunner.runTest();
         }

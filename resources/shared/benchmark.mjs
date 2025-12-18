@@ -1,5 +1,5 @@
 /* eslint-disable no-case-declarations */
-import { TestRunner, AsyncTestRunner} from "./test-runner.mjs";
+import { StepRunner, AsyncStepRunner } from "./step-runner.mjs";
 import { Params } from "./params.mjs";
 
 /**
@@ -8,21 +8,22 @@ import { Params } from "./params.mjs";
  * A single test step, with a common interface to interact with.
  */
 export class BenchmarkStep {
-    constructor(name, run) {
+    constructor(name, run, { measureAsync = true } = {}) {
         this.name = name;
         this.run = run;
+        this.measureAsync = measureAsync;
     }
 
-    async runAndRecord(params, suite, test, callback) {
-        const testRunner = new TestRunner(null, null, params, suite, test, callback);
+    async runAndRecord(params, suite, callback) {
+        const testRunner = new StepRunner(null, null, params, suite, this, callback);
         const result = await testRunner.runTest();
         return result;
     }
 }
 
 export class AsyncBenchmarkStep extends BenchmarkStep {
-    async runAndRecord(params, suite, test, callback) {
-        const testRunner = new AsyncTestRunner(null, null, params, suite, test, callback);
+    async runAndRecord(params, suite, callback) {
+        const testRunner = new AsyncStepRunner(null, null, params, suite, this, callback);
         const result = await testRunner.runTest();
         return result;
     }
@@ -34,19 +35,24 @@ export class AsyncBenchmarkStep extends BenchmarkStep {
  * A single test suite that contains one or more test steps.
  */
 export class BenchmarkSuite {
-    constructor(name, tests, type = "sync") {
+    constructor(name, steps, type = "sync") {
         this.name = name;
-        this.tests = tests;
+        this.steps = steps;
         this.type = type;
     }
 
-    record(_test, syncTime, asyncTime) {
-        const total = syncTime + asyncTime;
+    record(step, syncTime, asyncTime) {
+        let total = syncTime;
+        const tests = {};
+        if (step.measureAsync) {
+            total += asyncTime;
+            tests.Async = asyncTime;
+            test.Sync = syncTime;
+        }
         const results = {
-            tests: { Sync: syncTime, Async: asyncTime },
+            tests,
             total: total,
         };
-
         return results;
     }
 
@@ -61,18 +67,18 @@ export class BenchmarkSuite {
 
         performance.mark(suiteStartLabel);
 
-        for (const test of this.tests) {
-            const result = await test.runAndRecord(params, this, test, this.record);
-            measuredValues.tests[test.name] = result;
+        for (const step of this.steps) {
+            const result = await step.runAndRecord(params, this, this.record);
+            measuredValues.tests[step.name] = result;
             measuredValues.total += result.total;
-            onProgress?.(test.name);
+            onProgress?.(step.name);
         }
 
         performance.mark(suiteEndLabel);
         performance.measure(`suite-${this.name}`, suiteStartLabel, suiteEndLabel);
 
         return {
-            type: "suite-tests-complete",
+            type: "suite-steps-complete",
             status: "success",
             result: measuredValues,
             suiteName: this.name,

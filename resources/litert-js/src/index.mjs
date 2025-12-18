@@ -384,8 +384,8 @@ export async function initializeBenchmark(modelType) {
              forceLayout();
              await benchmark.run();
              forceLayout();
-         }),
-     ], true),
+         }, { measureAsync: false }),
+     ]),
  };
 
  const benchmarkConnector = new BenchmarkConnector(suites, appName, appVersion);
