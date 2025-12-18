@@ -31,7 +31,7 @@ export class StepRunner {
         test.run(page);
     }
 
-    async runTest() {
+    async runStep() {
         // Prepare all mark labels outside the measuring loop.
         const suiteName = this.#suite.name;
         const stepName = this.#step.name;

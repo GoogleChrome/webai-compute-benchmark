@@ -16,7 +16,7 @@ export class BenchmarkStep {
 
     async runAndRecord(params, suite, callback) {
         const testRunner = new StepRunner(null, null, params, suite, this, callback);
-        const result = await testRunner.runTest();
+        const result = await testRunner.runStep();
         return result;
     }
 }
@@ -24,7 +24,7 @@ export class BenchmarkStep {
 export class AsyncBenchmarkStep extends BenchmarkStep {
     async runAndRecord(params, suite, callback) {
         const testRunner = new AsyncStepRunner(null, null, params, suite, this, callback);
-        const result = await testRunner.runTest();
+        const result = await testRunner.runStep();
         return result;
     }
 }
@@ -58,7 +58,7 @@ export class BenchmarkSuite {
 
     async runAndRecord(params, onProgress) {
         const measuredValues = {
-            tests: {},
+            steps: {},
             prepare: 0,
             total: 0,
         };
@@ -69,7 +69,7 @@ export class BenchmarkSuite {
 
         for (const step of this.steps) {
             const result = await step.runAndRecord(params, this, this.record);
-            measuredValues.tests[step.name] = result;
+            measuredValues.steps[step.name] = result;
             measuredValues.total += result.total;
             onProgress?.(step.name);
         }
