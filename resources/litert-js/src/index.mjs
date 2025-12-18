@@ -1,5 +1,4 @@
-import { BenchmarkConnector } from "speedometer-utils/benchmark.mjs";
-import { AsyncBenchmarkStep, AsyncBenchmarkSuite } from "speedometer-utils/benchmark.mjs";
+import { BenchmarkConnector, AsyncBenchmarkStep, AsyncBenchmarkSuite } from "speedometer-utils/benchmark.mjs";
 import { forceLayout } from "speedometer-utils/helpers.mjs";
 import * as tf from '@tensorflow/tfjs';
 import { loadAndCompile, loadLiteRt, Tensor } from '@litertjs/core';

@@ -1,5 +1,4 @@
-import { BenchmarkConnector } from "speedometer-utils/benchmark.mjs";
-import { AsyncBenchmarkStep, AsyncBenchmarkSuite } from "speedometer-utils/benchmark.mjs";
+import { BenchmarkConnector,  AsyncBenchmarkStep, AsyncBenchmarkSuite } from "speedometer-utils/benchmark.mjs";
 import { forceLayout } from "speedometer-utils/helpers.mjs";
 import { pipeline, env, dot, read_audio, AutoTokenizer, AutoModelForSequenceClassification, SiglipVisionModel, AutoImageProcessor, RawImage, SiglipTextModel, softmax } from '@huggingface/transformers';
 import { KokoroTTS } from "kokoro-js";
@@ -403,7 +402,7 @@ export async function initializeBenchmark(modelType) {
               await benchmark.run();
               forceLayout();
           }),
-      ], true),
+      ], { measureAsync: false }),
   };
 
   const benchmarkConnector = new BenchmarkConnector(suites, appName, appVersion);
