@@ -60,7 +60,7 @@ export class Params {
         this.iterationCount = this._parseIntParam(searchParams, "iterationCount", 1);
         this.suites = this._parseSuites(searchParams);
         this.tags = this._parseTags(searchParams);
-        this.developerMode = this._parseBooleanParam(searchParams, "developerMode");
+        this.developerMode = this._parseBooleanParam(searchParams, "developerMode", "dev");
         this.useWarmupSuite = this._parseBooleanParam(searchParams, "useWarmupSuite");
         this.useAsyncSteps = this._parseBooleanParam(searchParams, "useAsyncSteps");
         this.waitBeforeSync = this._parseIntParam(searchParams, "waitBeforeSync", 0);
@@ -77,11 +77,15 @@ export class Params {
             console.error("Got unused search params", unused);
     }
 
-    _parseBooleanParam(searchParams, paramKey) {
-        if (!searchParams.has(paramKey))
-            return false;
-        searchParams.delete(paramKey);
-        return true;
+    _parseBooleanParam(searchParams, ...paramKeys) {
+        let result = false;
+        for (const key of paramKeys) {
+            if (searchParams.has(key)) {
+                searchParams.delete(key);
+                result = true;
+            }
+        }
+        return result;
     }
 
     _parseIntParam(searchParams, paramKey, minValue) {
