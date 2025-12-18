@@ -12,12 +12,12 @@ manualRun();
 */
 
 function getDtypeForCurrentPlatform(options) {
-  const platform = navigator.userAgent.toLowerCase();
-  if (platform.includes('mac')) {
+  const platform = (navigator.userAgentData?.platform || navigator.userAgent).toLowerCase();
+  if (platform.includes('mac') || platform.includes('macos')) {
     return options.mac || options.default;
   } else if (platform.includes('linux')) {
     return options.linux || options.default;
-  } else if (platform.includes('win')) {
+  } else if (platform.includes('win') || platform.includes('windows')) {
     return options.windows || options.default;
   }
   return options.default;

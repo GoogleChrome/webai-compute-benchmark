@@ -57,6 +57,7 @@ function getHuggingFaceUrl(repo, filename, branch = 'main') {
 
 function getDtypeForCurrentPlatform(options) {
     const platform = process.platform;
+    console.log(platform);
     const platformKey = {
       'darwin': 'mac',
       'win32': 'windows',
@@ -85,11 +86,6 @@ async function downloadModels() {
         for (const modelInfo of MODELS_TO_DOWNLOAD) {
             const { id: modelId, task: modelTask, dtypeOptions } = modelInfo;
             const modelDType = getDtypeForCurrentPlatform(dtypeOptions);
-
-            if (!modelDType) {
-                console.warn(`No suitable dtype found for ${modelId} on platform ${process.platform}. Skipping.`);
-                continue;
-            }
 
             console.log(`Downloading files for ${modelId} (${modelTask}, dtype: ${modelDType}) for ${process.platform}...`);
             
