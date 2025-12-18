@@ -11,32 +11,32 @@ const MODELS_TO_DOWNLOAD = [
     { 
         id: 'Xenova/UAE-Large-V1', 
         task: 'feature-extraction', 
-        dtype: 'q4'
+        dtypeOptions: { default: 'q4' }
     },
     { 
         id: 'Alibaba-NLP/gte-base-en-v1.5', 
         task: 'feature-extraction', 
-        dtype: 'fp16'
+        dtypeOptions: { default: 'fp16', linux: 'fp32' }
     },
     { 
         id: 'Xenova/whisper-small', 
         task: 'automatic-speech-recognition', 
-        dtype: 'q4f16'
+        dtypeOptions: { default: 'q4f16' }
     },
     { 
         id: 'Xenova/modnet', 
         task: 'background-removal', 
-        dtype: 'uint8'
+        dtypeOptions: { default: 'uint8' }
     },
     { 
         id: 'mixedbread-ai/mxbai-rerank-base-v1', 
         task: 'text-classification', 
-        dtype: 'fp32'
+        dtypeOptions: { default: 'fp32' }
     },
     { 
         id: 'AdamCodd/vit-base-nsfw-detector', 
         task: 'image-classification', 
-        dtype: 'q4f16'
+        dtypeOptions: { default: 'q4f16', linux: 'fp32' }
     }
 ];
 
@@ -55,6 +55,20 @@ function getHuggingFaceUrl(repo, filename, branch = 'main') {
     return `https://huggingface.co/${repo}/resolve/${branch}/${filename}`;
 }
 
+function getDtypeForCurrentPlatform(options) {
+    const platform = process.platform;
+    const platformKey = {
+      'darwin': 'mac',
+      'win32': 'windows',
+      'linux': 'linux'
+    }[platform];
+  
+    if (platformKey && options[platformKey]) {
+      return options[platformKey];
+    }
+    return options.default;
+  }
+
 async function downloadModels() {
     if (!fs.existsSync(MODEL_DIR)) {
         console.log(`Creating directory: ${MODEL_DIR}`);
@@ -69,9 +83,15 @@ async function downloadModels() {
     try {
         // Download models that work with pipeline
         for (const modelInfo of MODELS_TO_DOWNLOAD) {
-            const { id: modelId, task: modelTask, dtype: modelDType } = modelInfo;
-            
-            console.log(`Downloading files for ${modelId} (${modelTask}, dtype: ${modelDType})...`);
+            const { id: modelId, task: modelTask, dtypeOptions } = modelInfo;
+            const modelDType = getDtypeForCurrentPlatform(dtypeOptions);
+
+            if (!modelDType) {
+                console.warn(`No suitable dtype found for ${modelId} on platform ${process.platform}. Skipping.`);
+                continue;
+            }
+
+            console.log(`Downloading files for ${modelId} (${modelTask}, dtype: ${modelDType}) for ${process.platform}...`);
             
             await pipeline(
                 modelTask, 
@@ -81,7 +101,7 @@ async function downloadModels() {
                     dtype: modelDType
                 });
             
-            console.log(`Successfully downloaded and cached ${modelId}`);
+            console.log(`Successfully downloaded and cached ${modelId} with dtype: ${modelDType}`);
         }
 
         // Download Marqo/marqo-fashionSigLIP model

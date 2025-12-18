@@ -11,6 +11,19 @@ Paste below into dev console for manual testing:
 manualRun();
 */
 
+// Helper function to select dtype based on the OS
+function getDtypeForCurrentPlatform(options) {
+  const platform = navigator.userAgent.toLowerCase();
+  if (platform.includes('mac')) {
+    return options.mac || options.default;
+  } else if (platform.includes('linux')) {
+    return options.linux || options.default;
+  } else if (platform.includes('win')) {
+    return options.windows || options.default;
+  }
+  return options.default;
+}
+
 // Workloads and models: https://docs.google.com/spreadsheets/d/1tRzuM34dUpijXcJwHmmK7-JDK6zZHhBPHECvBXEF0n8/edit?usp=sharing
 // Model selection documentation: https://docs.google.com/document/d/1EDyRD5dHxYpONyE_xf_Tb1A3GvNSrLQpp-msCcWNnF0/edit?usp=sharing
 
@@ -39,7 +52,8 @@ class FeatureExtraction {
     document.getElementById('device').textContent = this.device;
     document.getElementById('workload').textContent = "feature extraction";
     document.getElementById('input').textContent = `"${this.SENTENCE_1}"`;
-    this.model = await pipeline('feature-extraction', "Xenova/UAE-Large-V1", { device: this.device, dtype: "q4" },);
+    const dtype = getDtypeForCurrentPlatform({ default: "q4" });
+    this.model = await pipeline('feature-extraction', "Xenova/UAE-Large-V1", { device: this.device, dtype: dtype },);
   }
 
   async run() {
@@ -64,8 +78,10 @@ class SentenceSimilarity {
     document.getElementById('device').textContent = this.device;
     document.getElementById('workload').textContent = "sentence similarity";
     document.getElementById('input').textContent = `"${this.SENTENCES}"`;
-    // The int8 model does not perform well on WebGPU. We may want to use another dtype for WebGPU workload.
-    this.model = await pipeline('feature-extraction', "Alibaba-NLP/gte-base-en-v1.5", { device: this.device, dtype: "fp16" },);
+    // fp16 model is the best option in terms of size and correctness of the result, but unfortunately in not working
+    // on gLinux. On gLinux, we are using fp32 model.
+    const dtype = getDtypeForCurrentPlatform({ default: "fp16", linux: "fp32" });
+    this.model = await pipeline('feature-extraction', "Alibaba-NLP/gte-base-en-v1.5", { device: this.device, dtype: dtype },);
   }
 
   async run() {
@@ -94,8 +110,10 @@ class SpeechRecognition {
     this.audioData = await read_audio(this.audioURL, 16000);
     
     // TODO: Initially we wanted to use distil-whisper/distil-large-v3 model, but the onnx files seems to be broken.
-    // We should check if we can resolve this issue or select another model. In the meanwhile, we will use Xenova/whisper-small
-    this.model = await pipeline('automatic-speech-recognition', "Xenova/whisper-small", { device: this.device, dtype: "q4f16" },);
+    // We should check if we can resolve this issue or select another model. In the meanwhile, we use Xenova/whisper-small.
+    // None of the available models returned correct answer on webGPU on gLinux machine. We use q4f16 here which is one of the small models.
+    const dtype = getDtypeForCurrentPlatform({ default: "q4f16" });
+    this.model = await pipeline('automatic-speech-recognition', "Xenova/whisper-small", { device: this.device, dtype: dtype },);
   }
 
   async run() {
@@ -132,8 +150,9 @@ class BackgroundRemoval {
     document.head.appendChild(style);
 
     // TODO: Initially we wanted to use briaai/RMBG-2.0 model, but it has a known issue (https://github.com/microsoft/onnxruntime/issues/21968) cause it to be not usable.
-    // We should check later if the issue has been resolved or select another model. In the meanwhile, we will use Xenova/modnet
-    this.model = await pipeline('background-removal', "Xenova/modnet", { device: this.device, dtype: "uint8" },);
+    // We should check later if the issue has been resolved or select another model. In the meanwhile, we will use Xenova/modnet.
+    const dtype = getDtypeForCurrentPlatform({ default: "uint8" });
+    this.model = await pipeline('background-removal', "Xenova/modnet", { device: this.device, dtype: dtype },);
   }
 
   async run() {
@@ -185,7 +204,8 @@ class TextReranking {
     document.getElementById('input').textContent = `"${this.documents}"`;
     
     const model_id = 'mixedbread-ai/mxbai-rerank-base-v1';
-    this.model = await AutoModelForSequenceClassification.from_pretrained(model_id, { device: this.device, dtype: "fp32" });
+    const dtype = getDtypeForCurrentPlatform({ default: "fp32" });
+    this.model = await AutoModelForSequenceClassification.from_pretrained(model_id, { device: this.device, dtype: dtype });
     this.tokenizer = await AutoTokenizer.from_pretrained(model_id);
   }
 
@@ -240,7 +260,9 @@ class ImageClassification {
     document.getElementById('workload').textContent = "image classification";
     document.getElementById('input').textContent = `Image classification of a local image.`;
     
-    this.model = await pipeline('image-classification', "AdamCodd/vit-base-nsfw-detector", { device: this.device, dtype: "q4f16" },);
+    // On gLinux machines, none of the quantized models produce correct results in webGPU backend. So we use fp32 model for now.
+    const dtype = getDtypeForCurrentPlatform({ default: "q4f16", linux: "fp32"});
+    this.model = await pipeline('image-classification', "AdamCodd/vit-base-nsfw-detector", { device: this.device, dtype: dtype },);
   }
 
   async run() {
@@ -265,10 +287,11 @@ class ZeroShotImageClassification {
     
     const model_id = "Marqo/marqo-fashionSigLIP";
 
+    const dtype = getDtypeForCurrentPlatform({ default: "bnb4" });
     this.tokenizer = await AutoTokenizer.from_pretrained(model_id, { device: this.device});
-    this.text_model = await SiglipTextModel.from_pretrained(model_id, { device: this.device, dtype: "bnb4" });
+    this.text_model = await SiglipTextModel.from_pretrained(model_id, { device: this.device, dtype: dtype });
     this.processor = await AutoImageProcessor.from_pretrained(model_id, { device: this.device});
-    this.vision_model = await SiglipVisionModel.from_pretrained(model_id, { device: this.device, dtype: "bnb4" });
+    this.vision_model = await SiglipVisionModel.from_pretrained(model_id, { device: this.device, dtype: dtype });
 
     this.image = await RawImage.read(this.imageURL);
   }
@@ -300,10 +323,8 @@ class TextToSpeech {
     document.getElementById('device').textContent = this.device;
     document.getElementById('workload').textContent = "text to speech";
     document.getElementById('input').textContent = `"${this.text}"`;
-    this.model = await KokoroTTS.from_pretrained("onnx-community/Kokoro-82M-v1.0-ONNX", {
-      device: this.device,
-      dtype: "fp32",
-    });
+    const dtype = getDtypeForCurrentPlatform({ default: "fp32" });
+    this.model = await KokoroTTS.from_pretrained("onnx-community/Kokoro-82M-v1.0-ONNX", { device: this.device, dtype: dtype });
   }
 
   async run() {
