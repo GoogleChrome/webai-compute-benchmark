@@ -11,7 +11,6 @@ Paste below into dev console for manual testing:
 manualRun();
 */
 
-// Helper function to select dtype based on the OS
 function getDtypeForCurrentPlatform(options) {
   const platform = navigator.userAgent.toLowerCase();
   if (platform.includes('mac')) {
