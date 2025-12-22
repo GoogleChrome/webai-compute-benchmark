@@ -68,7 +68,7 @@ export const defaultSuites = [
         type: "remote",
     },
     {
-        name: "SFW Image-Classification-webgpu",
+        name: "SFW-Image-Classification-webgpu",
         url: "resources/transformers-js/dist/image-classification-gpu.html",
         tags: ["default", "image-classification", "webgpu", "transformers-js"],
         type: "remote",
