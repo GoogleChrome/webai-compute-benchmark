@@ -12,5 +12,9 @@
 /resources/litert-js/dist/
 /resources/litert-js/models/
 
+/resources/experimental/node_modules/
+/resources/experimental/dist/
+/resources/experimental/models/
+
 .vscode
 .angular
