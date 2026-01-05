@@ -15,7 +15,7 @@
     },
     "license": "SEE LICENSE IN LICENSE",
     "scripts": {
-        "build": "cd resources/litert-js && npm install && npm run build && cd ../transformers-js && npm install && npm run build",
+        "build": "cd resources/litert-js && npm install && npm run build && cd ../transformers-js && npm install && npm run build && cd ../experimental && npm install && npm run build",
         "dev": "node tests/server.mjs",
         "lint:check": "eslint **/*.{js,mjs,jsx,ts,tsx}",
         "lint:fix": "eslint \"**/*.{js,mjs,jsx,ts,tsx}\" --fix",

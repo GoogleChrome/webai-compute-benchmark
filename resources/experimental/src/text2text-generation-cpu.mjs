@@ -1,3 +1,2 @@
 import { initializeBenchmark } from './index.mjs';
-
-initializeBenchmark('empty-gpu');
+initializeBenchmark('text2text-generation-cpu');

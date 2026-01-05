@@ -4,21 +4,21 @@ const HtmlWebpackPlugin = require("html-webpack-plugin");
 module.exports = {
     target: ["web", "es2020"],
     entry: {
-        'empty-cpu': './src/empty-cpu.mjs',
-        'empty-gpu': './src/empty-gpu.mjs',
+        'text2text-generation-cpu': './src/text2text-generation-cpu.mjs',
+        'text2text-generation-gpu': './src/text2text-generation-gpu.mjs',
     },
     plugins: [
         new HtmlWebpackPlugin({
             title: "Experimental Runner",
             template: path.resolve(__dirname, "src", "index.html"),
-            filename: 'empty-cpu.html',
-            chunks: ['empty-cpu'],
+            filename: 'text2text-generation-cpu.html',
+            chunks: ['text2text-generation-cpu'],
         }),
         new HtmlWebpackPlugin({
             title: "Experimental Runner",
             template: path.resolve(__dirname, "src", "index.html"),
-            filename: 'empty-gpu.html',
-            chunks: ['empty-gpu'],
+            filename: 'text2text-generation-gpu.html',
+            chunks: ['text2text-generation-gpu'],
         }),
     ],
     output: {

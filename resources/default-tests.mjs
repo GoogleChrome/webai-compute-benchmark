@@ -133,4 +133,16 @@ export const defaultSuites = [
         tags: ["default", "hand-detection", "webgpu", "litert-js"],
         type: "remote",
     },
+    {
+        name: "Experimental-Text2Text-Generation-wasm",
+        url: "resources/experimental/dist/text2text-generation-cpu.html",
+        tags: ["default", "text2text-generation", "wasm", "transformers-js"],
+        type: "remote",
+    },
+    {
+        name: "Experimental-Text2Text-Generation-webgpu",
+        url: "resources/experimental/dist/text2text-generation-gpu.html",
+        tags: ["default", "text2text-generation", "webgpu", "transformers-js"],
+        type: "remote",
+    },
 ];
