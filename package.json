@@ -15,7 +15,7 @@
     },
     "license": "SEE LICENSE IN LICENSE",
     "scripts": {
-        "build": "cd resources/litert-js && npm install && npm run build && cd ../transformers-js && npm install && npm run build",
+        "build": "node script/build.mjs",
         "dev": "node tests/server.mjs",
         "lint:check": "eslint **/*.{js,mjs,jsx,ts,tsx}",
         "lint:fix": "eslint \"**/*.{js,mjs,jsx,ts,tsx}\" --fix",
@@ -57,5 +57,8 @@
         "selenium-webdriver": "^4.27.0",
         "sinon": "^17.0.1",
         "typescript": "^5.0.4"
+    },
+    "dependencies": {
+        "@actions/core": "^2.0.1"
     }
 }
