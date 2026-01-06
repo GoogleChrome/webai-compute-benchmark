@@ -96,8 +96,7 @@ class SpeechRecognition {
     
     // TODO: Initially we wanted to use distil-whisper/distil-large-v3 model, but the onnx files seems to be broken.
     // We should check if we can resolve this issue or select another model. In the meanwhile, we use Xenova/whisper-small.
-    // None of the available models returned correct answer on webGPU on gLinux machine. We use q4f16 here which is one of the small models.
-    this.model = await pipeline('automatic-speech-recognition', "Xenova/whisper-small", { device: this.device, dtype: "q4f16" },);
+    this.model = await pipeline('automatic-speech-recognition', "Xenova/whisper-small", { device: this.device, dtype: "q4" },);
   }
 
   async run() {
@@ -242,14 +241,13 @@ class ImageClassification {
     document.getElementById('workload').textContent = "image classification";
     document.getElementById('input').textContent = `Image classification of a local image.`;
 
-    // On gLinux machines, none of the quantized models produce correct results in webGPU backend. So we use fp32 model for now.
-    this.model = await pipeline('image-classification', "AdamCodd/vit-base-nsfw-detector", { device: this.device, dtype: "fp32" },);
+    this.model = await pipeline('image-classification', "AdamCodd/vit-base-nsfw-detector", { device: this.device, dtype: "q4" },);
   }
 
   async run() {
     const result = await this.model(this.imageURL);
     const output = document.getElementById('output');
-    output.textContent = result[0].label;
+    output.textContent = result[0].label + ': ' + result[0].score;
   }
 }
 

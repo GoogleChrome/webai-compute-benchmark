@@ -21,7 +21,7 @@ const MODELS_TO_DOWNLOAD = [
     { 
         id: 'Xenova/whisper-small', 
         task: 'automatic-speech-recognition', 
-        dtype: 'q4f16'
+        dtype: 'q4'
     },
     { 
         id: 'Xenova/modnet', 
@@ -36,7 +36,7 @@ const MODELS_TO_DOWNLOAD = [
     { 
         id: 'AdamCodd/vit-base-nsfw-detector', 
         task: 'image-classification', 
-        dtype: 'fp32'
+        dtype: 'q4'
     }
 ];
 
