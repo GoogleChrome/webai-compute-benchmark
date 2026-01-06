@@ -64,8 +64,8 @@ class SentenceSimilarity {
     document.getElementById('device').textContent = this.device;
     document.getElementById('workload').textContent = "sentence similarity";
     document.getElementById('input').textContent = `"${this.SENTENCES}"`;
-    // fp16 model is the best option in terms of size and correctness of the result, but unfortunately in not working
-    // on gLinux. On gLinux, we are using fp32 model.
+    // The fp16 model is the best option in terms of size and correctness of the result, but unfortunately in not working
+    // on gLinux. So we are using fp32 model.
     this.model = await pipeline('feature-extraction', "Alibaba-NLP/gte-base-en-v1.5", { device: this.device, dtype: "fp32" },);
   }
 
@@ -241,7 +241,7 @@ class ImageClassification {
     document.getElementById('device').textContent = this.device;
     document.getElementById('workload').textContent = "image classification";
     document.getElementById('input').textContent = `Image classification of a local image.`;
-    
+
     // On gLinux machines, none of the quantized models produce correct results in webGPU backend. So we use fp32 model for now.
     this.model = await pipeline('image-classification', "AdamCodd/vit-base-nsfw-detector", { device: this.device, dtype: "fp32" },);
   }
