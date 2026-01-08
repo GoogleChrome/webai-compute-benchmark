@@ -134,15 +134,15 @@ export const defaultSuites = [
         type: "remote",
     },
     {
-        name: "Experimental-Text2Text-Generation-wasm",
-        url: "resources/experimental/dist/text2text-generation-cpu.html",
-        tags: ["default", "text2text-generation", "wasm", "transformers-js"],
+        name: "Experimental-Summarization-wasm",
+        url: "resources/experimental/dist/summarization-cpu.html",
+        tags: ["default", "summarization", "wasm", "transformers-js"],
         type: "remote",
     },
     {
-        name: "Experimental-Text2Text-Generation-webgpu",
-        url: "resources/experimental/dist/text2text-generation-gpu.html",
-        tags: ["default", "text2text-generation", "webgpu", "transformers-js"],
+        name: "Experimental-Summarization-webgpu",
+        url: "resources/experimental/dist/summarization-gpu.html",
+        tags: ["default", "summarization", "webgpu", "transformers-js"],
         type: "remote",
     },
 ];

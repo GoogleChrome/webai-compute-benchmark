@@ -16,44 +16,47 @@ env.allowLocalModels = true;
 
 env.backends.onnx.wasm.wasmPaths = '';
 
-/*--------- Example workload: Text2Text generation workload using Xenova/flan-t5-small model ---------*/
+/*--------- Example workload: Summarization workload using Xenova/distilbart-cnn-6-6 model ---------*/
 
-class Text2TextGeneration {
+class Summarization {
   constructor(device) {
     this.device = device;
-    this.sentence = "Translate English to German: How are you?";
+    this.paragraph = "San Francisco is defined by a unique Mediterranean climate, characterized by cool, fog-shrouded summers and mild, wet winters influenced by the cold currents of the Pacific Ocean. " +
+      "However, this delicate ecosystem is increasingly threatened by climate change, which has intensified the frequency of extreme heat events and prolonged droughts across Northern California. " +
+      "Rising sea levels pose a direct risk to the city’s extensive waterfront infrastructure, while shifting precipitation patterns have heightened the perennial threat of wildfires in the surrounding region. " +
+      "As the city adapts, it faces the complex challenge of preserving its iconic temperate environment against the backdrop of a rapidly warming planet.";
   }
 
   async init() {
     document.getElementById('device').textContent = this.device;
-    document.getElementById('workload').textContent = "text2text generation";
-    document.getElementById('input').textContent = `"${this.sentence}"`;
+    document.getElementById('workload').textContent = "summarization";
+    document.getElementById('input').textContent = `"${this.paragraph}"`;
 
-    // None of the smaller models have correct answer on wasm and webgpu for out input, so we use fp32 model.
-    this.model = await pipeline('text2text-generation', 'Xenova/flan-t5-small', {
+    // None of the smaller models have correct answer on wasm and webgpu on mac and gLinux, so we use fp32 model.
+    this.model = await pipeline('summarization', 'Xenova/distilbart-cnn-6-6', {
       device: this.device,
       dtype: "fp32" 
     });
   }
 
   async run() {
-    const result = await this.model(this.sentence, {
-      max_new_tokens: 20,
+    const result = await this.model(this.paragraph, {
+      max_new_tokens: 100,
     });
-    document.getElementById('output').textContent = `"${result[0].generated_text}"`;
+    document.getElementById('output').textContent = `"${result[0].summary_text}"`;
   }
 }
 
 /*--------- Workload configurations ---------*/
 
 const modelConfigs = {
-  'text2text-generation-cpu': {
-    description: 'Text2Text generation on cpu',
-    create: () => { return new Text2TextGeneration('wasm'); },
+  'summarization-cpu': {
+    description: 'Summarization on cpu',
+    create: () => { return new Summarization('wasm'); },
   },
-  'text2text-generation-gpu': {
-    description: 'Text2Text generation on gpu',
-    create: () => { return new Text2TextGeneration('webgpu'); },
+  'summarization-gpu': {
+    description: 'Summarization on gpu',
+    create: () => { return new Summarization('webgpu'); },
   },
 };
 

@@ -6,8 +6,8 @@ env.localModelPath = MODEL_DIR;
 
 const MODELS_TO_DOWNLOAD = [
     { 
-        id: 'Xenova/flan-t5-small',
-        task: 'text2text-generation', 
+        id: 'Xenova/distilbart-cnn-6-6',
+        task: 'summarization', 
         dtype: 'fp32'
     },
 ];

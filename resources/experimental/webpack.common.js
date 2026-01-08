@@ -4,21 +4,21 @@ const HtmlWebpackPlugin = require("html-webpack-plugin");
 module.exports = {
     target: ["web", "es2020"],
     entry: {
-        'text2text-generation-cpu': './src/text2text-generation-cpu.mjs',
-        'text2text-generation-gpu': './src/text2text-generation-gpu.mjs',
+        'summarization-cpu': './src/summarization-cpu.mjs',
+        'summarization-gpu': './src/summarization-gpu.mjs',
     },
     plugins: [
         new HtmlWebpackPlugin({
             title: "Experimental Runner",
             template: path.resolve(__dirname, "src", "index.html"),
-            filename: 'text2text-generation-cpu.html',
-            chunks: ['text2text-generation-cpu'],
+            filename: 'summarization-cpu.html',
+            chunks: ['summarization-cpu'],
         }),
         new HtmlWebpackPlugin({
             title: "Experimental Runner",
             template: path.resolve(__dirname, "src", "index.html"),
-            filename: 'text2text-generation-gpu.html',
-            chunks: ['text2text-generation-gpu'],
+            filename: 'summarization-gpu.html',
+            chunks: ['summarization-gpu'],
         }),
     ],
     output: {
