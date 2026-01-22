@@ -20,6 +20,13 @@ See the Speedometer repo for a more detailed explanation, e.g., in which phases 
 
 TODO: Add a screenshot of the runner, after updating logo and name and some minor styling of the workloads.
 
+## Customizing Benchmark Runs
+
+The runner supports a number of options to control how the benchmarks are run. For example, you can run a single iteration and specific tagged benchmarks using the `iterationCount` and `tags` parameter in the URL: 
+ - http://localhost:8080/?iterationCount=1&tags=wasm
+
+A full list of the options can be found in [params.mjs](resources/shared/params.mjs).
+
 ## How to Run Individual Workload
 
 - If you have not done that yet, run `npm install` and `npm run build` inside `resources/<workload-group>/` to produce output in `dist/`.
