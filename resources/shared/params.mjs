@@ -35,8 +35,6 @@ export class Params {
     measurePrepare = false;
     // External config url to override internal tests.
     config = "";
-    // Extra parameter for selecting workload config
-    type = ""
 
     constructor(searchParams = undefined) {
         if (searchParams)
@@ -70,7 +68,6 @@ export class Params {
         this.layoutMode = this._parseEnumParam(searchParams, "layoutMode", LAYOUT_MODES);
         this.measurePrepare = this._parseBooleanParam(searchParams, "measurePrepare");
         this.config = this._parseConfig(searchParams);
-        this.type = this._parseBooleanParam(searchParams, "type");
 
         const unused = Array.from(searchParams.keys());
         if (unused.length > 0)
