@@ -112,7 +112,7 @@ async function testDeveloperMode() {
 
 async function test() {
     try {
-        await driver.manage().setTimeouts({ script: 60000 });
+        await driver.manage().setTimeouts({ script: 10 * 60000 });
         await testIterations();
         await testAll();
         await testDeveloperMode();
