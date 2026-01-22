@@ -98,10 +98,10 @@ async function testAll() {
 }
 
 async function testDeveloperMode() {
-    const params = ["developerMode", "iterationCount=1", "warmupBeforeSync=2", "waitBeforeSync=2", "shuffleSeed=123", "suites=Perf-Dashboard"];
+    const params = ["developerMode", "iterationCount=1", "warmupBeforeSync=2", "waitBeforeSync=2", "shuffleSeed=123", "suites=Image-Classification-LiteRT.js-wasm"];
     const metrics = await testPage(`index.html?${params.join("&")}`);
     suites.forEach((suite) => {
-        if (suite.name === "Perf-Dashboard") {
+        if (suite.name === "Image-Classification-LiteRT.js-wasm") {
             const metric = metrics[suite.name];
             assert(metric.values.length === 1);
         } else {
