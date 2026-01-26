@@ -11,14 +11,10 @@ See the Speedometer repo for a more detailed explanation, e.g., in which phases 
 - Prerequisites: NPM, node. `npm install` to install the dependencies of the runner.
 - Building the individual workloads: Run `npm run build` in the root directory. This will install dependencies and build all workloads in `resources/`. Alternatively, you can also manually run `npm install` and `npm run build` inside each `resources/<workload-group>/` sub-directory to produce output in `resources/<workload-group>/dist/`.
 - Starting the web server: `npm run dev` in the root directory.
-- Running a workload in the browser: TODO.
-- Inspecting and understanding metrics: TODO.
 - Most important files:
     - Workloads are in `resources/transformers-js/` and `resources/litert-js`.
     - Shared files are in `resources/shared/`, which is depended-upon as a local package.
     - The default suite / tests to run are in `resources/default-tests.mjs`.
-
-TODO: Add a screenshot of the runner, after updating logo and name and some minor styling of the workloads.
 
 ## How to Run Individual Workload
 
