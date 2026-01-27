@@ -63,7 +63,6 @@ const MARGO_MODELS_TO_DOWNLOAD = [
     },
     {
         class: 'AutoTokenizer',
-        dtype: 'bnb4',
     }
 ];
 const MARGO_NAME_TO_CLASS = {
