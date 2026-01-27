@@ -4,10 +4,10 @@ export default class DownloadCache {
     cached = {};
 
     constructor(filename, force) {
+        this.filename = filename;
         if (force) {
             return;
         }
-        this.filename = filename;
         if (fs.existsSync(filename)) {
             try {
                 this.cached = JSON.parse(fs.readFileSync(filename, 'utf8'));
