@@ -9,6 +9,8 @@ This script runs end2end tests by invoking the benchmark via the main
 Speedometer page in /index.html.
 `.trim();
 
+const ONE_MINUTE_IN_MS = 60000
+
 const { driver, PORT, stop } = await testSetup(HELP);
 
 const suites = benchmarkConfigurator.suites;
@@ -112,7 +114,7 @@ async function testDeveloperMode() {
 
 async function test() {
     try {
-        await driver.manage().setTimeouts({ script: 20 * 60000 });
+        await driver.manage().setTimeouts({ script: 20 * ONE_MINUTE_IN_MS });
         await testIterations();
         await testAll();
         await testDeveloperMode();
