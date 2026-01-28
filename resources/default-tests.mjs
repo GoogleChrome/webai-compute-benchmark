@@ -22,7 +22,7 @@ export const defaultSuites = [
     {
         name: "Sentence-Similarity-webgpu",
         url: "resources/transformers-js/dist/sentence-similarity-gpu.html",
-        tags: ["default", "sentence-similarity", "webgpu", "transformers-js"],
+        tags: ["default", "sentence-similarity", "webgpu", "transformers-js", "gpu-test-suite"],
         type: "remote",
     },
     {
@@ -118,7 +118,7 @@ export const defaultSuites = [
     {
         name: "Image-Classification-LiteRT.js-webgpu",
         url: "resources/litert-js/dist/image-classification-gpu.html",
-        tags: ["default", "image-classification", "webgpu", "litert-js"],
+        tags: ["default", "image-classification", "webgpu", "litert-js", "gpu-test-suite"],
         type: "remote",
     },
     {
