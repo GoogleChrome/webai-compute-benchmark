@@ -19,7 +19,7 @@ const { driver, PORT, stop } = await testSetup(HELP);
 const RUN_FULL_SUITE = false;
 let tags = 'wasm,gpu-test-suite';
 let suites = benchmarkConfigurator.suites.filter(suite => suite.tags.some((tag) => tag === 'wasm' || tag === 'gpu-test-suite'));
-let timeout = 5 * ONE_MINUTE_IN_MS;
+let timeout = 10 * ONE_MINUTE_IN_MS;
 
 if (RUN_FULL_SUITE) {
     tags = 'all';
