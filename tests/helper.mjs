@@ -84,7 +84,7 @@ export default async function testSetup(helpText) {
     process.on("exit", () => stop());
 
     const browserArgs = options["browser-arg"];
-    if (browserArgs.length > 0)
+    if (browserArgs && browserArgs.length > 0)
         browserOptions.addArguments(...browserArgs);
 
     driver = await new Builder().withCapabilities(browserOptions).build();
