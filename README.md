@@ -1,6 +1,6 @@
 # Web AI Workloads
 
-This repository contains interesting AI workloads running on the Web, using WebAssembly (Wasm), WebGPU, WebNN or other underlying technologies.
+This repository contains interesting AI workloads running on the Web, using WebAssembly (Wasm), WebGPU, and in future WebNN or other underlying technologies.
 Those workloads help us to evaluate the performance of the implementation, e.g., in browsers or JavaScript and WebAssembly runtimes.
 
 The runner, which allows to select workloads, including ones from external sources, and collects and displays metrics, is based on the [Speedometer runner](https://github.com/WebKit/Speedometer).
