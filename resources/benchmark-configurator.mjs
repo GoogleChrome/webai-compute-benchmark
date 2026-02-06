@@ -55,10 +55,12 @@ export class BenchmarkConfigurator {
         this.#suites.forEach((suite) => {
             if (!suite.tags)
                 suite.tags = [];
-            if (suite.url.startsWith("experimental/"))
+            if (suite.url.includes("/experimental/")) {
+                suite.tags = suite.tags.filter((tag) => tag !== "default");
                 suite.tags.unshift("all", "experimental");
-            else
+            } else {
                 suite.tags.unshift("all");
+            }
             suite.enabled = suite.tags.includes("default");
             Object.freeze(suite.tags);
             Object.freeze(suite.steps);
