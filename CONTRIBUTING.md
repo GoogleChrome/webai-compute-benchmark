@@ -44,7 +44,7 @@ To propose a new workload, please add it to the `resources/experimental` directo
 - Run `npm run build` in the repository root directory. Alternatively, you can run `npm install` and `npm run build` inside `resources/experimental`.
 - Add the workload to `resources/default-tests.mjs` with the `Experimental-` prefix, analogous to the existing workloads.
 - Serve the overall runner via `npm run dev` in the repository root directory.
-- Browse to `http://localhost:8080` and click "Run" to run the benchmark.
+- The experimental workloads are not part of default set of workloads. Browse to `http://localhost:8080/?developerMode`, select the added workloads alogside any otehr workloads and click "Start Test" to run the benchmark. You can find more instructions about how to use the Developer Mode in ().
 - To run individual experimental workloads,  navigate to `http://localhost:8080/resources/experimental/dist/<workload>.html` then do `manualRun()` in dev console.
 
 ### Code Reviews
