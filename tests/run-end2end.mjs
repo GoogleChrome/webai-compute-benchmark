@@ -5,8 +5,7 @@ import testSetup from "./helper.mjs";
 import { benchmarkConfigurator } from "../resources/benchmark-configurator.mjs";
 
 const HELP = `
-This script runs end2end tests by invoking the benchmark via the main
-Speedometer page in /index.html.
+This script runs end2end tests by invoking the benchmark via the main page in /index.html.
 `.trim();
 
 const ONE_MINUTE_IN_MS = 60000;
@@ -35,13 +34,13 @@ async function testPage(url) {
         if (globalThis.benchmarkClient)
             callback();
         else
-            globalThis.addEventListener("SpeedometerReady", () => callback(), { once: true });
+            globalThis.addEventListener("BenchmarkReady", () => callback(), { once: true });
     });
 
     console.log("    - Awaiting Benchmark");
     const { error, metrics } = await driver.executeAsyncScript((callback) => {
         globalThis.addEventListener(
-            "SpeedometerDone",
+            "BenchmarkDone",
             () =>
                 callback({
                     metrics: globalThis.benchmarkClient.metrics,
