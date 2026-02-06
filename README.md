@@ -19,8 +19,23 @@ See the Speedometer repo for a more detailed explanation, e.g., in which phases 
 ## How to Run Individual Workload
 
 - If you have not done that yet, run `npm install` and `npm run build` inside `resources/<workload-group>/` to produce output in `dist/`.
-- `npm run dev` in the root directory to start the server
--  Navigate to `http://localhost:8080/resources/<workload-group>/dist/<workload>.html` (e.g. http://localhost:8080/resources/transformers-js/dist/feature-extraction-cpu.html ) then do `manualRun()` in dev console.
+- `npm run dev` in the root directory to start the server.
+-  Navigate to `http://localhost:8080/resources/<workload-group>/dist/<workload>.html` (e.g. `http://localhost:8080/resources/transformers-js/dist/feature-extraction-cpu.html`) then do `manualRun()` in the developer console.
+
+## Developer Mode and Custom Parameters
+
+The runner supports a number of options to control how the benchmarks are run.
+They can be set via URL parameters or more conveniently via the developer menu.
+
+To enable the developer menu, append `?developerMode` to the URL, e.g. `http://localhost:8080/?developerMode`.
+Then click on the red box in the top left corner to show this:
+
+<img src="developer-mode.png">
+
+You can select workloads by tag (e.g. all `#wasm` or `#webgpu` workloads) and change parameters of the runner in it.
+Changing them in the developer menu should be immediately reflected in the URL, producing e.g. `http://localhost:8080/?iterationCount=1&tags=wasm`
+
+A full list of the runner options can be found in [params.mjs](resources/shared/params.mjs).
 
 ## Contributing
 
