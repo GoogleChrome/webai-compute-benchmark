@@ -35,17 +35,17 @@ To propose a new workload, please add it to the `resources/experimental` directo
 
 - Update the `description` and `dependencies` in `resources/experimental/package.json`.
 - Inside `resources/experimental/src/index.mjs`, add a new async function and `ModelConfig` for your workload similar to the existing example.
-- Adjust the code inside `resources/experimental/src/index.html` if neede.
+- Adjust the code inside `resources/experimental/src/index.html` if needed.
 - Update `resources/experimental/src/download-models.mjs` to download the model. You can refer to `resources/transformers-js/src/download-models.mjs` and `resources/litert-js/src/download-models.mjs` as examples.
-- Add licensing information of the new model in `resources/experimental/lisense/NOTICEmd` and add any required lince file in `resources/experimental/lisense/`.
+- Add licensing information of the new model in `resources/experimental/license/NOTICE.md` and add any required license file in `resources/experimental/license/`.
 - Add `<your-new-workload-name>.mjs` inside `resources/experimental/src`, similar to the existing ones.
 - Add an entry and a plugin for the new workload in `resources/experimental/webpack.common.js`.
 - Update `.gitignore` if needed.
 - Run `npm run build` in the repository root directory. Alternatively, you can run `npm install` and `npm run build` inside `resources/experimental`.
-- Add the workload to `resources/default-tests.mjs` with the `Experimental-` prefix, analogous to the existing workloads.
+- Add the workload to `resources/default-tests.mjs` with (optionally) the `Experimental-` prefix and `experimental` tag, analogous to the existing workloads.
 - Serve the overall runner via `npm run dev` in the repository root directory.
-- The experimental workloads are not part of default set of workloads. Browse to `http://localhost:8080/?developerMode`, select the added workloads alogside any otehr workloads and click "Start Test" to run the benchmark. You can find more instructions about how to use the Developer Mode in .
-- To run individual experimental workloads,  navigate to `http://localhost:8080/resources/experimental/dist/<workload>.html` then do `manualRun()` in dev console.
+- The experimental workloads are not part of default set of workloads. Browse to `http://localhost:8080/?developerMode`, select the added workloads alogside any other workloads and click "Start Test" to run the benchmark. You can find more instructions about how to use the Developer Mode in [Developer Mode and Custom Parameters](README.md#developer-mode-and-custom-parameters).
+- To run individual experimental workloads,  navigate to `http://localhost:8080/resources/experimental/dist/<workload>.html` then do `manualRun()` in the dev console of the browser.
 
 ### Code Reviews
 
