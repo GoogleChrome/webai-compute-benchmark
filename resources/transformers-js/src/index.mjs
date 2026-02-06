@@ -1,5 +1,4 @@
-import { BenchmarkConnector } from "speedometer-utils/benchmark.mjs";
-import { AsyncBenchmarkStep, AsyncBenchmarkSuite } from "speedometer-utils/benchmark.mjs";
+import { BenchmarkConnector,  AsyncBenchmarkStep, AsyncBenchmarkSuite } from "speedometer-utils/benchmark.mjs";
 import { forceLayout } from "speedometer-utils/helpers.mjs";
 import { pipeline, env, dot, read_audio, AutoTokenizer, AutoModelForSequenceClassification, SiglipVisionModel, AutoImageProcessor, RawImage, SiglipTextModel, softmax } from '@huggingface/transformers';
 import { KokoroTTS } from "kokoro-js";
@@ -320,67 +319,67 @@ class TextToSpeech {
 const modelConfigs = {
   'feature-extraction-cpu': {
     description: 'Feature extraction on cpu',
-    create: () => { return new FeatureExtraction('wasm'); },
+    create() { return new FeatureExtraction('wasm'); },
   },
   'feature-extraction-gpu': {
     description: 'Feature extraction on gpu',
-    create: () => { return new FeatureExtraction('webgpu'); },
+    create() { return new FeatureExtraction('webgpu'); },
   },
   'sentence-similarity-cpu': {
     description: 'Sentence similarity on cpu',
-    create: () => { return new SentenceSimilarity('wasm'); },
+    create() { return new SentenceSimilarity('wasm'); },
   },
   'sentence-similarity-gpu': {
     description: 'Sentence similarity on gpu',
-    create: () => { return new SentenceSimilarity('webgpu'); },
+    create() { return new SentenceSimilarity('webgpu'); },
   },
   'speech-recognition-cpu': {
     description: 'Speech recognition on cpu',
-    create: () => { return new SpeechRecognition('wasm'); },
+    create() { return new SpeechRecognition('wasm'); },
   },
   'speech-recognition-gpu': {
     description: 'Speech recognition on gpu',
-    create: () => { return new SpeechRecognition('webgpu'); },
+    create() { return new SpeechRecognition('webgpu'); },
   },
   'background-removal-cpu': {
     description: 'Background removal on cpu',
-    create: () => { return new BackgroundRemoval('wasm'); },
+    create() { return new BackgroundRemoval('wasm'); },
   },
   'background-removal-gpu': {
     description: 'Background removal on gpu',
-    create: () => { return new BackgroundRemoval('webgpu'); },
+    create() { return new BackgroundRemoval('webgpu'); },
   },
   'text-reranking-cpu': {
     description: 'Text reranking on cpu',
-    create: () => { return new TextReranking('wasm'); },
+    create() { return new TextReranking('wasm'); },
   },
   'text-reranking-gpu': {
     description: 'Text reranking on gpu',
-    create: () => { return new TextReranking('webgpu'); },
+    create() { return new TextReranking('webgpu'); },
   },
   'image-classification-cpu': {
     description: 'Image classification on cpu',
-    create: () => { return new ImageClassification('wasm'); },
+    create() { return new ImageClassification('wasm'); },
   },
   'image-classification-gpu': {
     description: 'Image classification on gpu',
-    create: () => { return new ImageClassification('webgpu'); },
+    create() { return new ImageClassification('webgpu'); },
   },
   'zero-shot-image-classification-cpu': {
     description: 'Zero shot image classification on cpu',
-    create: () => { return new ZeroShotImageClassification('wasm'); },
+    create() { return new ZeroShotImageClassification('wasm'); },
   },
   'zero-shot-image-classification-gpu': {
     description: 'Zero shot image classification on gpu',
-    create: () => { return new ZeroShotImageClassification('webgpu'); },
+    create() { return new ZeroShotImageClassification('webgpu'); },
   },
   'text-to-speech-cpu': {
     description: 'Text to speech on cpu',
-    create: () => { return new TextToSpeech('wasm'); },
+    create() { return new TextToSpeech('wasm'); },
   },
   'text-to-speech-gpu': {
     description: 'Text to speech on gpu',
-    create: () => { return new TextToSpeech('webgpu'); },
+    create() { return new TextToSpeech('webgpu'); },
   },
 };
 
@@ -404,7 +403,7 @@ export async function initializeBenchmark(modelType) {
               await benchmark.run();
               forceLayout();
           }),
-      ], true),
+      ], { measureAsync: false }),
   };
 
   const benchmarkConnector = new BenchmarkConnector(suites, appName, appVersion);
