@@ -129,6 +129,11 @@ async function testDeveloperMode() {
 
 async function test() {
     try {
+        benchmarkConfigurator.suites.forEach((suite) => {
+            if (suite.tags.includes("default") && suite.tags.includes("experimental")) {
+                throw new Error(`Suite "${suite.name}" has both "default" and "experimental" tags.`);
+            }
+        });
         await driver.manage().setTimeouts({ script: timeout });
         await testIterations();
         await testAll();

@@ -56,7 +56,6 @@ export class BenchmarkConfigurator {
             if (!suite.tags)
                 suite.tags = [];
             if (suite.url.includes("/experimental/")) {
-                suite.tags = suite.tags.filter((tag) => tag !== "default");
                 suite.tags.unshift("all", "experimental");
             } else {
                 suite.tags.unshift("all");
