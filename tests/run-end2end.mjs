@@ -5,13 +5,26 @@ import testSetup from "./helper.mjs";
 import { benchmarkConfigurator } from "../resources/benchmark-configurator.mjs";
 
 const HELP = `
-This script runs end2end tests by invoking the benchmark via the main
-Speedometer page in /index.html.
+This script runs end2end tests by invoking the benchmark via the main page in /index.html.
 `.trim();
+
+const ONE_MINUTE_IN_MS = 60000;
 
 const { driver, PORT, stop } = await testSetup(HELP);
 
-const suites = benchmarkConfigurator.suites;
+// Running all of the benchmarks is very slow (especially when the GPU is emulated). To run the
+// tests faster we run all of the Wasm benchmarks, and only a few GPU tests to cover most of
+// the common code. To run all benchmarks, enable this.
+const RUN_FULL_SUITE = false;
+let tags = 'wasm,gpu-test-suite';
+let suites = benchmarkConfigurator.suites.filter(suite => suite.tags.some((tag) => tag === 'wasm' || tag === 'gpu-test-suite'));
+let timeout = 10 * ONE_MINUTE_IN_MS;
+
+if (RUN_FULL_SUITE) {
+    tags = 'all';
+    suites = benchmarkConfigurator.suites;
+    timeout = 20 * ONE_MINUTE_IN_MS;
+}
 
 async function testPage(url) {
     console.log(`Testing: ${url}`);
@@ -21,13 +34,13 @@ async function testPage(url) {
         if (globalThis.benchmarkClient)
             callback();
         else
-            globalThis.addEventListener("SpeedometerReady", () => callback(), { once: true });
+            globalThis.addEventListener("BenchmarkReady", () => callback(), { once: true });
     });
 
     console.log("    - Awaiting Benchmark");
     const { error, metrics } = await driver.executeAsyncScript((callback) => {
         globalThis.addEventListener(
-            "SpeedometerDone",
+            "BenchmarkDone",
             () =>
                 callback({
                     metrics: globalThis.benchmarkClient.metrics,
@@ -72,7 +85,7 @@ function validateMetric(name, metric) {
 
 async function testIterations() {
     const iterationCount = 2;
-    const metrics = await testPage(`index.html?iterationCount=${iterationCount}`);
+    const metrics = await testPage(`index.html?iterationCount=${iterationCount}&tags=${tags}`);
     suites.forEach((suite) => {
         if (suite.enabled) {
             const metric = metrics[suite.name];
@@ -87,7 +100,7 @@ async function testIterations() {
 }
 
 async function testAll() {
-    const metrics = await testPage("index.html?iterationCount=1&tags=all");
+    const metrics = await testPage(`index.html?iterationCount=1&tags=${tags}`);
     suites.forEach((suite) => {
         assert(suite.name in metrics);
         const metric = metrics[suite.name];
@@ -98,10 +111,10 @@ async function testAll() {
 }
 
 async function testDeveloperMode() {
-    const params = ["developerMode", "iterationCount=1", "warmupBeforeSync=2", "waitBeforeSync=2", "shuffleSeed=123", "suites=Perf-Dashboard"];
+    const params = ["developerMode", "iterationCount=1", "warmupBeforeSync=2", "waitBeforeSync=2", "shuffleSeed=123", "suites=Image-Classification-LiteRT.js-wasm"];
     const metrics = await testPage(`index.html?${params.join("&")}`);
     suites.forEach((suite) => {
-        if (suite.name === "Perf-Dashboard") {
+        if (suite.name === "Image-Classification-LiteRT.js-wasm") {
             const metric = metrics[suite.name];
             assert(metric.values.length === 1);
         } else {
@@ -112,7 +125,7 @@ async function testDeveloperMode() {
 
 async function test() {
     try {
-        await driver.manage().setTimeouts({ script: 60000 });
+        await driver.manage().setTimeouts({ script: timeout });
         await testIterations();
         await testAll();
         await testDeveloperMode();

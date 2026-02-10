@@ -64,8 +64,9 @@ class SentenceSimilarity {
     document.getElementById('device').textContent = this.device;
     document.getElementById('workload').textContent = "sentence similarity";
     document.getElementById('input').textContent = `"${this.SENTENCES}"`;
-    // The int8 model does not perform well on WebGPU. We may want to use another dtype for WebGPU workload.
-    this.model = await pipeline('feature-extraction', "Alibaba-NLP/gte-base-en-v1.5", { device: this.device, dtype: "fp16" },);
+    // The fp16 model is the best option in terms of size and correctness of the result, but unfortunately in not working
+    // on gLinux. So we are using fp32 model.
+    this.model = await pipeline('feature-extraction', "Alibaba-NLP/gte-base-en-v1.5", { device: this.device, dtype: "fp32" },);
   }
 
   async run() {
@@ -94,8 +95,8 @@ class SpeechRecognition {
     this.audioData = await read_audio(this.audioURL, 16000);
     
     // TODO: Initially we wanted to use distil-whisper/distil-large-v3 model, but the onnx files seems to be broken.
-    // We should check if we can resolve this issue or select another model. In the meanwhile, we will use Xenova/whisper-small
-    this.model = await pipeline('automatic-speech-recognition', "Xenova/whisper-small", { device: this.device, dtype: "q4f16" },);
+    // We should check if we can resolve this issue or select another model. In the meanwhile, we use Xenova/whisper-small.
+    this.model = await pipeline('automatic-speech-recognition', "Xenova/whisper-small", { device: this.device, dtype: "q4" },);
   }
 
   async run() {
@@ -132,7 +133,7 @@ class BackgroundRemoval {
     document.head.appendChild(style);
 
     // TODO: Initially we wanted to use briaai/RMBG-2.0 model, but it has a known issue (https://github.com/microsoft/onnxruntime/issues/21968) cause it to be not usable.
-    // We should check later if the issue has been resolved or select another model. In the meanwhile, we will use Xenova/modnet
+    // We should check later if the issue has been resolved or select another model. In the meanwhile, we will use Xenova/modnet.
     this.model = await pipeline('background-removal', "Xenova/modnet", { device: this.device, dtype: "uint8" },);
   }
 
@@ -239,14 +240,14 @@ class ImageClassification {
     document.getElementById('device').textContent = this.device;
     document.getElementById('workload').textContent = "image classification";
     document.getElementById('input').textContent = `Image classification of a local image.`;
-    
-    this.model = await pipeline('image-classification', "AdamCodd/vit-base-nsfw-detector", { device: this.device, dtype: "q4f16" },);
+
+    this.model = await pipeline('image-classification', "AdamCodd/vit-base-nsfw-detector", { device: this.device, dtype: "q4" },);
   }
 
   async run() {
     const result = await this.model(this.imageURL);
     const output = document.getElementById('output');
-    output.textContent = result[0].label;
+    output.textContent = result[0].label + ': ' + result[0].score;
   }
 }
 

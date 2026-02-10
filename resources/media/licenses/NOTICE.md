@@ -1,0 +1,3 @@
+* jfk_1962_0912_spaceeffort.wav: Short excerpt from a [publicly available audio](https://archive.org/details/jfks19620912) of John F. Kennedy speech at Rice University on September 12, 1962. The full recording of the speech is in the Public Domain as per the [https://www.jfklibrary.org/asset-viewer/archives/jfkwha-127-002](John F. Kennedy Presidential Library & Museum).
+* image.jpg: original photo uploaded by repository contributor.
+* hand.jpg: original photo uploaded by repository contributor.

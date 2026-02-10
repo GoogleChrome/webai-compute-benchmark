@@ -48,6 +48,10 @@ export class SuiteRunner {
         return this.#suiteResults;
     }
 
+    get testRunnerType() {
+        return (this.#suite.type ?? this.params.useAsyncSteps) ? "async" : "default";
+    }
+
     async run() {
         await this._prepareSuite();
         await this._runSuite();
@@ -77,7 +81,7 @@ export class SuiteRunner {
             if (this.#client?.willRunTest)
                 await this.#client.willRunTest(this.#suite, test);
 
-            const testRunnerType = this.#suite.type ?? this.params.useAsyncSteps ? "async" : "default";
+            const testRunnerType = this.testRunnerType;
             const testRunnerClass = TEST_RUNNER_LOOKUP[testRunnerType];
             const testRunner = new testRunnerClass(this.#frame, this.#page, this.#params, this.#suite, test, this._recordTestResults, testRunnerType);
             await testRunner.runTest();
@@ -225,9 +229,9 @@ export class RemoteSuiteRunner extends SuiteRunner {
     }
 }
 
-export const SUITE_RUNNER_LOOKUP = {
+export const SUITE_RUNNER_LOOKUP = Object.freeze({
     __proto__: null,
     default: SuiteRunner,
     async: SuiteRunner,
     remote: RemoteSuiteRunner,
-};
+});

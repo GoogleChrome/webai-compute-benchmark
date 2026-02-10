@@ -1,17 +1,17 @@
 {
-    "name": "speedometer",
-    "version": "4.0.0-alpha",
-    "description": "An open source repository for the Speedometer benchmark.",
+    "name": "webai-compute-benchmark",
+    "version": "0.0.1-alpha",
+    "description": "An open source repository for the WebAI compute benchmark.",
     "engines": {
         "node": ">=22.0.0",
         "npm": ">=8.19.3"
     },
     "repository": {
         "type": "git",
-        "url": "git+https://github.com/WebKit/Speedometer.git"
+        "url": "git+https://github.com/GoogleChrome/webai-compute-benchmark.git"
     },
     "bugs": {
-        "url": "https://github.com/WebKit/Speedometer/issues"
+        "url": "https://github.com/GoogleChrome/webai-compute-benchmark/issues"
     },
     "license": "SEE LICENSE IN LICENSE",
     "scripts": {

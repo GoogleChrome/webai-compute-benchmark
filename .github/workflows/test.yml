@@ -1,0 +1,48 @@
+name: CI
+
+on:
+    push:
+        branches: ["main"]
+    pull_request:
+        branches: ["main"]
+
+    # Allows you to run this workflow manually from the Actions tab
+    workflow_dispatch:
+
+jobs:
+    build:
+        name: Build
+        runs-on: macos-latest
+        strategy:
+            matrix:
+                # TODO enable safari and firefox
+                browser: [chrome]
+        steps:
+            - name: Install Firefox
+              if: ${{ matrix.browser == 'firefox' }}
+              run: brew install --cask firefox
+
+            - name: Checkout Branch
+              uses: actions/checkout@v4
+
+            - name: Setup Node
+              uses: actions/setup-node@v4
+              with:
+                  node-version-file: "package.json"
+                  cache: "npm"
+
+            - name: Install Node Packages
+              run: npm ci
+
+            - name: Download Models and Build Benchmarks
+              run: npm run build
+
+            - name: Run Unit Tests
+              run: |
+                  echo "Running in $BROWSER"
+                  npm run test:${{ matrix.browser }}
+
+            - name: Run end2end Tests
+              run: |
+                  echo "Running in $BROWSER"
+                  npm run test-e2e:${{ matrix.browser }}
