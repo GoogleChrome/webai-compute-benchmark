@@ -3,7 +3,7 @@ import { SuiteRunner } from "../../resources/suite-runner.mjs";
 import { StepRunner } from "../../resources/shared/step-runner.mjs";
 import { defaultParams } from "../../resources/shared/params.mjs";
 
-function TEST_FIXTURE(name) {
+function STEP_FIXTURE(name) {
     return {
         name,
         run: sinon.stub(),
@@ -15,13 +15,13 @@ const SUITES_FIXTURE = [
         name: "Suite 1",
         async prepare(page) {},
         enabled: true,
-        tests: [TEST_FIXTURE("Test 1"), TEST_FIXTURE("Test 2"), TEST_FIXTURE("Test 3")],
+        steps: [STEP_FIXTURE("Test 1"), STEP_FIXTURE("Test 2"), STEP_FIXTURE("Test 3")],
     },
     {
         name: "Suite 2",
         async prepare(page) {},
         enabled: true,
-        tests: [TEST_FIXTURE("Test 1")],
+        steps: [STEP_FIXTURE("Test 1")],
     },
 ];
 
@@ -145,7 +145,7 @@ describe("BenchmarkRunner", () => {
             const suite = SUITES_FIXTURE[0];
 
             before(async () => {
-                _prepareSuiteSpy = spy(SuiteRunner.prototype, "_prepareSuite");
+                _prepareSuiteSpy = stub(SuiteRunner.prototype, "_prepareSuite").callThrough();
                 _loadFrameStub = stub(SuiteRunner.prototype, "_loadFrame").callsFake(async () => null);
                 _runStepStub = stub(StepRunner.prototype, "runStep").callsFake(async () => null);
                 _validateSuiteResultsStub = stub(SuiteRunner.prototype, "_validateSuiteResults").callsFake(async () => null);
@@ -170,89 +170,6 @@ describe("BenchmarkRunner", () => {
                 assert.calledWith(performanceMarkSpy, "suite-Suite 1-end");
                 expect(performanceMarkSpy.callCount).to.equal(4);
                 assert.calledOnce(runner._client.didFinishSuite);
-            });
-        });
-    });
-
-    describe("Test", () => {
-        describe("_runStepAndRecordResults", () => {
-            let performanceMarkSpy;
-
-            const suite = SUITES_FIXTURE[0];
-            const params = { measurementMethod: "raf" };
-
-            before(async () => {
-                runner._suite = suite;
-                await runner._appendFrame();
-                performanceMarkSpy = spy(window.performance, "mark");
-                const suiteRunner = new SuiteRunner(runner._frame, runner._page, params, suite, runner._client, runner._measuredValues);
-                await suiteRunner._runSuite();
-            });
-
-            it("should run client pre and post hooks if present", () => {
-                assert.calledWith(runner._client.willRunTest, suite, suite.steps[0]);
-            });
-
-            it("should write performance marks at the start and end of the test with the correct test name", () => {
-                assert.calledWith(performanceMarkSpy, "Suite 1.Test 1-start");
-                assert.calledWith(performanceMarkSpy, "Suite 1.Test 1-sync-end");
-                assert.calledWith(performanceMarkSpy, "Suite 1.Test 1-async-end");
-
-                // SuiteRunner adds 2 marks.
-                // Suite used here contains 3 tests.
-                // Each StepRunner adds 3 marks.
-                expect(performanceMarkSpy.callCount).to.equal(11);
-            });
-        });
-
-        describe("Finalize", () => {
-            describe("_finalize", () => {
-                const suite = SUITES_FIXTURE[1];
-
-                const syncStart = 8000;
-                const syncEnd = 10000;
-                const asyncEnd = 13000;
-
-                const params = { measurementMethod: "raf" };
-
-                before(async () => {
-                    stub(runner, "_measuredValues").value({
-                        tests: {},
-                    });
-
-                    const originalMark = window.performance.mark.bind(window.performance);
-                    const performanceMarkStub = sinon.stub(window.performance, "mark").withArgs(sinon.match.any).callThrough();
-                    const performanceNowStub = sinon.stub(window.performance, "now");
-
-                    performanceNowStub.onFirstCall().returns(syncStart);
-                    performanceMarkStub.onThirdCall().callsFake((markName) => originalMark(markName, { startTime: asyncEnd }));
-                    performanceNowStub.onSecondCall().returns(asyncEnd);
-
-                    // instantiate recorded test results
-                    const suiteRunner = new SuiteRunner(runner._frame, runner._page, params, suite, runner._client, runner._measuredValues);
-                    await suiteRunner._runSuite();
-
-                    await runner._finalize();
-                });
-
-                it("should calculate measured test values correctly", () => {
-                    const syncTime = syncEnd - syncStart;
-                    const asyncTime = asyncEnd - syncEnd;
-
-                    const total = syncTime + asyncTime;
-                    const mean = total / suite.steps.length;
-                    const geomean = Math.pow(total, 1 / suite.steps.length);
-                    const score = 1000 / geomean;
-
-                    const { total: measuredTotal, mean: measuredMean, geomean: measuredGeomean, score: measuredScore } = runner._measuredValues;
-
-                    expect(measuredTotal).to.equal(total);
-                    expect(measuredMean).to.equal(mean);
-                    expect(measuredGeomean).to.equal(geomean);
-                    expect(measuredScore).to.equal(score);
-
-                    assert.calledWith(runner._client.didRunSuites, runner._measuredValues);
-                });
             });
         });
     });

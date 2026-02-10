@@ -316,6 +316,11 @@ export class BenchmarkRunner {
         if (params.shuffleSeed !== "off")
             this._suiteOrderRandomNumberGenerator = seededHashRandomNumberGenerator(params.shuffleSeed);
         this._wakeLock = new WakeLock();
+        this._resetMeasuredValues();
+    }
+
+    _resetMeasuredValues() {
+        this._measuredValues = { steps: {}, total: 0, mean: NaN, geomean: NaN, score: NaN };
     }
 
     async runMultipleIterations(iterationCount) {
@@ -377,7 +382,7 @@ export class BenchmarkRunner {
     }
 
     async _prepareAllSuites() {
-        this._measuredValues = { steps: {}, total: 0, mean: NaN, geomean: NaN, score: NaN };
+        this._resetMeasuredValues();
         await this._wakeLock.request();
 
         const prepareStartLabel = "runner-prepare-start";
