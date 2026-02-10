@@ -5,7 +5,7 @@
 // https://developers.google.com/open-source/licenses/bsd
 
 import {defaultSuites} from "../resources/default-tests.mjs"
-import {logGroup, sh} from "./helper.mjs"
+import {logGroup, logInfo, sh} from "./helper.mjs"
 
 const workloadDirs = new Set();
 
@@ -14,6 +14,12 @@ for (const suite of defaultSuites) {
   const workloadDir = parts.slice(0, parts.indexOf("dist")).join("/");
   workloadDirs.add(workloadDir);
 }
+
+logInfo(`BUILDING ${workloadDirs.size} WORKLOADS`);
+for (const workloadDir of workloadDirs) {
+  logInfo(`  - ${workloadDir}`);
+}
+logInfo("");
 
 for (const workloadDir of workloadDirs) {
   await logGroup(`BUILDING: ${workloadDir}`, () => buildWorkload(workloadDir));
