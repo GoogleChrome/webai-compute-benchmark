@@ -16,7 +16,7 @@ for (const suite of defaultSuites) {
 }
 
 for (const workloadDir of workloadDirs) {
-  await logGroup(`BUILDING:${workloadDir}`, () => buildWorkload(workloadDir));
+  await logGroup(`BUILDING: ${workloadDir}`, () => buildWorkload(workloadDir));
 }
 
 async function buildWorkload(workloadDir) {
