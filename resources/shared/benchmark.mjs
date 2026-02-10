@@ -47,7 +47,7 @@ export class BenchmarkSuite {
         if (step.measureAsync) {
             total += asyncTime;
             tests.Async = asyncTime;
-            test.Sync = syncTime;
+            tests.Sync = syncTime;
         }
         const results = {
             tests,
