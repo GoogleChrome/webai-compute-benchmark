@@ -136,7 +136,7 @@ export const defaultSuites = [
     {
         name: "Experimental-Text2Text-Generation-wasm",
         url: "resources/experimental/dist/text2text-generation-cpu.html",
-        tags: ["experimental", "text2text-generation", "wasm", "transformers-js"],
+        tags: ["default", "experimental", "text2text-generation", "wasm", "transformers-js"],
         type: "remote",
     },
     {
