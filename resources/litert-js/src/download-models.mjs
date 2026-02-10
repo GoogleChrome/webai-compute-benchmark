@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import fetch from 'node-fetch';
+import DownloadCache from '../../shared/download-cache.mjs';
 
 // --- Configuration ---
 const MODEL_DIR = './models';
@@ -38,6 +39,9 @@ function getDownloadUrl(repo, filename, branch) {
 }
 
 async function downloadModels() {
+    const CACHE_FILE = path.join(MODEL_DIR, 'cache.json');
+    const cache = new DownloadCache(CACHE_FILE, process.argv.includes('--force'));
+
     if (!fs.existsSync(MODEL_DIR)) {
         console.log(`Creating directory: **${MODEL_DIR}**`);
         fs.mkdirSync(MODEL_DIR, { recursive: true }); 
@@ -47,6 +51,13 @@ async function downloadModels() {
 
     for (const modelInfo of MODELS_TO_DOWNLOAD) {
         const { repo, filename, branch, url } = modelInfo;
+
+        const cacheKey = `${repo}-${filename}`;
+        if (cache.has(cacheKey)) {
+            console.log(`Model ${filename} from ${repo} already cached. Skipping.`);
+            continue;
+        }
+
         const modelUrl = url || getDownloadUrl(repo, filename, branch);
         const outputPath = path.join(MODEL_DIR, path.basename(filename));
 
@@ -68,6 +79,7 @@ async function downloadModels() {
             });
             
             console.log(`Successfully downloaded **${filename}** to **${outputPath}**`);
+            cache.put(cacheKey);
         } catch (err) {
             console.error(`Model download failed for ${repo}/${filename}:`, err.message);
         }

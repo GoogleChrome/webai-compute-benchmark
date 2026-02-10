@@ -2,10 +2,15 @@ import commandLineUsage from "command-line-usage";
 import commandLineArgs from "command-line-args";
 import serve from "./server.mjs";
 
-import { Builder, Capabilities, logging } from "selenium-webdriver";
+import { Builder, logging } from "selenium-webdriver";
+import { Options as ChromeOptions, ServiceBuilder } from "selenium-webdriver/chrome.js";
+import { Options as FirefoxOptions } from "selenium-webdriver/firefox.js";
+import { Options as EdgeOptions } from "selenium-webdriver/edge.js";
+import { Options as SafariOptions } from "selenium-webdriver/safari.js";
 
 const optionDefinitions = [
     { name: "browser", type: String, description: "Set the browser to test, choices are [safari, firefox, chrome]. By default the $BROWSER env variable is used." },
+    { name: "browser-arg", type: String, multiple: true, description: "Additional arguments to pass to the browser. Use one arg per --browser-arg switch." },
     { name: "port", type: Number, defaultValue: 8010, description: "Set the test-server port, The default value is 8010." },
     { name: "help", alias: "h", description: "Print this help text." },
 ];
@@ -38,22 +43,22 @@ export default async function testSetup(helpText) {
     if (!BROWSER)
         printHelp("No browser specified, use $BROWSER or --browser", 1);
 
-    let capabilities;
+    let browserOptions;
     switch (BROWSER) {
         case "safari":
-            capabilities = Capabilities.safari();
+            browserOptions = new SafariOptions();
             break;
 
         case "firefox": {
-            capabilities = Capabilities.firefox();
+            browserOptions = new FirefoxOptions();
             break;
         }
         case "chrome": {
-            capabilities = Capabilities.chrome();
+            browserOptions = new ChromeOptions();
             break;
         }
         case "edge": {
-            capabilities = Capabilities.edge();
+            browserOptions = new EdgeOptions();
             break;
         }
         default: {
@@ -62,7 +67,7 @@ export default async function testSetup(helpText) {
     }
     const prefs = new logging.Preferences();
     prefs.setLevel(logging.Type.BROWSER, logging.Level.ALL); // Capture all log levels
-    capabilities.setLoggingPrefs(prefs);
+    browserOptions.setLoggingPrefs(prefs);
 
     const PORT = options.port;
     const server = await serve(PORT);
@@ -78,7 +83,11 @@ export default async function testSetup(helpText) {
     });
     process.on("exit", () => stop());
 
-    driver = await new Builder().withCapabilities(capabilities).build();
+    const browserArgs = options["browser-arg"];
+    if (browserArgs && browserArgs.length > 0)
+        browserOptions.addArguments(...browserArgs);
+
+    driver = await new Builder().withCapabilities(browserOptions).build();
     driver.manage().window().setRect({ width: 1200, height: 1000 });
 
     function stop() {

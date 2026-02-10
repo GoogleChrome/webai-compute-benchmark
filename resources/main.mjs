@@ -27,7 +27,7 @@ class MainBenchmarkClient {
         this._showSection(window.location.hash);
 
         this._benchmarkConfiguratorPromise.then(() => {
-            window.dispatchEvent(new Event("SpeedometerReady"));
+            window.dispatchEvent(new Event("BenchmarkReady"));
         });
     }
 
@@ -158,7 +158,7 @@ class MainBenchmarkClient {
             this.showResultsDetails();
         else
             this.showResultsSummary();
-        globalThis.dispatchEvent(new Event("SpeedometerDone"));
+        globalThis.dispatchEvent(new Event("BenchmarkDone"));
     }
 
     handleError(error) {
@@ -287,7 +287,7 @@ class MainBenchmarkClient {
         }
         document.getElementById("metrics-results").innerHTML = html;
 
-        const filePrefix = `speedometer-3-${new Date().toISOString()}`;
+        const filePrefix = `benchmark-results-${new Date().toISOString()}`;
         let jsonData = this._formattedJSONResult({ modern: false });
         let jsonLink = document.getElementById("download-classic-json");
         jsonLink.href = URL.createObjectURL(new Blob([jsonData], { type: "application/json" }));
