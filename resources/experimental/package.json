@@ -22,7 +22,7 @@
         "http-server": "^14.1.1",
         "node-fetch": "^3.3.2",
         "speedometer-utils": "../shared",
-        "webpack": "^5.102.1",
+        "webpack": "^5.105.1",
         "webpack-merge": "^6.0.1"
     },
     "devDependencies": {
