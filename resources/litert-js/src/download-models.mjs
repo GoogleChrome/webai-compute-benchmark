@@ -6,7 +6,7 @@ import AdmZip from 'adm-zip';
 
 // --- Configuration ---
 const MODEL_DIR = './models';
-const CACHE_VERSION = 2;
+const CACHE_VERSION = 1;
 
 const MODELS_TO_DOWNLOAD = [
     {
