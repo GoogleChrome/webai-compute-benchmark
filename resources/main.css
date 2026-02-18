@@ -364,13 +364,13 @@ section > p {
 }
 
 section#home p {
-    margin: 0 auto;
+    margin: 0 auto 1em;
     width: 70%;
     text-align: center;
 }
 
 section#home .content {
-    margin-top: 160px;
+    margin-top: 100px;
     text-align: center;
 }
 
