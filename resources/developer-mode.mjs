@@ -7,13 +7,10 @@ export function createDeveloperModeContainer() {
     const container = document.createElement("div");
     container.className = "developer-mode";
 
-    const details = document.createElement("details");
+    const content = document.createElement("details");
     const summary = document.createElement("summary");
     summary.textContent = "Developer Mode";
-    details.append(summary);
-
-    const content = document.createElement("div");
-    content.className = "developer-mode-content";
+    content.appendChild(summary);
 
     content.append(createUIForSuites());
 
@@ -33,8 +30,7 @@ export function createDeveloperModeContainer() {
     content.append(document.createElement("hr"));
     content.append(createUIForRun());
 
-    details.append(content);
-    container.append(details);
+    container.append(content);
     return container;
 }
 
@@ -78,7 +74,7 @@ function createCheckboxUI(labelValue, initialValue, paramsUpdateCallback) {
 }
 
 function createUIForIterationCount() {
-    return createTimeRangeUI("Iterations: ", "iterationCount", "#", 1, 200);
+    return createTimeRangeUI("Iterations: ", "iterationCount", "#", 1, 50);
 }
 
 function createUIForWarmupBeforeSync() {
