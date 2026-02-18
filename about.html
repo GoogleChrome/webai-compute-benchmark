@@ -16,6 +16,198 @@
                 <div class="section-grid">
                     <h1 class="section-header">About WebAI Compute</h1>
                     <div class="section-content">
+                        <!-- library-versions -->
+    <h2>Library versions</h2>
+    <ul>
+      <li>Transformers.js: 3.7.5</li>
+      <li>ONNX Runtime: 1.22.0-dev.20250409-89f8206ba4</li>
+      <li>LiteRT.js: 0.2.1</li>
+    </ul>
+  <!-- /library-versions -->
+                        <!-- model-versions -->
+    <h2>Model versions</h2>
+    <table style="width: 100%; border-collapse: collapse; text-align: left; margin-top: 10px;">
+      <thead>
+        <tr>
+          <th>Workload</th>
+          <th>Model</th>
+          <th>URL</th>
+          <th>Commit</th>
+        </tr>
+      </thead>
+      <tbody>
+  
+        <tr>
+          <td>Feature-Extraction-wasm</td>
+          <td>Xenova/UAE-Large-V1</td>
+          <td><a href="https://huggingface.co/Xenova/UAE-Large-V1" target="_blank">https://huggingface.co/Xenova/UAE-Large-V1</a></td>
+          <td><a href="https://huggingface.co/Xenova/UAE-Large-V1/commit/3f113158eb118eb513f3e1a737513ab6e35d25fb" target="_blank">3f11315</a></td>
+        </tr>
+      
+        <tr>
+          <td>Feature-Extraction-webgpu</td>
+          <td>Xenova/UAE-Large-V1</td>
+          <td><a href="https://huggingface.co/Xenova/UAE-Large-V1" target="_blank">https://huggingface.co/Xenova/UAE-Large-V1</a></td>
+          <td><a href="https://huggingface.co/Xenova/UAE-Large-V1/commit/3f113158eb118eb513f3e1a737513ab6e35d25fb" target="_blank">3f11315</a></td>
+        </tr>
+      
+        <tr>
+          <td>Sentence-Similarity-wasm</td>
+          <td>Alibaba-NLP/gte-base-en-v1.5</td>
+          <td><a href="https://huggingface.co/Alibaba-NLP/gte-base-en-v1.5" target="_blank">https://huggingface.co/Alibaba-NLP/gte-base-en-v1.5</a></td>
+          <td><a href="https://huggingface.co/Alibaba-NLP/gte-base-en-v1.5/commit/a829fd0e060bb84554da0dfd354d0de0f7712b7f" target="_blank">a829fd0</a></td>
+        </tr>
+      
+        <tr>
+          <td>Sentence-Similarity-webgpu</td>
+          <td>Alibaba-NLP/gte-base-en-v1.5</td>
+          <td><a href="https://huggingface.co/Alibaba-NLP/gte-base-en-v1.5" target="_blank">https://huggingface.co/Alibaba-NLP/gte-base-en-v1.5</a></td>
+          <td><a href="https://huggingface.co/Alibaba-NLP/gte-base-en-v1.5/commit/a829fd0e060bb84554da0dfd354d0de0f7712b7f" target="_blank">a829fd0</a></td>
+        </tr>
+      
+        <tr>
+          <td>Speech-Recognition-wasm</td>
+          <td>Xenova/whisper-small</td>
+          <td><a href="https://huggingface.co/Xenova/whisper-small" target="_blank">https://huggingface.co/Xenova/whisper-small</a></td>
+          <td><a href="https://huggingface.co/Xenova/whisper-small/commit/2d67713f236afa48a18992566e7647f6ca848e13" target="_blank">2d67713</a></td>
+        </tr>
+      
+        <tr>
+          <td>Speech-Recognition-webgpu</td>
+          <td>Xenova/whisper-small</td>
+          <td><a href="https://huggingface.co/Xenova/whisper-small" target="_blank">https://huggingface.co/Xenova/whisper-small</a></td>
+          <td><a href="https://huggingface.co/Xenova/whisper-small/commit/2d67713f236afa48a18992566e7647f6ca848e13" target="_blank">2d67713</a></td>
+        </tr>
+      
+        <tr>
+          <td>Background-Removal-wasm</td>
+          <td>Xenova/modnet</td>
+          <td><a href="https://huggingface.co/Xenova/modnet" target="_blank">https://huggingface.co/Xenova/modnet</a></td>
+          <td><a href="https://huggingface.co/Xenova/modnet/commit/fa2fa546052fba4c08921230a26cc69a333fca12" target="_blank">fa2fa54</a></td>
+        </tr>
+      
+        <tr>
+          <td>Background-Removal-webgpu</td>
+          <td>Xenova/modnet</td>
+          <td><a href="https://huggingface.co/Xenova/modnet" target="_blank">https://huggingface.co/Xenova/modnet</a></td>
+          <td><a href="https://huggingface.co/Xenova/modnet/commit/fa2fa546052fba4c08921230a26cc69a333fca12" target="_blank">fa2fa54</a></td>
+        </tr>
+      
+        <tr>
+          <td>Text-Reranking-wasm</td>
+          <td>mixedbread-ai/mxbai-rerank-base-v1</td>
+          <td><a href="https://huggingface.co/mixedbread-ai/mxbai-rerank-base-v1" target="_blank">https://huggingface.co/mixedbread-ai/mxbai-rerank-base-v1</a></td>
+          <td><a href="https://huggingface.co/mixedbread-ai/mxbai-rerank-base-v1/commit/800f24c113213a187e65bde9db00c15a2bb12738" target="_blank">800f24c</a></td>
+        </tr>
+      
+        <tr>
+          <td>Text-Reranking-webgpu</td>
+          <td>mixedbread-ai/mxbai-rerank-base-v1</td>
+          <td><a href="https://huggingface.co/mixedbread-ai/mxbai-rerank-base-v1" target="_blank">https://huggingface.co/mixedbread-ai/mxbai-rerank-base-v1</a></td>
+          <td><a href="https://huggingface.co/mixedbread-ai/mxbai-rerank-base-v1/commit/800f24c113213a187e65bde9db00c15a2bb12738" target="_blank">800f24c</a></td>
+        </tr>
+      
+        <tr>
+          <td>SFW-Image-Classification-wasm</td>
+          <td>AdamCodd/vit-base-nsfw-detector</td>
+          <td><a href="https://huggingface.co/AdamCodd/vit-base-nsfw-detector" target="_blank">https://huggingface.co/AdamCodd/vit-base-nsfw-detector</a></td>
+          <td><a href="https://huggingface.co/AdamCodd/vit-base-nsfw-detector/commit/8587de998f441aac03fdd57a85d2e4cb808c7d64" target="_blank">8587de9</a></td>
+        </tr>
+      
+        <tr>
+          <td>SFW-Image-Classification-webgpu</td>
+          <td>AdamCodd/vit-base-nsfw-detector</td>
+          <td><a href="https://huggingface.co/AdamCodd/vit-base-nsfw-detector" target="_blank">https://huggingface.co/AdamCodd/vit-base-nsfw-detector</a></td>
+          <td><a href="https://huggingface.co/AdamCodd/vit-base-nsfw-detector/commit/8587de998f441aac03fdd57a85d2e4cb808c7d64" target="_blank">8587de9</a></td>
+        </tr>
+      
+        <tr>
+          <td>Zero-shot-Image-Classification-wasm</td>
+          <td>Marqo/marqo-fashionSigLIP</td>
+          <td><a href="https://huggingface.co/Marqo/marqo-fashionSigLIP" target="_blank">https://huggingface.co/Marqo/marqo-fashionSigLIP</a></td>
+          <td><a href="https://huggingface.co/Marqo/marqo-fashionSigLIP/commit/c56244cc94f92419e8369fa71efdaf403b124ce8" target="_blank">c56244c</a></td>
+        </tr>
+      
+        <tr>
+          <td>Zero-shot-Image-Classification-webgpu</td>
+          <td>Marqo/marqo-fashionSigLIP</td>
+          <td><a href="https://huggingface.co/Marqo/marqo-fashionSigLIP" target="_blank">https://huggingface.co/Marqo/marqo-fashionSigLIP</a></td>
+          <td><a href="https://huggingface.co/Marqo/marqo-fashionSigLIP/commit/c56244cc94f92419e8369fa71efdaf403b124ce8" target="_blank">c56244c</a></td>
+        </tr>
+      
+        <tr>
+          <td>Text-to-Speech-wasm</td>
+          <td>onnx-community/Kokoro-82M-v1.0-ONNX</td>
+          <td><a href="https://huggingface.co/onnx-community/Kokoro-82M-v1.0-ONNX" target="_blank">https://huggingface.co/onnx-community/Kokoro-82M-v1.0-ONNX</a></td>
+          <td><a href="https://huggingface.co/onnx-community/Kokoro-82M-v1.0-ONNX/commit/1939ad2a8e416c0acfeecc08a694d14ef25f2231" target="_blank">1939ad2</a></td>
+        </tr>
+      
+        <tr>
+          <td>Text-to-Speech-webgpu</td>
+          <td>onnx-community/Kokoro-82M-v1.0-ONNX</td>
+          <td><a href="https://huggingface.co/onnx-community/Kokoro-82M-v1.0-ONNX" target="_blank">https://huggingface.co/onnx-community/Kokoro-82M-v1.0-ONNX</a></td>
+          <td><a href="https://huggingface.co/onnx-community/Kokoro-82M-v1.0-ONNX/commit/1939ad2a8e416c0acfeecc08a694d14ef25f2231" target="_blank">1939ad2</a></td>
+        </tr>
+      
+        <tr>
+          <td>Image-Segmentation-LiteRT.js-wasm</td>
+          <td>qualcomm/MediaPipe-Selfie-Segmentation</td>
+          <td><a href="https://huggingface.co/qualcomm/MediaPipe-Selfie-Segmentation" target="_blank">https://huggingface.co/qualcomm/MediaPipe-Selfie-Segmentation</a></td>
+          <td><a href="https://huggingface.co/qualcomm/MediaPipe-Selfie-Segmentation/commit/88cf6c6c8c483d1c17911ccc05dac9230ba96e73" target="_blank">88cf6c6</a></td>
+        </tr>
+      
+        <tr>
+          <td>Image-Segmentation-LiteRT.js-webgpu</td>
+          <td>qualcomm/MediaPipe-Selfie-Segmentation</td>
+          <td><a href="https://huggingface.co/qualcomm/MediaPipe-Selfie-Segmentation" target="_blank">https://huggingface.co/qualcomm/MediaPipe-Selfie-Segmentation</a></td>
+          <td><a href="https://huggingface.co/qualcomm/MediaPipe-Selfie-Segmentation/commit/88cf6c6c8c483d1c17911ccc05dac9230ba96e73" target="_blank">88cf6c6</a></td>
+        </tr>
+      
+        <tr>
+          <td>Image-Classification-LiteRT.js-wasm</td>
+          <td>qualcomm/MobileNet-v3-Small</td>
+          <td><a href="https://huggingface.co/qualcomm/MobileNet-v3-Small" target="_blank">https://huggingface.co/qualcomm/MobileNet-v3-Small</a></td>
+          <td><a href="https://huggingface.co/qualcomm/MobileNet-v3-Small/commit/635de122b1a1ba6969af363b593c8f5594852ef2" target="_blank">635de12</a></td>
+        </tr>
+      
+        <tr>
+          <td>Image-Classification-LiteRT.js-webgpu</td>
+          <td>qualcomm/MobileNet-v3-Small</td>
+          <td><a href="https://huggingface.co/qualcomm/MobileNet-v3-Small" target="_blank">https://huggingface.co/qualcomm/MobileNet-v3-Small</a></td>
+          <td><a href="https://huggingface.co/qualcomm/MobileNet-v3-Small/commit/635de122b1a1ba6969af363b593c8f5594852ef2" target="_blank">635de12</a></td>
+        </tr>
+      
+        <tr>
+          <td>Hand-Detection-LiteRT.js-wasm</td>
+          <td>qualcomm/MediaPipe-Hand-Detection</td>
+          <td><a href="https://huggingface.co/qualcomm/MediaPipe-Hand-Detection" target="_blank">https://huggingface.co/qualcomm/MediaPipe-Hand-Detection</a></td>
+          <td><a href="https://huggingface.co/qualcomm/MediaPipe-Hand-Detection/commit/552806af911097514c1ee9faa203a8205a6885ad" target="_blank">552806a</a></td>
+        </tr>
+      
+        <tr>
+          <td>Hand-Detection-LiteRT.js-webgpu</td>
+          <td>qualcomm/MediaPipe-Hand-Detection</td>
+          <td><a href="https://huggingface.co/qualcomm/MediaPipe-Hand-Detection" target="_blank">https://huggingface.co/qualcomm/MediaPipe-Hand-Detection</a></td>
+          <td><a href="https://huggingface.co/qualcomm/MediaPipe-Hand-Detection/commit/552806af911097514c1ee9faa203a8205a6885ad" target="_blank">552806a</a></td>
+        </tr>
+      
+        <tr>
+          <td>Experimental-Text2Text-Generation-wasm</td>
+          <td>Xenova/flan-t5-small</td>
+          <td><a href="https://huggingface.co/Xenova/flan-t5-small" target="_blank">https://huggingface.co/Xenova/flan-t5-small</a></td>
+          <td><a href="https://huggingface.co/Xenova/flan-t5-small/commit/311454e83bc784267fd7eef5940ee854144abbec" target="_blank">311454e</a></td>
+        </tr>
+      
+        <tr>
+          <td>Experimental-Text2Text-Generation-webgpu</td>
+          <td>Xenova/flan-t5-small</td>
+          <td><a href="https://huggingface.co/Xenova/flan-t5-small" target="_blank">https://huggingface.co/Xenova/flan-t5-small</a></td>
+          <td><a href="https://huggingface.co/Xenova/flan-t5-small/commit/311454e83bc784267fd7eef5940ee854144abbec" target="_blank">311454e</a></td>
+        </tr>
+      
+      </tbody>
+    </table>
+  <!-- /model-versions -->
                     </div>
                     <div class="buttons section-footer">
                         <div class="button-row">
