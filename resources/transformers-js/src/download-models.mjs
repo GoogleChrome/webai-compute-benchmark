@@ -7,6 +7,7 @@ import DownloadCache from '../../shared/download-cache.mjs';
 
 const MODEL_DIR = './models';
 env.localModelPath = MODEL_DIR;
+const CACHE_VERSION = 1;
 
 const MODELS_TO_DOWNLOAD = [
     { 
@@ -81,7 +82,8 @@ function getHuggingFaceUrl(repo, filename, branch = 'main') {
 
 async function downloadModels() {
     const CACHE_FILE = path.join(MODEL_DIR, 'cache.json');
-    const cache = new DownloadCache(CACHE_FILE, process.argv.includes('--force'));
+    const cache = new DownloadCache(CACHE_FILE, CACHE_VERSION, process.argv.includes('--force'));
+    
     if (!fs.existsSync(MODEL_DIR)) {
         console.log(`Creating directory: ${MODEL_DIR}`);
         fs.mkdirSync(MODEL_DIR, { recursive: true }); 

@@ -43,7 +43,7 @@ class ImageSegmentation {
  constructor(device) {
    this.device = device;
    this.originalImage = new Image();
-   this.MODEL_URL = '../models/MediaPipe-Selfie-Segmentation_float.tflite';
+   this.MODEL_URL = '../models/mediapipe_selfie-tflite-float/mediapipe_selfie.tflite';
    this.INPUT_WIDTH = 256;
    this.INPUT_HEIGHT = 256;
    this.THRESHOLD = 0.99; // Threshold for determining person vs. background
@@ -142,10 +142,10 @@ class ImageClassification {
  constructor(device) {
    this.device = device;
    this.originalImage = new Image();
-   this.MODEL_URL = '../models/MobileNet-v3-Small_float.tflite';
+   this.MODEL_URL = '../models/mobilenet_v3_small-tflite-float/mobilenet_v3_small.tflite';
    this.INPUT_WIDTH = 224;
    this.INPUT_HEIGHT = 224;
-   this.LABELS_URL = '../models/imagenet_class_index.json';
+   this.LABELS_URL = '../models/mobilenet_v3_small-tflite-float/labels.txt';
    this.labels = [];
  }
 
@@ -162,7 +162,7 @@ class ImageClassification {
 
     // Format and display the results
     const results = top5.map(p => {
-      const className = this.labels[p.index][1].replace(/_/g, ' ');
+      const className = this.labels[p.index];
       return `${className}: ${p.probability.toFixed(4)}`;
     });
 
@@ -184,7 +184,8 @@ class ImageClassification {
 
    // Fetch class labels
    const labelsResponse = await fetch(this.LABELS_URL);
-   this.labels = await labelsResponse.json();
+   const text = await labelsResponse.text();
+   this.labels = text.split('\n');
 
    // Preparing image
    const imageTensor = processImageToTensor(this.originalImage, this.INPUT_HEIGHT, this.INPUT_WIDTH);
@@ -221,7 +222,7 @@ class HandDetection {
   constructor(device) {
     this.device = device;
     this.originalImage = new Image();
-    this.MODEL_URL = '../models/MediaPipe-Hand-Detection_HandLandmarkDetector_float.tflite';
+    this.MODEL_URL = '../models/mediapipe_hand-tflite-float/HandLandmarkDetector.tflite';
     this.INPUT_WIDTH = 256;
     this.INPUT_HEIGHT = 256;
     this.CONFIDENCE_THRESHOLD = 0.9;
