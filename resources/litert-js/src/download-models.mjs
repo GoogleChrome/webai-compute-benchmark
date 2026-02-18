@@ -6,7 +6,7 @@ import AdmZip from 'adm-zip';
 
 // --- Configuration ---
 const MODEL_DIR = './models';
-const CACHE_VERSION = 1;
+const CACHE_VERSION = 2;
 
 const MODELS_TO_DOWNLOAD = [
     {
@@ -28,22 +28,7 @@ const MODELS_TO_DOWNLOAD = [
 
 async function downloadModels() {
     const CACHE_FILE = path.join(MODEL_DIR, 'cache.json');
-
-    if (fs.existsSync(CACHE_FILE)) {
-        try {
-            const cacheData = JSON.parse(fs.readFileSync(CACHE_FILE, 'utf8'));
-            if (cacheData.version !== CACHE_VERSION) {
-                console.log(`Cache version mismatch (found: ${cacheData.version}, expected: ${CACHE_VERSION}). Wiping models directory...`);
-                fs.rmSync(MODEL_DIR, { recursive: true, force: true });
-            }
-        } catch (err) {
-            console.warn(`Error reading cache file: ${err.message}. Wiping models directory...`);
-            fs.rmSync(MODEL_DIR, { recursive: true, force: true });
-        }
-    }
-
-    const cache = new DownloadCache(CACHE_FILE, process.argv.includes('--force'));
-    cache.cached.version = CACHE_VERSION;
+    const cache = new DownloadCache(CACHE_FILE, CACHE_VERSION, process.argv.includes('--force'));
 
     if (!fs.existsSync(MODEL_DIR)) {
         console.log(`Creating directory: **${MODEL_DIR}**`);
