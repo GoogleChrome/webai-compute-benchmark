@@ -27,6 +27,8 @@ for (const workloadDir of workloadDirs) {
 }
 
 await logGroup("UPDATING VERSION INFO", updateVersionInfo);
+await logGroup("UPDATING LIBRARY VERSION INFO", updateLibraryVersionInfo);
+await logGroup("UPDATING MODEL INFO TABLE", updateModelInfoTable);
 
 async function buildWorkload(workloadDir) {
   await sh(["npm", "install"], {cwd: workloadDir});
@@ -45,4 +47,133 @@ async function updateVersionInfo() {
   indexHtml = indexHtml.replace(/(<!-- git-hash -->)(.*?)(<!-- \/git-hash -->)/, `$1${gitLink}$3`);
   fs.writeFileSync("index.html", indexHtml);
   logInfo(`Updated index.html with version ${version} and git hash ${shortGitHash}`);
+}
+
+async function updateLibraryVersionInfo() {
+  const getPackageVersion = (lockfile, packageName) => {
+    const matchingPaths = Object.keys(lockfile.packages).filter(path => 
+      path === `node_modules/${packageName}` || path.endsWith(`/node_modules/${packageName}`)
+    );
+
+    if (matchingPaths.length === 0) {
+      throw new Error(`Could not find package "${packageName}" in lockfile.`);
+    }
+
+    if (matchingPaths.length > 1) {
+      throw new Error(`Found multiple occurrences of package "${packageName}" in lockfile: ${matchingPaths.join(", ")}. Please specify which one to use.`);
+    }
+
+    return lockfile.packages[matchingPaths[0]].version;
+  };
+
+  const transformersLock = JSON.parse(fs.readFileSync("resources/transformers-js/package-lock.json", "utf8"));
+  const litertLock = JSON.parse(fs.readFileSync("resources/litert-js/package-lock.json", "utf8"));
+
+  const transformersVersion = getPackageVersion(transformersLock, "@huggingface/transformers");
+  const onnxruntimeVersion = getPackageVersion(transformersLock, "onnxruntime-web");
+  const litertVersion = getPackageVersion(litertLock, "@litertjs/core");
+
+  const libraryVersionsHtml = `
+    <h2>Library versions</h2>
+    <ul>
+      <li>Transformers.js: ${transformersVersion}</li>
+      <li>ONNX Runtime: ${onnxruntimeVersion}</li>
+      <li>LiteRT.js: ${litertVersion}</li>
+    </ul>
+  `;
+
+  let aboutHtml = fs.readFileSync("about.html", "utf8");
+  aboutHtml = aboutHtml.replace(/(<!-- library-versions -->)([\s\S]*?)(<!-- \/library-versions -->)/, `$1${libraryVersionsHtml}$3`);
+  fs.writeFileSync("about.html", aboutHtml);
+  logInfo("Updated about.html with library versions");
+}
+
+async function updateModelInfoTable() {
+  // TODO(dlehmann): Instead of hardcoding this mapping here,
+  // programmatically extract it from the resources/ directory.
+  const suiteToModelId = {
+    "Feature-Extraction-wasm": "Xenova/UAE-Large-V1",
+    "Feature-Extraction-webgpu": "Xenova/UAE-Large-V1",
+    "Sentence-Similarity-wasm": "Alibaba-NLP/gte-base-en-v1.5",
+    "Sentence-Similarity-webgpu": "Alibaba-NLP/gte-base-en-v1.5",
+    "Speech-Recognition-wasm": "Xenova/whisper-small",
+    "Speech-Recognition-webgpu": "Xenova/whisper-small",
+    "Background-Removal-wasm": "Xenova/modnet",
+    "Background-Removal-webgpu": "Xenova/modnet",
+    "Text-Reranking-wasm": "mixedbread-ai/mxbai-rerank-base-v1",
+    "Text-Reranking-webgpu": "mixedbread-ai/mxbai-rerank-base-v1",
+    "SFW-Image-Classification-wasm": "AdamCodd/vit-base-nsfw-detector",
+    "SFW-Image-Classification-webgpu": "AdamCodd/vit-base-nsfw-detector",
+    "Zero-shot-Image-Classification-wasm": "Marqo/marqo-fashionSigLIP",
+    "Zero-shot-Image-Classification-webgpu": "Marqo/marqo-fashionSigLIP",
+    "Text-to-Speech-wasm": "onnx-community/Kokoro-82M-v1.0-ONNX",
+    "Text-to-Speech-webgpu": "onnx-community/Kokoro-82M-v1.0-ONNX",
+    "Image-Segmentation-LiteRT.js-wasm": "qualcomm/MediaPipe-Selfie-Segmentation",
+    "Image-Segmentation-LiteRT.js-webgpu": "qualcomm/MediaPipe-Selfie-Segmentation",
+    "Image-Classification-LiteRT.js-wasm": "qualcomm/MobileNet-v3-Small",
+    "Image-Classification-LiteRT.js-webgpu": "qualcomm/MobileNet-v3-Small",
+    "Hand-Detection-LiteRT.js-wasm": "qualcomm/MediaPipe-Hand-Detection",
+    "Hand-Detection-LiteRT.js-webgpu": "qualcomm/MediaPipe-Hand-Detection",
+    "Experimental-Text2Text-Generation-wasm": "Xenova/flan-t5-small",
+    "Experimental-Text2Text-Generation-webgpu": "Xenova/flan-t5-small",
+  };
+
+  let modelVersionsHtml = `
+    <h2>Model versions</h2>
+    <table style="width: 100%; border-collapse: collapse; text-align: left; margin-top: 10px;">
+      <thead>
+        <tr>
+          <th>Workload</th>
+          <th>Model</th>
+          <th>URL</th>
+          <th>Commit</th>
+        </tr>
+      </thead>
+      <tbody>
+  `;
+
+  const modelIds = [...new Set(Object.values(suiteToModelId))];
+  const modelGitCommitSha = {};
+
+  logInfo("Fetching model information from HuggingFace...");
+  for (const modelId of modelIds) {
+    const response = await fetch(`https://huggingface.co/api/models/${modelId}`);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch model info for ${modelId}: ${response.status} ${response.statusText}`);
+    }
+    const data = await response.json();
+    if (!data.sha) {
+      throw new Error(`Model info for ${modelId} is missing "sha" field.`);
+    }
+    modelGitCommitSha[modelId] = data.sha;
+  }
+
+  for (const suite of defaultSuites) {
+    const modelId = suiteToModelId[suite.name];
+    if (!modelId) {
+      throw new Error(`No model ID mapping found for suite: ${suite.name}`);
+    }
+    const modelUrl = `https://huggingface.co/${modelId}`;
+    const sha = modelGitCommitSha[modelId];
+    const shortSha = sha.substring(0, 7);
+    const commitLink = `<a href="${modelUrl}/commit/${sha}" target="_blank">${shortSha}</a>`;
+    modelVersionsHtml += `
+        <tr>
+          <td>${suite.name}</td>
+          <td>${modelId}</td>
+          <td><a href="${modelUrl}" target="_blank">${modelUrl}</a></td>
+          <td>${commitLink}</td>
+        </tr>
+      `;
+  }
+
+  modelVersionsHtml += `
+      </tbody>
+    </table>
+  `;
+
+  let aboutHtml = fs.readFileSync("about.html", "utf8");
+  aboutHtml = aboutHtml.replace(/(<!-- model-versions -->)([\s\S]*?)(<!-- \/model-versions -->)/, `$1${modelVersionsHtml}$3`);
+  fs.writeFileSync("about.html", aboutHtml);
+  logInfo("Updated about.html with model information");
 }
