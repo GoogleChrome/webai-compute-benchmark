@@ -6,6 +6,7 @@
 
 import {defaultSuites} from "../resources/default-tests.mjs"
 import {logGroup, logInfo, sh} from "./helper.mjs"
+import fs from "node:fs";
 
 const workloadDirs = new Set();
 
@@ -25,7 +26,23 @@ for (const workloadDir of workloadDirs) {
   await logGroup(`BUILDING: ${workloadDir}`, () => buildWorkload(workloadDir));
 }
 
+await logGroup("UPDATING VERSION INFO", updateVersionInfo);
+
 async function buildWorkload(workloadDir) {
   await sh(["npm", "install"], {cwd: workloadDir});
   await sh(["npm", "run", "build"], {cwd: workloadDir});
+}
+
+async function updateVersionInfo() {
+  const packageJson = JSON.parse(fs.readFileSync("package.json", "utf8"));
+  const version = packageJson.version;
+  const gitHash = (await sh(["git", "rev-parse", "HEAD"])).stdoutString.trim();
+  const shortGitHash = gitHash.substring(0, 7);
+  const gitLink = `<a href="https://github.com/GoogleChrome/webai-compute-benchmark/commit/${gitHash}" target="_blank">${shortGitHash}</a>`;
+
+  let indexHtml = fs.readFileSync("index.html", "utf8");
+  indexHtml = indexHtml.replace(/(<!-- package-version -->)(.*?)(<!-- \/package-version -->)/, `$1${version}$3`);
+  indexHtml = indexHtml.replace(/(<!-- git-hash -->)(.*?)(<!-- \/git-hash -->)/, `$1${gitLink}$3`);
+  fs.writeFileSync("index.html", indexHtml);
+  logInfo(`Updated index.html with version ${version} and git hash ${shortGitHash}`);
 }
