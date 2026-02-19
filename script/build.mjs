@@ -37,16 +37,15 @@ async function buildWorkload(workloadDir) {
 
 async function updateVersionInfo() {
   const packageJson = JSON.parse(fs.readFileSync("package.json", "utf8"));
-  const version = packageJson.version;
   const gitHash = (await sh(["git", "rev-parse", "HEAD"])).stdoutString.trim();
   const shortGitHash = gitHash.substring(0, 7);
   const gitLink = `<a href="https://github.com/GoogleChrome/webai-compute-benchmark/commit/${gitHash}" target="_blank">${shortGitHash}</a>`;
 
   let indexHtml = fs.readFileSync("index.html", "utf8");
-  indexHtml = indexHtml.replace(/(<!-- package-version -->)(.*?)(<!-- \/package-version -->)/, `$1${version}$3`);
+  indexHtml = indexHtml.replace(/(<!-- package-version -->)(.*?)(<!-- \/package-version -->)/, `$1${packageJson.version}$3`);
   indexHtml = indexHtml.replace(/(<!-- git-hash -->)(.*?)(<!-- \/git-hash -->)/, `$1${gitLink}$3`);
   fs.writeFileSync("index.html", indexHtml);
-  logInfo(`Updated index.html with version ${version} and git hash ${shortGitHash}`);
+  logInfo(`Updated index.html with version ${packageJson.version} and git hash ${shortGitHash}`);
 }
 
 async function updateLibraryVersionInfo() {
@@ -57,9 +56,7 @@ async function updateLibraryVersionInfo() {
 
     if (matchingPaths.length === 0) {
       throw new Error(`Could not find package "${packageName}" in lockfile.`);
-    }
-
-    if (matchingPaths.length > 1) {
+    } else if (matchingPaths.length > 1) {
       throw new Error(`Found multiple occurrences of package "${packageName}" in lockfile: ${matchingPaths.join(", ")}. Please specify which one to use.`);
     }
 
@@ -74,13 +71,10 @@ async function updateLibraryVersionInfo() {
   const litertVersion = getPackageVersion(litertLock, "@litertjs/core");
 
   const libraryVersionsHtml = `
-    <h2>Library versions</h2>
-    <ul>
-      <li>Transformers.js: ${transformersVersion}</li>
-      <li>ONNX Runtime: ${onnxruntimeVersion}</li>
-      <li>LiteRT.js: ${litertVersion}</li>
-    </ul>
-  `;
+                            <li>Transformers.js: ${transformersVersion}</li>
+                            <li>ONNX Runtime: ${onnxruntimeVersion}</li>
+                            <li>LiteRT.js: ${litertVersion}</li>
+                            `;
 
   let aboutHtml = fs.readFileSync("about.html", "utf8");
   aboutHtml = aboutHtml.replace(/(<!-- library-versions -->)([\s\S]*?)(<!-- \/library-versions -->)/, `$1${libraryVersionsHtml}$3`);
@@ -118,59 +112,21 @@ async function updateModelInfoTable() {
     "Experimental-Text2Text-Generation-webgpu": "Xenova/flan-t5-small",
   };
 
-  let modelVersionsHtml = `
-    <h2>Model versions</h2>
-    <table style="width: 100%; border-collapse: collapse; text-align: left; margin-top: 10px;">
-      <thead>
-        <tr>
-          <th>Workload</th>
-          <th>Model</th>
-          <th>URL</th>
-          <th>Commit</th>
-        </tr>
-      </thead>
-      <tbody>
-  `;
-
-  const modelIds = [...new Set(Object.values(suiteToModelId))];
-  const modelGitCommitSha = {};
-
-  logInfo("Fetching model information from HuggingFace...");
-  for (const modelId of modelIds) {
-    const response = await fetch(`https://huggingface.co/api/models/${modelId}`);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch model info for ${modelId}: ${response.status} ${response.statusText}`);
-    }
-    const data = await response.json();
-    if (!data.sha) {
-      throw new Error(`Model info for ${modelId} is missing "sha" field.`);
-    }
-    modelGitCommitSha[modelId] = data.sha;
-  }
-
+  let modelVersionsHtml = "";
   for (const suite of defaultSuites) {
     const modelId = suiteToModelId[suite.name];
     if (!modelId) {
-      throw new Error(`No model ID mapping found for suite: ${suite.name}`);
+      throw new Error(`No model ID found for benchmark suite: ${suite.name}`);
     }
     const modelUrl = `https://huggingface.co/${modelId}`;
-    const sha = modelGitCommitSha[modelId];
-    const shortSha = sha.substring(0, 7);
-    const commitLink = `<a href="${modelUrl}/commit/${sha}" target="_blank">${shortSha}</a>`;
     modelVersionsHtml += `
-        <tr>
-          <td>${suite.name}</td>
-          <td>${modelId}</td>
-          <td><a href="${modelUrl}" target="_blank">${modelUrl}</a></td>
-          <td>${commitLink}</td>
-        </tr>
-      `;
+                                        <tr>
+                                            <td>${suite.name}</td>
+                                            <td>${modelId}</td>
+                                            <td><a href="${modelUrl}" target="_blank">${modelUrl}</a></td>
+                                        </tr>`;
   }
-
-  modelVersionsHtml += `
-      </tbody>
-    </table>
-  `;
+  modelVersionsHtml += "\n                                        "
 
   let aboutHtml = fs.readFileSync("about.html", "utf8");
   aboutHtml = aboutHtml.replace(/(<!-- model-versions -->)([\s\S]*?)(<!-- \/model-versions -->)/, `$1${modelVersionsHtml}$3`);
