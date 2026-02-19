@@ -226,7 +226,7 @@ button,
 
 .developer-mode {
     border-radius: 10px;
-    padding: 1rem 1rem 0 1rem;
+    padding: 1rem;
     background: #602525;
     border: 3px solid rgba(255, 255, 255, 0.5);
     position: fixed;
@@ -237,12 +237,6 @@ button,
 .developer-mode summary {
     user-select: none;
     cursor: pointer;
-    padding: 1rem;
-    margin: -1rem -1rem 0 -1rem;
-}
-
-.developer-mode-content {
-    padding-bottom: 1rem;
 }
 
 .developer-mode .suites {
@@ -252,47 +246,47 @@ button,
     overflow: auto;
 }
 
-.developer-mode-content ol {
+.developer-mode ol {
     list-style: none;
     padding: 0;
     margin: 0.5em 0 0 0;
 }
-.developer-mode-content .button-bar {
+.developer-mode .button-bar {
     display: flex;
     margin-top: 5px;
     gap: 3px;
 }
 
-.developer-mode-content .select-all::before {
+.developer-mode .select-all::before {
     content: "✔ ";
 }
 
-.developer-mode-content .unselect-all::after {
+.developer-mode .unselect-all::after {
     content: " ✘";
 }
 
-.developer-mode-content .settings label {
+.developer-mode .settings label {
     width: 100%;
     display: flex;
 }
-.developer-mode-content .settings label * {
+.developer-mode .settings label * {
     flex: 1;
 }
-.developer-mode-content .settings input[type="checkbox"] {
+.developer-mode .settings input[type="checkbox"] {
     flex: 0;
     margin-left: 0px;
 }
-.developer-mode-content .settings .range-label-data {
+.developer-mode .settings .range-label-data {
     flex: 0;
     min-width: 5em;
     text-align: right;
 }
 
-.developer-mode-content li + li {
+.developer-mode li + li {
     margin-top: 0px;
 }
 
-.developer-mode-content button {
+.developer-mode button {
     font-size: 16px;
     background: white;
     flex: auto;
@@ -302,7 +296,7 @@ button,
     border-radius: 10px;
 }
 
-.developer-mode-content button span {
+.developer-mode button span {
     padding-left: 10px;
     font-size: 1.5em;
     line-height: 10px;
@@ -310,15 +304,15 @@ button,
     top: 2px;
 }
 
-.developer-mode-content .tag {
+.developer-mode .tag {
     border-radius: 100vh;
 }
 
-.developer-mode-content .step-button {
+.developer-mode .step-button {
     color: white;
     background: rgba(255, 255, 255, 0.1);
 }
-.developer-mode-content hr {
+.developer-mode hr {
     width: initial;
     margin: 10px 0;
 }

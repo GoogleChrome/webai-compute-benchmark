@@ -154,10 +154,7 @@ class MainBenchmarkClient {
             this._populateInvalidScore();
 
         this._populateDetailedResults(metrics);
-        if (params.developerMode)
-            this.showResultsDetails();
-        else
-            this.showResultsSummary();
+        this.showResultsDetails();
         globalThis.dispatchEvent(new Event("BenchmarkDone"));
     }
 
@@ -435,7 +432,7 @@ class MainBenchmarkClient {
             return;
         } else if (this._hasResults) {
             if (hash !== "#summary" && hash !== "#details") {
-                this._setLocationHash("#summary");
+                this._setLocationHash("#details");
                 return;
             }
         } else if (hash !== "#home" && hash !== "") {
