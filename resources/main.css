@@ -522,6 +522,26 @@ section#instructions .section-content > * {
     padding-left: calc((var(--viewport-width) - var(--text-width)) / 2);
 }
 
+section#about li + li {
+    margin-top: 10px;
+}
+
+section#about .section-content > table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    margin-top: 10px;
+}
+
+section#about td,
+section#about th {
+    padding: 5px;
+}
+
+section#about th {
+    border-bottom: 1px solid var(--foreground);
+}
+
 :root[data-visible-section="details"] section#details {
     display: flex;
     flex-direction: column;
