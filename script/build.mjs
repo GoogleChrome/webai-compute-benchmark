@@ -120,13 +120,12 @@ async function updateModelInfoTable() {
     }
     const modelUrl = `https://huggingface.co/${modelId}`;
     modelVersionsHtml += `
-                                        <tr>
-                                            <td>${suite.name}</td>
-                                            <td>${modelId}</td>
-                                            <td><a href="${modelUrl}" target="_blank">${modelUrl}</a></td>
-                                        </tr>`;
+                                <tr>
+                                    <td>${suite.name}</td>
+                                    <td><a href="${modelUrl}" target="_blank">${modelId}</a></td>
+                                </tr>`;
   }
-  modelVersionsHtml += "\n                                        "
+  modelVersionsHtml += "\n                                "
 
   let aboutHtml = fs.readFileSync("about.html", "utf8");
   aboutHtml = aboutHtml.replace(/(<!-- model-versions -->)([\s\S]*?)(<!-- \/model-versions -->)/, `$1${modelVersionsHtml}$3`);
