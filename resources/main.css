@@ -167,10 +167,6 @@ li + ul {
     flex-direction: column;
 }
 
-section#home > .buttons {
-    margin-top: 80px;
-}
-
 .button-row {
     display: flex;
     flex-wrap: wrap;
@@ -364,14 +360,18 @@ section > p {
 }
 
 section#home p {
-    margin: 0 auto;
+    margin: 0 auto 1em;
     width: 70%;
     text-align: center;
 }
 
 section#home .content {
-    margin-top: 160px;
-    text-align: center;
+    margin-top: 100px;
+}
+
+section#home .version-note {
+    color: var(--inactive-color);
+    text-align: right;
 }
 
 button.show-about {
