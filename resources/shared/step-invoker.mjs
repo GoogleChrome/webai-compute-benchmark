@@ -74,7 +74,7 @@ class AsyncRAFStepInvoker extends BaseRAFStepInvoker {
                 { once: true }
             );
             AsyncRAFStepInvoker.mc.port1.start();
-            AsyncRAFStepInvoker.mc.port2.postMessage("speedometer");
+            AsyncRAFStepInvoker.mc.port2.postMessage("trigger port1 message callback");
         });
     }
 }
