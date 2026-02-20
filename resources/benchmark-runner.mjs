@@ -316,6 +316,11 @@ export class BenchmarkRunner {
         if (params.shuffleSeed !== "off")
             this._suiteOrderRandomNumberGenerator = seededHashRandomNumberGenerator(params.shuffleSeed);
         this._wakeLock = new WakeLock();
+        this._resetMeasuredValues();
+    }
+
+    _resetMeasuredValues() {
+        this._measuredValues = { steps: {}, total: 0, mean: NaN, geomean: NaN, score: NaN };
     }
 
     async runMultipleIterations(iterationCount) {
@@ -377,7 +382,7 @@ export class BenchmarkRunner {
     }
 
     async _prepareAllSuites() {
-        this._measuredValues = { tests: {}, total: 0, mean: NaN, geomean: NaN, score: NaN };
+        this._resetMeasuredValues();
         await this._wakeLock.request();
 
         const prepareStartLabel = "runner-prepare-start";
@@ -449,8 +454,8 @@ export class BenchmarkRunner {
         if (this._client?.didRunSuites) {
             let product = 1;
             const values = [];
-            for (const suiteName in this._measuredValues.tests) {
-                const suiteTotal = this._measuredValues.tests[suiteName].total;
+            for (const suiteName in this._measuredValues.steps) {
+                const suiteTotal = this._measuredValues.steps[suiteName].total;
                 product *= suiteTotal;
                 values.push(suiteTotal);
             }
@@ -482,15 +487,15 @@ export class BenchmarkRunner {
                 metric.add(results.total ?? results);
                 if (metric.parent !== parent)
                     parent.addChild(metric);
-                if (results.tests)
-                    collectSubMetrics(`${metric.name}${Metric.separator}`, results.tests, metric);
+                if (results.steps)
+                    collectSubMetrics(`${metric.name}${Metric.separator}`, results.steps, metric);
             }
         };
         const initializeMetrics = this._metrics === null;
         if (initializeMetrics)
             this._metrics = { __proto__: null };
 
-        const iterationResults = this._measuredValues.tests;
+        const iterationResults = this._measuredValues.steps;
         collectSubMetrics("", iterationResults);
 
         if (initializeMetrics) {
