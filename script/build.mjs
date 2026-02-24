@@ -108,12 +108,13 @@ async function updateModelInfoTable() {
     "Image-Classification-LiteRT.js-webgpu": "qualcomm/MobileNet-v3-Small",
     "Hand-Detection-LiteRT.js-wasm": "qualcomm/MediaPipe-Hand-Detection",
     "Hand-Detection-LiteRT.js-webgpu": "qualcomm/MediaPipe-Hand-Detection",
-    "Experimental-Text2Text-Generation-wasm": "Xenova/flan-t5-small",
-    "Experimental-Text2Text-Generation-webgpu": "Xenova/flan-t5-small",
   };
 
   let modelVersionsHtml = "";
   for (const suite of defaultSuites) {
+    if (!suite.tags || !suite.tags.includes("default")) {
+      continue;
+    }
     const modelId = suiteToModelId[suite.name];
     if (!modelId) {
       throw new Error(`No model ID found for benchmark suite: ${suite.name}`);
