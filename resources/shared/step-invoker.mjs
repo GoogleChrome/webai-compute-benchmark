@@ -1,4 +1,4 @@
-class TestInvoker {
+class StepInvoker {
     constructor(syncCallback, asyncCallback, reportCallback, params) {
         this._syncCallback = syncCallback;
         this._asyncCallback = asyncCallback;
@@ -7,7 +7,7 @@ class TestInvoker {
     }
 }
 
-class BaseRAFTestInvoker extends TestInvoker {
+class BaseRAFStepInvoker extends StepInvoker {
     start() {
         return new Promise((resolve) => {
             if (this._params.waitBeforeSync)
@@ -18,7 +18,7 @@ class BaseRAFTestInvoker extends TestInvoker {
     }
 }
 
-class RAFTestInvoker extends BaseRAFTestInvoker {
+class RAFStepInvoker extends BaseRAFStepInvoker {
     _scheduleCallbacks(resolve) {
         requestAnimationFrame(() => this._syncCallback());
         requestAnimationFrame(() => {
@@ -33,7 +33,7 @@ class RAFTestInvoker extends BaseRAFTestInvoker {
     }
 }
 
-class AsyncRAFTestInvoker extends BaseRAFTestInvoker {
+class AsyncRAFStepInvoker extends BaseRAFStepInvoker {
     static mc = new MessageChannel();
     _scheduleCallbacks(resolve) {
         let gotTimer = false;
@@ -64,7 +64,7 @@ class AsyncRAFTestInvoker extends BaseRAFTestInvoker {
                 tryTriggerAsyncCallback();
             });
 
-            AsyncRAFTestInvoker.mc.port1.addEventListener(
+            AsyncRAFStepInvoker.mc.port1.addEventListener(
                 "message",
                 async function () {
                     await Promise.resolve();
@@ -73,14 +73,14 @@ class AsyncRAFTestInvoker extends BaseRAFTestInvoker {
                 },
                 { once: true }
             );
-            AsyncRAFTestInvoker.mc.port1.start();
-            AsyncRAFTestInvoker.mc.port2.postMessage("speedometer");
+            AsyncRAFStepInvoker.mc.port1.start();
+            AsyncRAFStepInvoker.mc.port2.postMessage("trigger port1 message callback");
         });
     }
 }
 
-export const TEST_INVOKER_LOOKUP = Object.freeze({
+export const STEP_INVOKER_LOOKUP = Object.freeze({
     __proto__: null,
-    raf: RAFTestInvoker,
-    async: AsyncRAFTestInvoker,
+    raf: RAFStepInvoker,
+    async: AsyncRAFStepInvoker,
 });

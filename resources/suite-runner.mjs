@@ -1,4 +1,4 @@
-import { TEST_RUNNER_LOOKUP } from "./shared/test-runner.mjs";
+import { STEP_RUNNER_LOOKUP } from "./shared/step-runner.mjs";
 import { WarmupSuite } from "./benchmark-runner.mjs";
 
 export class SuiteRunner {
@@ -12,10 +12,10 @@ export class SuiteRunner {
 
     constructor(frame, page, params, suite, client, measuredValues) {
         // FIXME: Create SuiteRunner-local measuredValues.
-        this.#suiteResults = measuredValues.tests[suite.name];
+        this.#suiteResults = measuredValues.steps[suite.name];
         if (!this.#suiteResults) {
-            this.#suiteResults = { tests: {}, prepare: 0, total: 0 };
-            measuredValues.tests[suite.name] = this.#suiteResults;
+            this.#suiteResults = { steps: {}, prepare: 0, total: 0 };
+            measuredValues.steps[suite.name] = this.#suiteResults;
         }
         this.#frame = frame;
         this.#page = page;
@@ -48,7 +48,7 @@ export class SuiteRunner {
         return this.#suiteResults;
     }
 
-    get testRunnerType() {
+    get stepRunnerType() {
         return (this.#suite.type ?? this.params.useAsyncSteps) ? "async" : "default";
     }
 
@@ -77,14 +77,14 @@ export class SuiteRunner {
         const suiteEndLabel = `suite-${suiteName}-end`;
 
         performance.mark(suiteStartLabel);
-        for (const test of this.#suite.tests) {
+        for (const step of this.#suite.steps) {
             if (this.#client?.willRunTest)
-                await this.#client.willRunTest(this.#suite, test);
+                await this.#client.willRunTest(this.#suite, step);
 
-            const testRunnerType = this.testRunnerType;
-            const testRunnerClass = TEST_RUNNER_LOOKUP[testRunnerType];
-            const testRunner = new testRunnerClass(this.#frame, this.#page, this.#params, this.#suite, test, this._recordTestResults, testRunnerType);
-            await testRunner.runTest();
+            const stepRunnerType = this.stepRunnerType;
+            const stepRunnerClass = STEP_RUNNER_LOOKUP[stepRunnerType];
+            const stepRunner = new stepRunnerClass(this.#frame, this.#page, this.#params, this.#suite, step, this._recordStepResults, stepRunnerType);
+            await stepRunner.runStep();
         }
         performance.mark(suiteEndLabel);
 
@@ -114,13 +114,13 @@ export class SuiteRunner {
         });
     }
 
-    _recordTestResults = async (test, syncTime, asyncTime) => {
+    _recordStepResults = async (step, syncTime, asyncTime) => {
         // Skip reporting updates for the warmup suite.
         if (this.#suite === WarmupSuite)
             return;
 
         let total = syncTime + asyncTime;
-        this.#suiteResults.tests[test.name] = {
+        this.#suiteResults.steps[step.name] = {
             tests: { Sync: syncTime, Async: asyncTime },
             total: total,
         };
@@ -187,9 +187,9 @@ export class RemoteSuiteRunner extends SuiteRunner {
         // Capture metrics from the completed tests.
         const response = await this._subscribeOnce("suite-complete");
 
-        this.suiteResults.tests = {
-            ...this.suiteResults.tests,
-            ...response.result.tests,
+        this.suiteResults.steps = {
+            ...this.suiteResults.steps,
+            ...response.result.steps,
         };
 
         this.suiteResults.prepare = this.#prepareTime;
