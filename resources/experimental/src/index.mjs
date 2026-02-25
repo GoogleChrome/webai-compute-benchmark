@@ -1,5 +1,4 @@
-import { BenchmarkConnector } from "speedometer-utils/benchmark.mjs";
-import { AsyncBenchmarkStep, AsyncBenchmarkSuite } from "speedometer-utils/benchmark.mjs";
+import { BenchmarkConnector, AsyncBenchmarkStep, AsyncBenchmarkSuite } from "speedometer-utils/benchmark.mjs";
 import { forceLayout } from "speedometer-utils/helpers.mjs";
 import { pipeline, env } from '@huggingface/transformers';
 
@@ -76,8 +75,8 @@ export async function initializeBenchmark(modelType) {
               forceLayout();
               await benchmark.run();
               forceLayout();
-          }),
-      ], true),
+          }, { measureAsync: false }),
+     ]),
   };
 
   const benchmarkConnector = new BenchmarkConnector(suites, appName, appVersion);
