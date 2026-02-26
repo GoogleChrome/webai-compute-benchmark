@@ -93,7 +93,7 @@ class SpeechRecognition {
     document.getElementById('input').textContent = `Transcribing local audio file.`;
 
     this.audioData = await read_audio(this.audioURL, 16000);
-    
+    throw Error("inside init");
     // TODO: Initially we wanted to use distil-whisper/distil-large-v3 model, but the onnx files seems to be broken.
     // We should check if we can resolve this issue or select another model. In the meanwhile, we use Xenova/whisper-small.
     this.model = await pipeline('automatic-speech-recognition', "Xenova/whisper-small", { device: this.device, dtype: "q4" },);
@@ -138,6 +138,7 @@ class BackgroundRemoval {
   }
 
   async run() {
+    throw Error("inside run");
     const result = await this.model(this.imageURL);
     
     // Prepare result to display
@@ -393,8 +394,16 @@ export async function initializeBenchmark(modelType) {
   }
 
   appName = modelConfigs[modelType].description;
-  const benchmark = modelConfigs[modelType].create();
-  await benchmark.init();
+  let benchmark;
+  let initError;
+  try {
+    benchmark = modelConfigs[modelType].create();
+    await benchmark.init();
+  } catch (error) {
+    console.error(error);
+    initError = error;
+  }
+  
 
   /*--------- Running test suites ---------*/
   const suites = {

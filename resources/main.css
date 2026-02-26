@@ -475,6 +475,15 @@ section#summary.invalid #invalid-score-text {
     display: block;
 }
 
+#results-warning {
+    color: #ff4444;
+    border: 1px solid #ff4444;
+    background-color: rgba(255, 68, 68, 0.1);
+    padding: 15px;
+    margin: 20px;
+    border-radius: 5px;
+}
+
 section#details {
     --viewport-height: max(600px, 90vh);
     --viewport-width: max(800px, 80vw);
