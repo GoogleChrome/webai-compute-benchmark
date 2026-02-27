@@ -35,6 +35,7 @@ class FeatureExtraction {
   }
 
   async init() {
+    throw Error("STOP-----");
     document.getElementById('device').textContent = this.device;
     document.getElementById('workload').textContent = "feature extraction";
     document.getElementById('input').textContent = `"${this.SENTENCE_1}"`;
@@ -60,6 +61,7 @@ class SentenceSimilarity {
   }
 
   async init() {
+    throw Error("STOP-----");
     document.getElementById('device').textContent = this.device;
     document.getElementById('workload').textContent = "sentence similarity";
     document.getElementById('input').textContent = `"${this.SENTENCES}"`;
@@ -92,13 +94,14 @@ class SpeechRecognition {
     document.getElementById('input').textContent = `Transcribing local audio file.`;
 
     this.audioData = await read_audio(this.audioURL, 16000);
-    throw Error("inside init");
+
     // TODO: Initially we wanted to use distil-whisper/distil-large-v3 model, but the onnx files seems to be broken.
     // We should check if we can resolve this issue or select another model. In the meanwhile, we use Xenova/whisper-small.
     this.model = await pipeline('automatic-speech-recognition', "Xenova/whisper-small", { device: this.device, dtype: "q4" },);
   }
 
   async run() {
+    throw Error("STOP-----");
     const result = await this.model(this.audioData, {language: 'en'});
     const output = document.getElementById('output');
     output.textContent = result.text;
@@ -137,7 +140,7 @@ class BackgroundRemoval {
   }
 
   async run() {
-    throw Error("inside run");
+    throw Error("STOP-----");
     const result = await this.model(this.imageURL);
     
     // Prepare result to display
