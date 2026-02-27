@@ -478,10 +478,35 @@ section#summary.invalid #invalid-score-text {
 #results-warning {
     color: #ff4444;
     border: 1px solid #ff4444;
-    background-color: rgba(255, 68, 68, 0.1);
-    padding: 15px;
-    margin: 20px;
-    border-radius: 5px;
+    background-color: var(--background); /* Match body background */
+    padding: 10px;
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: max(800px, 80vw); /* Match #details width */
+    max-height: 40vh;
+    overflow-y: auto;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+    box-sizing: border-box;
+}
+
+#results-warning ul {
+    margin: 5px 0 0 0;
+    padding-left: 20px;
+}
+
+#results-warning li + li {
+    margin-top: 5px;
+}
+
+:root:not([data-visible-section="details"]) #results-warning {
+    display: none;
+}
+
+/* Move details section down when warning is present to prevent overlap */
+body.has-warning section#details {
+    margin-top: calc(var(--warning-box-height, 0px));
 }
 
 section#details {
