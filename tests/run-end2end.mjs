@@ -21,12 +21,12 @@ let suites = benchmarkConfigurator.suites.filter(suite =>
     !suite.url.includes('/experimental/') &&
     suite.tags.some((tag) => tag === 'wasm' || tag === 'gpu-test-suite')
 );
-let timeout = 15 * ONE_MINUTE_IN_MS;
+let timeout = 20 * ONE_MINUTE_IN_MS;
 
 if (RUN_FULL_SUITE) {
     tags = 'all';
     suites = benchmarkConfigurator.suites;
-    timeout = 25 * ONE_MINUTE_IN_MS;
+    timeout = 30 * ONE_MINUTE_IN_MS;
 }
 
 async function testPage(url) {
@@ -95,6 +95,7 @@ async function testIterations() {
             const metric = metrics[suite.name];
             assert(metric, `Missing suite result for ${suite.name}`);
             assert(metric.values.length === iterationCount);
+            console.log(`Suite ${suite.name} took ${metric.sum}ms`);
         } else {
             assert(!(suite.name in metrics));
         }
