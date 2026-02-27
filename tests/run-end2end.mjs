@@ -113,7 +113,7 @@ async function testSubIterations() {
     const iterationCount = 1;
     const subIterationCount = 3;
     // URL with suites specified
-    const params = ["iterationCount=1", `subIterationCount=${subIterationCount}`, `suites=${testSuites.join(',')}`];
+    const params = [`iterationCount=${iterationCount}`, `subIterationCount=${subIterationCount}`, `suites=${testSuites.join(',')}`];
     const metrics = await testPage(`index.html?${params.join("&")}`);
 
     console.log("Collected metrics keys:", Object.keys(metrics));
