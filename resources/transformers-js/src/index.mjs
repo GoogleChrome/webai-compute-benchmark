@@ -1,5 +1,6 @@
-import { BenchmarkConnector,  AsyncBenchmarkStep, AsyncBenchmarkSuite } from "speedometer-utils/benchmark.mjs";
-import { forceLayout } from "speedometer-utils/helpers.mjs";
+import { BenchmarkConnector } from "speedometer-utils/benchmark.mjs";
+import { createSubIteratedSuite } from "speedometer-utils/helpers.mjs";
+import { params } from "speedometer-utils/params.mjs";
 import { pipeline, env, dot, read_audio, AutoTokenizer, AutoModelForSequenceClassification, SiglipVisionModel, AutoImageProcessor, RawImage, SiglipTextModel, softmax } from '@huggingface/transformers';
 import { KokoroTTS } from "kokoro-js";
 import jfkAudio from '../../media/jfk_1962_0912_spaceeffort.wav';
@@ -397,13 +398,7 @@ export async function initializeBenchmark(modelType) {
 
   /*--------- Running test suites ---------*/
   const suites = {
-      default: new AsyncBenchmarkSuite("default", [
-          new AsyncBenchmarkStep("Benchmark", async () => {
-              forceLayout();
-              await benchmark.run();
-              forceLayout();
-          }),
-      ], { measureAsync: false }),
+    default: createSubIteratedSuite(benchmark, params.subIterationCount),
   };
 
   const benchmarkConnector = new BenchmarkConnector(suites, appName, appVersion);

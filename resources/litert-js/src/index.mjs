@@ -1,5 +1,6 @@
-import { BenchmarkConnector, AsyncBenchmarkStep, AsyncBenchmarkSuite } from "speedometer-utils/benchmark.mjs";
-import { forceLayout } from "speedometer-utils/helpers.mjs";
+import { BenchmarkConnector } from "speedometer-utils/benchmark.mjs";
+import { createSubIteratedSuite } from "speedometer-utils/helpers.mjs";
+import { params } from "speedometer-utils/params.mjs";
 import * as tf from '@tensorflow/tfjs';
 import { loadAndCompile, loadLiteRt, Tensor } from '@litertjs/core';
 import origamiImage from '../../media/image.jpg';
@@ -377,16 +378,10 @@ export async function initializeBenchmark(modelType) {
  const benchmark = modelConfigs[modelType].create();
  await benchmark.init();
 
- /*--------- Running test suites ---------*/
- const suites = {
-     default: new AsyncBenchmarkSuite("default", [
-         new AsyncBenchmarkStep("Benchmark", async () => {
-             forceLayout();
-             await benchmark.run();
-             forceLayout();
-         }, { measureAsync: false }),
-     ]),
- };
+  /*--------- Running test suites ---------*/
+  const suites = {
+    default: createSubIteratedSuite(benchmark, params.subIterationCount),
+  };
 
  const benchmarkConnector = new BenchmarkConnector(suites, appName, appVersion);
  benchmarkConnector.connect();

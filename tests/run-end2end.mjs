@@ -102,6 +102,37 @@ async function testIterations() {
     assert(metrics.Score.values.length === iterationCount);
 }
 
+async function testSubmetrics() {
+    const testSuites = [
+        "Image-Classification-LiteRT.js-wasm",
+        "Feature-Extraction-wasm"
+    ];
+
+    let suites = benchmarkConfigurator.suites.filter(suite => testSuites.includes(suite.name));
+    const iterationCount = 1;
+    const subIterationCount = 3;
+    // URL with suites specified
+    const params = ["iterationCount=1", `subIterationCount=${subIterationCount}`, `suites=${testSuites.join(',')}`];
+    const metrics = await testPage(`index.html?${params.join("&")}`);
+
+    console.log("Collected metrics keys:", Object.keys(metrics));
+
+    suites.forEach((suite) => {
+        const metric = metrics[suite.name];
+        assert(metric, `Missing suite result for ${suite.name}`);
+        assert(metric.values.length === iterationCount);
+
+        // Verify submetrics generated from steps
+        for (let i = 0; i < subIterationCount; i++) {
+            // we use some() to find the submetric since the separator might be '/'
+            const submetricKey = Object.keys(metrics).find(k => k.startsWith(suite.name) && k.includes(`run-${i + 1}`));
+            assert(submetricKey, `Missing submetric result ending in run-${i + 1} for ${suite.name}`);
+            const submetric = metrics[submetricKey];
+            assert(submetric.values.length === iterationCount);
+        }
+    });
+}
+
 async function testAll() {
     const metrics = await testPage(`index.html?iterationCount=1&tags=${tags}`);
     suites.forEach((suite) => {
@@ -135,6 +166,7 @@ async function test() {
         });
         await driver.manage().setTimeouts({ script: timeout });
         await testIterations();
+        await testSubmetrics();
         await testAll();
         await testDeveloperMode();
         console.log("\nTests complete!");
