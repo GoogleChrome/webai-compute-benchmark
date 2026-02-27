@@ -88,7 +88,8 @@ function validateMetric(name, metric) {
 
 async function testIterations() {
     const iterationCount = 2;
-    const metrics = await testPage(`index.html?iterationCount=${iterationCount}&tags=${tags}`);
+    const subIterationCount = 1;
+    const metrics = await testPage(`index.html?iterationCount=${iterationCount}&subIterationCount=${subIterationCount}&tags=${tags}`);
     suites.forEach((suite) => {
         if (suite.enabled) {
             const metric = metrics[suite.name];
@@ -102,7 +103,7 @@ async function testIterations() {
     assert(metrics.Score.values.length === iterationCount);
 }
 
-async function testSubmetrics() {
+async function testSubIterations() {
     const testSuites = [
         "Image-Classification-LiteRT.js-wasm",
         "Feature-Extraction-wasm"
@@ -134,7 +135,7 @@ async function testSubmetrics() {
 }
 
 async function testAll() {
-    const metrics = await testPage(`index.html?iterationCount=1&tags=${tags}`);
+    const metrics = await testPage(`index.html?iterationCount=1&subIterationCount=1&tags=${tags}`);
     suites.forEach((suite) => {
         assert(suite.name in metrics);
         const metric = metrics[suite.name];
@@ -166,7 +167,7 @@ async function test() {
         });
         await driver.manage().setTimeouts({ script: timeout });
         await testIterations();
-        await testSubmetrics();
+        await testSubIterations();
         await testAll();
         await testDeveloperMode();
         console.log("\nTests complete!");
