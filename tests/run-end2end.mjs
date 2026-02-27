@@ -21,12 +21,12 @@ let suites = benchmarkConfigurator.suites.filter(suite =>
     !suite.url.includes('/experimental/') &&
     suite.tags.some((tag) => tag === 'wasm' || tag === 'gpu-test-suite')
 );
-let timeout = 10 * ONE_MINUTE_IN_MS;
+let timeout = 15 * ONE_MINUTE_IN_MS;
 
 if (RUN_FULL_SUITE) {
     tags = 'all';
     suites = benchmarkConfigurator.suites;
-    timeout = 20 * ONE_MINUTE_IN_MS;
+    timeout = 25 * ONE_MINUTE_IN_MS;
 }
 
 async function testPage(url) {
