@@ -419,7 +419,7 @@ export class BenchmarkRunner {
                 try {
                     await this._appendFrame();
                     this._page = new Page(this._frame);
-                    const timeout = 7000;
+                    const timeout = 10000;
                     let timeoutId;
                     const timeoutPromise = new Promise((_, reject) => {
                         timeoutId = setTimeout(() => reject(new Error(`Timeout: Workload ${suite.name} took longer than ${timeout}ms`)), timeout);

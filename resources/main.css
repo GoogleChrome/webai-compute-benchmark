@@ -504,7 +504,6 @@ section#summary.invalid #invalid-score-text {
     display: none;
 }
 
-/* Move details section down when warning is present to prevent overlap */
 body.has-warning section#details {
     /* Position the details box below the fixed warning box, leaving a 20px gap. */
     top: var(--details-top-position, 40px);
