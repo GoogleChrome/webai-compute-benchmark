@@ -147,7 +147,7 @@ class MainBenchmarkClient {
         this._measuredValuesList = [];
         this._finishedTestCount = 0;
         this._failedSuites.clear();
-        document.body.style.removeProperty("--warning-box-height");
+        document.body.style.removeProperty("--details-top-position");
         document.body.classList.remove("has-warning");
     }
 
@@ -278,9 +278,16 @@ class MainBenchmarkClient {
             });
             warning.appendChild(ul);
             document.body.appendChild(warning);
-            document.body.classList.add("has-warning");
-            // Set the height of the warning box as a CSS variable to dynamically adjust the layout.
-            document.body.style.setProperty("--warning-box-height", `${warning.offsetHeight}px`);
+
+            // Defer style calculation until after the browser has rendered the warning box.
+            // This ensures that offsetHeight returns the correct value and prevents a race condition.
+            requestAnimationFrame(() => {
+                const warningHeight = warning.offsetHeight;
+                const warningTop = parseInt(window.getComputedStyle(warning).top, 10);
+                const detailsTop = warningTop + warningHeight + 20; // 20px for a gap.
+                document.body.style.setProperty("--details-top-position", `${detailsTop}px`);
+                document.body.classList.add("has-warning");
+            });
         }
 
         const trackHeight = 24;

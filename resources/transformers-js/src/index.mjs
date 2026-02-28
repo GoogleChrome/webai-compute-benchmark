@@ -35,7 +35,6 @@ class FeatureExtraction {
   }
 
   async init() {
-    throw Error("STOP-----");
     document.getElementById('device').textContent = this.device;
     document.getElementById('workload').textContent = "feature extraction";
     document.getElementById('input').textContent = `"${this.SENTENCE_1}"`;
@@ -61,7 +60,6 @@ class SentenceSimilarity {
   }
 
   async init() {
-    throw Error("STOP-----");
     document.getElementById('device').textContent = this.device;
     document.getElementById('workload').textContent = "sentence similarity";
     document.getElementById('input').textContent = `"${this.SENTENCES}"`;
@@ -101,7 +99,6 @@ class SpeechRecognition {
   }
 
   async run() {
-    throw Error("STOP-----");
     const result = await this.model(this.audioData, {language: 'en'});
     const output = document.getElementById('output');
     output.textContent = result.text;
@@ -140,7 +137,6 @@ class BackgroundRemoval {
   }
 
   async run() {
-    throw Error("STOP-----");
     const result = await this.model(this.imageURL);
     
     // Prepare result to display
