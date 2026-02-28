@@ -88,12 +88,14 @@ function validateMetric(name, metric) {
 
 async function testIterations() {
     const iterationCount = 2;
-    const metrics = await testPage(`index.html?iterationCount=${iterationCount}&tags=${tags}`);
+    const subIterationCount = 1;
+    const metrics = await testPage(`index.html?iterationCount=${iterationCount}&subIterationCount=${subIterationCount}&tags=${tags}`);
     suites.forEach((suite) => {
         if (suite.enabled) {
             const metric = metrics[suite.name];
             assert(metric, `Missing suite result for ${suite.name}`);
             assert(metric.values.length === iterationCount);
+            console.log(`Suite ${suite.name} took ${metric.sum}ms`);
         } else {
             assert(!(suite.name in metrics));
         }
@@ -102,8 +104,37 @@ async function testIterations() {
     assert(metrics.Score.values.length === iterationCount);
 }
 
+async function testSubIterations() {
+    const testSuites = [
+        "Image-Classification-LiteRT.js-wasm",
+        "Feature-Extraction-wasm"
+    ];
+
+    let suites = benchmarkConfigurator.suites.filter(suite => testSuites.includes(suite.name));
+    const iterationCount = 1;
+    const subIterationCount = 3;
+    // URL with suites specified
+    const params = [`iterationCount=${iterationCount}`, `subIterationCount=${subIterationCount}`, `suites=${testSuites.join(',')}`];
+    const metrics = await testPage(`index.html?${params.join("&")}`);
+
+    suites.forEach((suite) => {
+        const metric = metrics[suite.name];
+        assert(metric, `Missing suite result for ${suite.name}`);
+        assert(metric.values.length === iterationCount);
+
+        // Verify submetrics generated from steps
+        for (let i = 0; i < subIterationCount; i++) {
+            // we use some() to find the submetric since the separator might be '/'
+            const submetricKey = Object.keys(metrics).find(k => k.startsWith(suite.name) && k.includes(`run-${i + 1}`));
+            assert(submetricKey, `Missing submetric result ending in run-${i + 1} for ${suite.name}`);
+            const submetric = metrics[submetricKey];
+            assert(submetric.values.length === iterationCount);
+        }
+    });
+}
+
 async function testAll() {
-    const metrics = await testPage(`index.html?iterationCount=1&tags=${tags}`);
+    const metrics = await testPage(`index.html?iterationCount=1&subIterationCount=1&tags=${tags}`);
     suites.forEach((suite) => {
         assert(suite.name in metrics);
         const metric = metrics[suite.name];
@@ -135,6 +166,7 @@ async function test() {
         });
         await driver.manage().setTimeouts({ script: timeout });
         await testIterations();
+        await testSubIterations();
         await testAll();
         await testDeveloperMode();
         console.log("\nTests complete!");

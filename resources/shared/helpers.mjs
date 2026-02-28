@@ -35,3 +35,17 @@ export function forceLayout(body, layoutMode = "getBoundingRectAndElementFromPoi
             throw Error(`Invalid layoutMode: ${layoutMode}`);
     }
 }
+
+import { AsyncBenchmarkStep, AsyncBenchmarkSuite } from "./benchmark.mjs";
+
+export function createSubIteratedSuite(benchmark, subIterationCount) {
+    const steps = [];
+    for (let i = 0; i < subIterationCount; i++) {
+        steps.push(new AsyncBenchmarkStep(`run-${i + 1}`, async () => {
+            forceLayout();
+            await benchmark.run();
+            forceLayout();
+        }, { measureAsync: false }));
+    }
+    return new AsyncBenchmarkSuite("default", steps);
+}

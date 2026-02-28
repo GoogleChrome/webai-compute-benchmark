@@ -8,7 +8,8 @@ export class Params {
     // Enable a detailed developer menu to change the current Params.
     developerMode = false;
     startAutomatically = false;
-    iterationCount = 10;
+    iterationCount = 5;
+    subIterationCount = 5;
     suites = [];
     // A list of tags to filter suites
     tags = ["default"];
@@ -56,6 +57,7 @@ export class Params {
         this.viewport = this._parseViewport(searchParams);
         this.startAutomatically = this._parseBooleanParam(searchParams, "startAutomatically");
         this.iterationCount = this._parseIntParam(searchParams, "iterationCount", 1);
+        this.subIterationCount = this._parseIntParam(searchParams, "subIterationCount", 1);
         this.suites = this._parseSuites(searchParams);
         this.tags = this._parseTags(searchParams);
         this.developerMode = this._parseBooleanParam(searchParams, "developerMode", "dev");

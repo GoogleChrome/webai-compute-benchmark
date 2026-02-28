@@ -17,6 +17,7 @@ export function createDeveloperModeContainer() {
     const settings = document.createElement("div");
     settings.className = "settings";
     settings.append(createUIForIterationCount());
+    settings.append(createUIForSubIterationCount());
     settings.append(createUIForMeasurePrepare());
     settings.append(createUIForWarmupSuite());
     settings.append(createUIForWarmupBeforeSync());
@@ -75,6 +76,10 @@ function createCheckboxUI(labelValue, initialValue, paramsUpdateCallback) {
 
 function createUIForIterationCount() {
     return createTimeRangeUI("Iterations: ", "iterationCount", "#", 1, 50);
+}
+
+function createUIForSubIterationCount() {
+    return createTimeRangeUI("Sub-iterations: ", "subIterationCount", "#", 1, 50);
 }
 
 function createUIForWarmupBeforeSync() {
