@@ -419,7 +419,22 @@ export class BenchmarkRunner {
                 try {
                     await this._appendFrame();
                     this._page = new Page(this._frame);
-                    await this.runSuite(suite);
+                    const timeout = 10000;
+                    let timeoutId;
+                    const timeoutPromise = new Promise((_, reject) => {
+                        timeoutId = setTimeout(() => reject(new Error(`Timeout: Workload ${suite.name} took longer than ${timeout}ms`)), timeout);
+                    });
+                    try {
+                        await Promise.race([this.runSuite(suite), timeoutPromise]);
+                    } finally {
+                        clearTimeout(timeoutId);
+                    }
+                } catch (error) {
+                    console.error(`Workload ${suite.name} failed:`, error);
+                    this._measuredValues.steps[suite.name] = { total: 0 };
+                    if (this._client?.didFailSuite) {
+                        this._client.didFailSuite(suite, error);
+                    }
                 } finally {
                     this._removeFrame();
                 }
@@ -456,12 +471,14 @@ export class BenchmarkRunner {
             const values = [];
             for (const suiteName in this._measuredValues.steps) {
                 const suiteTotal = this._measuredValues.steps[suiteName].total;
-                product *= suiteTotal;
-                values.push(suiteTotal);
+                if (suiteTotal > 0) {
+                    product *= suiteTotal;
+                    values.push(suiteTotal);
+                }
             }
 
             values.sort((a, b) => a - b); // Avoid the loss of significance for the sum.
-            const total = values.reduce((a, b) => a + b);
+            const total = values.reduce((a, b) => a + b, 0);
             const geomean = Math.pow(product, 1 / values.length);
 
             this._measuredValues.total = total;
@@ -512,8 +529,10 @@ export class BenchmarkRunner {
         const geomean = getMetric("Geomean");
         const iteration = geomean.length;
         const iterationTotal = iterationMetric(iteration, "Total");
-        for (const results of Object.values(iterationResults))
-            iterationTotal.add(results.total);
+        for (const results of Object.values(iterationResults)) {
+            if (results.total > 0)
+                iterationTotal.add(results.total);
+        }
         iterationTotal.computeAggregatedMetrics();
         geomean.add(iterationTotal.geomean);
         getMetric("Score").add(geomeanToScore(iterationTotal.geomean));

@@ -107,7 +107,6 @@ async renderSegmentation(maskData, originalImage) {
    document.getElementById('workload').textContent = "Image segmentation";
    document.getElementById('input').textContent = `Segmentation on a local image.`;
    document.getElementById('result-text').textContent = 'Segmentation Result';
- 
    // Load the input image into an in-memory Image object.
    this.originalImage.src = origamiImage;
    await this.originalImage.decode();
@@ -374,13 +373,22 @@ export async function initializeBenchmark(modelType) {
  }
 
  appName = modelConfigs[modelType].description;
- const benchmark = modelConfigs[modelType].create();
- await benchmark.init();
+ let benchmark;
+ let initError;
+ try {
+    benchmark = modelConfigs[modelType].create();
+    await benchmark.init();
+ } catch (error) {
+    initError = error;
+ }
 
  /*--------- Running test suites ---------*/
  const suites = {
      default: new AsyncBenchmarkSuite("default", [
          new AsyncBenchmarkStep("Benchmark", async () => {
+              if (initError) {
+                  throw initError;
+              }
              forceLayout();
              await benchmark.run();
              forceLayout();

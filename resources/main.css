@@ -475,6 +475,43 @@ section#summary.invalid #invalid-score-text {
     display: block;
 }
 
+#results-warning {
+    color: #ff4444;
+    border: 1px solid #ff4444;
+    background-color: var(--background); /* Match body background */
+    padding: 10px;
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: max(800px, 80vw); /* Match #details width */
+    max-height: 40vh;
+    overflow-y: auto;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+    box-sizing: border-box;
+}
+
+#results-warning ul {
+    margin: 5px 0 0 0;
+    padding-left: 20px;
+}
+
+#results-warning li + li {
+    margin-top: 5px;
+}
+
+:root:not([data-visible-section="details"]) #results-warning {
+    display: none;
+}
+
+body.has-warning section#details {
+    /* Position the details box below the fixed warning box, leaving a 20px gap. */
+    top: var(--details-top-position, 40px);
+    margin-top: 0; /* Override the negative margin used for vertical centering. */
+    margin-bottom: 20px;
+    height: auto; /* Allow the box to grow to fit its content. */
+}
+
 section#details {
     --viewport-height: max(600px, 90vh);
     --viewport-width: max(800px, 80vw);

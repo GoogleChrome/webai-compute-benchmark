@@ -19,6 +19,7 @@ class MainBenchmarkClient {
     _steppingPromise = null;
     _steppingResolver = null;
     _benchmarkConfiguratorPromise = null;
+    _failedSuites = new Set();
 
     constructor() {
         this._benchmarkConfiguratorPromise = import("./benchmark-configurator.mjs");
@@ -132,6 +133,12 @@ class MainBenchmarkClient {
         this._progressCompleted.value = this._finishedTestCount;
     }
 
+    didFailSuite(suite, error) {
+        this._failedSuites.add(suite.name);
+        this._finishedTestCount++;
+        this._progressCompleted.value = this._finishedTestCount;
+    }
+
     didRunSuites(measuredValues) {
         this._measuredValuesList.push(measuredValues);
     }
@@ -139,6 +146,9 @@ class MainBenchmarkClient {
     willStartFirstIteration() {
         this._measuredValuesList = [];
         this._finishedTestCount = 0;
+        this._failedSuites.clear();
+        document.body.style.removeProperty("--details-top-position");
+        document.body.classList.remove("has-warning");
     }
 
     didFinishLastIteration(metrics) {
@@ -251,6 +261,35 @@ class MainBenchmarkClient {
 
     _populateDetailedResults(metrics) {
         this._populateNonStandardParams();
+
+        const details = document.getElementById("details");
+        const existingWarning = document.getElementById("results-warning");
+        if (existingWarning) existingWarning.remove();
+
+        if (this._failedSuites.size > 0) {
+            const warning = document.createElement("div");
+            warning.id = "results-warning";
+            warning.innerHTML = `<strong>Not all workloads finished successfully, please see the console for details. Affected workloads:</strong>`;
+            const ul = document.createElement("ul");
+            this._failedSuites.forEach(name => {
+                const li = document.createElement("li");
+                li.textContent = name;
+                ul.appendChild(li);
+            });
+            warning.appendChild(ul);
+            document.body.appendChild(warning);
+
+            // Defer style calculation until after the browser has rendered the warning box.
+            // This ensures that offsetHeight returns the correct value and prevents a race condition.
+            requestAnimationFrame(() => {
+                const warningHeight = warning.offsetHeight;
+                const warningTop = parseInt(window.getComputedStyle(warning).top, 10);
+                const detailsTop = warningTop + warningHeight + 20; // 20px for a gap.
+                document.body.style.setProperty("--details-top-position", `${detailsTop}px`);
+                document.body.classList.add("has-warning");
+            });
+        }
+
         const trackHeight = 24;
         document.documentElement.style.setProperty("--metrics-line-height", `${trackHeight}px`);
         const plotWidth = (params.viewport.width - 120) / 2;
