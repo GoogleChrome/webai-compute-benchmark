@@ -1,6 +1,7 @@
 import { BenchmarkConnector } from "speedometer-utils/benchmark.mjs";
 import { createSubIteratedSuite } from "speedometer-utils/helpers.mjs";
 import { pipeline, env } from '@huggingface/transformers';
+import { params } from "speedometer-utils/params.mjs";
 
 /*
 Paste below into dev console for manual testing:

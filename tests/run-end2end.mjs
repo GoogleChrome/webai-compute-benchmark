@@ -21,12 +21,12 @@ let suites = benchmarkConfigurator.suites.filter(suite =>
     !suite.url.includes('/experimental/') &&
     suite.tags.some((tag) => tag === 'wasm' || tag === 'gpu-test-suite')
 );
-let timeout = 20 * ONE_MINUTE_IN_MS;
+let timeout = 10 * ONE_MINUTE_IN_MS;
 
 if (RUN_FULL_SUITE) {
     tags = 'all';
     suites = benchmarkConfigurator.suites;
-    timeout = 30 * ONE_MINUTE_IN_MS;
+    timeout = 20 * ONE_MINUTE_IN_MS;
 }
 
 async function testPage(url) {
@@ -116,8 +116,6 @@ async function testSubIterations() {
     // URL with suites specified
     const params = [`iterationCount=${iterationCount}`, `subIterationCount=${subIterationCount}`, `suites=${testSuites.join(',')}`];
     const metrics = await testPage(`index.html?${params.join("&")}`);
-
-    console.log("Collected metrics keys:", Object.keys(metrics));
 
     suites.forEach((suite) => {
         const metric = metrics[suite.name];
