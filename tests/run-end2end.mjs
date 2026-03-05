@@ -125,8 +125,8 @@ async function testSubIterations() {
         // Verify submetrics generated from steps
         for (let i = 0; i < subIterationCount; i++) {
             // we use some() to find the submetric since the separator might be '/'
-            const submetricKey = Object.keys(metrics).find(k => k.startsWith(suite.name) && k.includes(`run-${i + 1}`));
-            assert(submetricKey, `Missing submetric result ending in run-${i + 1} for ${suite.name}`);
+            const submetricKey = Object.keys(metrics).find(k => k.startsWith(suite.name) && k.includes(`sub-iter-${i + 1}`));
+            assert(submetricKey, `Missing submetric result ending in sub-iter-${i + 1} for ${suite.name}`);
             const submetric = metrics[submetricKey];
             assert(submetric.values.length === iterationCount);
         }
