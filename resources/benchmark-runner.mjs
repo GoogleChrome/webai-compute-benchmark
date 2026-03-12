@@ -480,6 +480,15 @@ export class BenchmarkRunner {
             const values = [];
             let total = 0;
             let geomean = 0;
+
+            for (const suiteName in this._measuredValues.steps) {
+                const suiteTotal = this._measuredValues.steps[suiteName].total;
+                if (suiteTotal > 0) {
+                    product *= suiteTotal;
+                    values.push(suiteTotal);
+                }
+            }
+
             if (values.length > 0) {
                 values.sort((a, b) => a - b); // Avoid the loss of significance for the sum.
                 total = values.reduce((a, b) => a + b, 0);
