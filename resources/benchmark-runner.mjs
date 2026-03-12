@@ -419,15 +419,24 @@ export class BenchmarkRunner {
                 try {
                     await this._appendFrame();
                     this._page = new Page(this._frame);
-                    const timeout = 10000;
-                    let timeoutId;
-                    const timeoutPromise = new Promise((_, reject) => {
-                        timeoutId = setTimeout(() => reject(new Error(`Timeout: Workload ${suite.name} took longer than ${timeout}ms`)), timeout);
+                    let cleanupErrorListeners;
+                    const errorPromise = new Promise((_, reject) => {
+                        const errorHandler = (e) => {
+                            reject(new Error(`Workload ${suite.name} encountered an error: ${e.message || e.reason}`));
+                        };
+                        window.addEventListener("error", errorHandler, { once: true });
+                        window.addEventListener("unhandledrejection", errorHandler, { once: true });
+                        
+                        cleanupErrorListeners = () => {
+                            window.removeEventListener("error", errorHandler);
+                            window.removeEventListener("unhandledrejection", errorHandler);
+                        };
                     });
+
                     try {
-                        await Promise.race([this.runSuite(suite), timeoutPromise]);
+                        await Promise.race([this.runSuite(suite), errorPromise]);
                     } finally {
-                        clearTimeout(timeoutId);
+                        if (cleanupErrorListeners) cleanupErrorListeners();
                     }
                 } catch (error) {
                     console.error(`Workload ${suite.name} failed:`, error);
@@ -469,17 +478,13 @@ export class BenchmarkRunner {
         if (this._client?.didRunSuites) {
             let product = 1;
             const values = [];
-            for (const suiteName in this._measuredValues.steps) {
-                const suiteTotal = this._measuredValues.steps[suiteName].total;
-                if (suiteTotal > 0) {
-                    product *= suiteTotal;
-                    values.push(suiteTotal);
-                }
+            let total = 0;
+            let geomean = 0;
+            if (values.length > 0) {
+                values.sort((a, b) => a - b); // Avoid the loss of significance for the sum.
+                total = values.reduce((a, b) => a + b, 0);
+                geomean = Math.pow(product, 1 / values.length);
             }
-
-            values.sort((a, b) => a - b); // Avoid the loss of significance for the sum.
-            const total = values.reduce((a, b) => a + b, 0);
-            const geomean = Math.pow(product, 1 / values.length);
 
             this._measuredValues.total = total;
             this._measuredValues.mean = total / values.length;
@@ -534,8 +539,10 @@ export class BenchmarkRunner {
                 iterationTotal.add(results.total);
         }
         iterationTotal.computeAggregatedMetrics();
-        geomean.add(iterationTotal.geomean);
-        getMetric("Score").add(geomeanToScore(iterationTotal.geomean));
+        if (!isNaN(iterationTotal.geomean) && iterationTotal.geomean > 0) {
+            geomean.add(iterationTotal.geomean);
+            getMetric("Score").add(geomeanToScore(iterationTotal.geomean));
+        }
 
         if (params.measurePrepare) {
             const iterationPrepare = iterationMetric(iteration, "Prepare");

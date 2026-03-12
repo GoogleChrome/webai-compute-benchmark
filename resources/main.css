@@ -79,8 +79,7 @@ img {
     user-select: none;
 }
 
-main {
-}
+
 
 .logo {
     position: absolute;
@@ -478,14 +477,15 @@ section#summary.invalid #invalid-score-text {
 #results-warning {
     color: #ff4444;
     border: 1px solid #ff4444;
-    background-color: var(--background); /* Match body background */
+    background-color: var(--background);
     padding: 10px;
-    position: fixed;
-    top: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: max(800px, 80vw); /* Match #details width */
-    max-height: 40vh;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    margin-bottom: 20px;
+    width: 100%;
+    max-height: 25vh;
+    flex-shrink: 0;
     overflow-y: auto;
     box-shadow: 0 2px 5px rgba(0,0,0,0.5);
     box-sizing: border-box;
@@ -502,14 +502,6 @@ section#summary.invalid #invalid-score-text {
 
 :root:not([data-visible-section="details"]) #results-warning {
     display: none;
-}
-
-body.has-warning section#details {
-    /* Position the details box below the fixed warning box, leaving a 20px gap. */
-    top: var(--details-top-position, 40px);
-    margin-top: 0; /* Override the negative margin used for vertical centering. */
-    margin-bottom: 20px;
-    height: auto; /* Allow the box to grow to fit its content. */
 }
 
 section#details {
@@ -582,6 +574,12 @@ section#about th {
 :root[data-visible-section="details"] section#details {
     display: flex;
     flex-direction: column;
+}
+
+section#details .section-grid {
+    flex: 1;
+    min-height: 0;
+    height: 100%;
 }
 
 section#details h1 {

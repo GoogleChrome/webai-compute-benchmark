@@ -277,17 +277,7 @@ class MainBenchmarkClient {
                 ul.appendChild(li);
             });
             warning.appendChild(ul);
-            document.body.appendChild(warning);
-
-            // Defer style calculation until after the browser has rendered the warning box.
-            // This ensures that offsetHeight returns the correct value and prevents a race condition.
-            requestAnimationFrame(() => {
-                const warningHeight = warning.offsetHeight;
-                const warningTop = parseInt(window.getComputedStyle(warning).top, 10);
-                const detailsTop = warningTop + warningHeight + 20; // 20px for a gap.
-                document.body.style.setProperty("--details-top-position", `${detailsTop}px`);
-                document.body.classList.add("has-warning");
-            });
+            details.insertBefore(warning, details.firstChild);
         }
 
         const trackHeight = 24;
