@@ -394,13 +394,11 @@ export async function initializeBenchmark(modelType) {
 
   appName = modelConfigs[modelType].description;
   let benchmark;
-  let initError;
   try {
     benchmark = modelConfigs[modelType].create();
     await benchmark.init();
   } catch (error) {
     console.error(error);
-    initError = error;
   }
   
 
