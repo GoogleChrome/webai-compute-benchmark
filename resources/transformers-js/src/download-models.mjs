@@ -1,4 +1,4 @@
-import { env, pipeline, SiglipVisionModel, AutoImageProcessor, SiglipTextModel, AutoTokenizer } from '@huggingface/transformers';
+import { env, pipeline, AutoProcessor, AutoTokenizer, CLIPTextModelWithProjection, CLIPVisionModelWithProjection } from '@huggingface/transformers';
 import { KokoroTTS } from "kokoro-js";
 import fs from 'fs';
 import path from 'path';
@@ -42,6 +42,20 @@ const MODELS_TO_DOWNLOAD = [
     }
 ];
 
+const MOBILECLIP_MODELS_TO_DOWNLOAD = [
+    { class: 'AutoTokenizer' },
+    { class: 'AutoProcessor' },
+    { class: 'CLIPTextModelWithProjection', dtype: 'q4' },
+    { class: 'CLIPVisionModelWithProjection', dtype: 'q4' }
+];
+
+const MOBILECLIP_NAME_TO_CLASS = {
+    'AutoTokenizer': AutoTokenizer,
+    'AutoProcessor': AutoProcessor,
+    'CLIPTextModelWithProjection': CLIPTextModelWithProjection,
+    'CLIPVisionModelWithProjection': CLIPVisionModelWithProjection
+};
+
 const KOKORO_REPO = 'onnx-community/Kokoro-82M-v1.0-ONNX';
 const KOKORO_FILES = [
    'model.onnx',
@@ -50,28 +64,7 @@ const KOKORO_FILES = [
    'tokenizer_config.json',
 ];
 
-const MARGO_MODELS_TO_DOWNLOAD = [
-    {
-        class: 'SiglipVisionModel',
-        dtype: 'bnb4',
-    },
-    {
-        class: 'AutoImageProcessor',
-    },
-    {
-        class: 'SiglipTextModel',
-        dtype: 'bnb4',
-    },
-    {
-        class: 'AutoTokenizer',
-    }
-];
-const MARGO_NAME_TO_CLASS = {
-    'SiglipVisionModel': SiglipVisionModel,
-    'AutoImageProcessor': AutoImageProcessor,
-    'SiglipTextModel': SiglipTextModel,
-    'AutoTokenizer': AutoTokenizer,
-};
+
 
 function getHuggingFaceUrl(repo, filename, branch = 'main') {
     if(filename.endsWith('.onnx')) {
@@ -119,24 +112,24 @@ async function downloadModels() {
             cache.put(cacheKey);
         }
 
-        // Download Marqo/marqo-fashionSigLIP model
-        console.log(`Checking Marqo/marqo-fashionSigLIP models...`);
-        for (const modelInfo of MARGO_MODELS_TO_DOWNLOAD) {
-            const cacheKey = `${modelInfo.class}-${modelInfo.dtype}`;
+        // Download Xenova/mobileclip_s0 models via components
+        console.log(`Checking Xenova/mobileclip_s0 models...`);
+        for (const modelInfo of MOBILECLIP_MODELS_TO_DOWNLOAD) {
+            const cacheKey = `mobileclip-${modelInfo.class}-${modelInfo.dtype || ''}`;
             if (cache.has(cacheKey)) {
                 console.log(`Model ${modelInfo.class} (dtype: ${modelInfo.dtype}) already cached. Skipping.`);
                 continue;
             }
 
-            console.log(`Downloading Marqo/marqo-fashionSigLIP (${modelInfo.class}${modelInfo.dtype ? `, dtype: ${modelInfo.dtype}` : ''})...`);
-            await MARGO_NAME_TO_CLASS[modelInfo.class].from_pretrained("Marqo/marqo-fashionSigLIP", {
+            console.log(`Downloading Xenova/mobileclip_s0 (${modelInfo.class}${modelInfo.dtype ? `, dtype: ${modelInfo.dtype}` : ''})...`);
+            await MOBILECLIP_NAME_TO_CLASS[modelInfo.class].from_pretrained("Xenova/mobileclip_s0", {
                 cache_dir: env.localModelPath,
                 dtype: modelInfo.dtype
             });
 
             cache.put(cacheKey);
         }
-        console.log(`Successfully checked Marqo/marqo-fashionSigLIP`);
+        console.log(`Successfully checked Xenova/mobileclip_s0`);
 
         // Download onnx-community/Kokoro-82M-v1.0-ONNX model
         console.log(`Starting manual download check for ${KOKORO_REPO}...`);
