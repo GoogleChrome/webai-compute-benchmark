@@ -441,9 +441,7 @@ export class BenchmarkRunner {
                 } catch (error) {
                     console.error(`Workload ${suite.name} failed:`, error);
                     this._measuredValues.steps[suite.name] = { total: 0 };
-                    if (this._client?.didFailSuite) {
-                        this._client.didFailSuite(suite, error);
-                    }
+                    this._client?.didFailSuite?.(suite, error);
                 } finally {
                     this._removeFrame();
                 }
@@ -489,14 +487,16 @@ export class BenchmarkRunner {
                 }
             }
 
+            let mean = 0;
             if (values.length > 0) {
                 values.sort((a, b) => a - b); // Avoid the loss of significance for the sum.
                 total = values.reduce((a, b) => a + b, 0);
                 geomean = Math.pow(product, 1 / values.length);
+                mean = total / values.length;
             }
 
             this._measuredValues.total = total;
-            this._measuredValues.mean = total / values.length;
+            this._measuredValues.mean = mean;
             this._measuredValues.geomean = geomean;
             this._measuredValues.score = geomeanToScore(geomean);
             await this._client.didRunSuites(this._measuredValues);
