@@ -245,9 +245,6 @@ class ImageClassification {
   }
 
   async run() {
-    await new Promise((_, reject) => {
-      setTimeout(() => reject(new Error("Reviewer Test: Workload failed after 2 seconds")), 2000);
-    });
     const result = await this.model(this.imageURL);
     const output = document.getElementById('output');
     output.textContent = result[0].label + ': ' + result[0].score;
