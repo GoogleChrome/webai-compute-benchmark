@@ -43,18 +43,11 @@ const MODELS_TO_DOWNLOAD = [
 ];
 
 const MOBILECLIP_MODELS_TO_DOWNLOAD = [
-    { class: 'AutoTokenizer' },
-    { class: 'AutoProcessor' },
-    { class: 'CLIPTextModelWithProjection', dtype: 'q4' },
-    { class: 'CLIPVisionModelWithProjection', dtype: 'q4' }
+    { modelClass: AutoTokenizer },
+    { modelClass: AutoProcessor },
+    { modelClass: CLIPTextModelWithProjection, dtype: 'q4' },
+    { modelClass: CLIPVisionModelWithProjection, dtype: 'q4' }
 ];
-
-const MOBILECLIP_NAME_TO_CLASS = {
-    'AutoTokenizer': AutoTokenizer,
-    'AutoProcessor': AutoProcessor,
-    'CLIPTextModelWithProjection': CLIPTextModelWithProjection,
-    'CLIPVisionModelWithProjection': CLIPVisionModelWithProjection
-};
 
 const KOKORO_REPO = 'onnx-community/Kokoro-82M-v1.0-ONNX';
 const KOKORO_FILES = [
@@ -115,14 +108,15 @@ async function downloadModels() {
         // Download Xenova/mobileclip_s0 models via components
         console.log(`Checking Xenova/mobileclip_s0 models...`);
         for (const modelInfo of MOBILECLIP_MODELS_TO_DOWNLOAD) {
-            const cacheKey = `mobileclip-${modelInfo.class}-${modelInfo.dtype || ''}`;
+            const className = modelInfo.modelClass.name;
+            const cacheKey = `mobileclip-${className}-${modelInfo.dtype || ''}`;
             if (cache.has(cacheKey)) {
-                console.log(`Model ${modelInfo.class} (dtype: ${modelInfo.dtype}) already cached. Skipping.`);
+                console.log(`Model ${className} (dtype: ${modelInfo.dtype}) already cached. Skipping.`);
                 continue;
             }
 
-            console.log(`Downloading Xenova/mobileclip_s0 (${modelInfo.class}${modelInfo.dtype ? `, dtype: ${modelInfo.dtype}` : ''})...`);
-            await MOBILECLIP_NAME_TO_CLASS[modelInfo.class].from_pretrained("Xenova/mobileclip_s0", {
+            console.log(`Downloading Xenova/mobileclip_s0 (${className}${modelInfo.dtype ? `, dtype: ${modelInfo.dtype}` : ''})...`);
+            await modelInfo.modelClass.from_pretrained("Xenova/mobileclip_s0", {
                 cache_dir: env.localModelPath,
                 dtype: modelInfo.dtype
             });
