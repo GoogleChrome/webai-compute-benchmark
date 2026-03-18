@@ -9,3 +9,4 @@
     * [AdamCodd/vit-base-nsfw-detector](https://huggingface.co/AdamCodd/vit-base-nsfw-detector): licensed under the Apache License, Version 2.0. The full text is available in [LICENSE.apache2](LICENSE.apache2).
     * [Xenova/mobileclip_s0](https://huggingface.co/Xenova/mobileclip_s0): licensed under the Apple MIT License. The full text is available in [LICENSE.apple](LICENSE.apple).
     * [onnx-community/Kokoro-82M-v1.0-ONNX](https://huggingface.co/onnx-community/Kokoro-82M-v1.0-ONNX): licensed under the Apache License, Version 2.0. The full text is available in [LICENSE.apache2](LICENSE.apache2).
+    * [Xenova/sam-vit-base](https://huggingface.co/Xenova/sam-vit-base): licensed under the Apache License, Version 2.0. The full text is available in [LICENSE.apache2](LICENSE.apache2).

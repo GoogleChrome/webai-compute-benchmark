@@ -1,7 +1,7 @@
 import { BenchmarkConnector } from "speedometer-utils/benchmark.mjs";
 import { createSubIteratedSuite } from "speedometer-utils/helpers.mjs";
 import { params } from "speedometer-utils/params.mjs";
-import { pipeline, env, dot, read_audio, AutoTokenizer, AutoModelForSequenceClassification, AutoProcessor, RawImage, CLIPTextModelWithProjection, CLIPVisionModelWithProjection, softmax } from '@huggingface/transformers';
+import { pipeline, env, dot, read_audio, AutoTokenizer, AutoModelForSequenceClassification, AutoProcessor, RawImage, CLIPTextModelWithProjection, CLIPVisionModelWithProjection, softmax, SamModel, SamProcessor } from '@huggingface/transformers';
 import { KokoroTTS } from "kokoro-js";
 import jfkAudio from '../../media/jfk_1962_0912_spaceeffort.wav';
 import imageWithBackground from '../../media/image.jpg';
@@ -56,7 +56,7 @@ class SentenceSimilarity {
   constructor(device) {
     this.device = device;
     this.SENTENCES = ["San Francisco has a unique Mediterranean climate characterized by mild, wet winters and dry, cool summers",
-                      "The city is famous for its persistent fog which keeps temperatures comfortable and often cool near the coast"]
+      "The city is famous for its persistent fog which keeps temperatures comfortable and often cool near the coast"]
 
   }
 
@@ -72,8 +72,8 @@ class SentenceSimilarity {
   async run() {
     // You can ignore the warning in the console: https://github.com/huggingface/transformers.js/issues/736#issuecomment-2101078957
     const result = await this.model(this.SENTENCES, { pooling: 'cls', normalize: true });
-    
-    const [source_embeddings, ...document_embeddings ] = result.tolist();
+
+    const [source_embeddings, ...document_embeddings] = result.tolist();
     const similarities = document_embeddings.map(x => 100 * dot(source_embeddings, x));
     const output = document.getElementById('output');
     output.textContent = similarities;
@@ -100,7 +100,7 @@ class SpeechRecognition {
   }
 
   async run() {
-    const result = await this.model(this.audioData, {language: 'en'});
+    const result = await this.model(this.audioData, { language: 'en' });
     const output = document.getElementById('output');
     output.textContent = result.text;
   }
@@ -117,7 +117,7 @@ class BackgroundRemoval {
     document.getElementById('device').textContent = this.device;
     document.getElementById('workload').textContent = "background removal";
     document.getElementById('input').textContent = `Removing background from local image.`;
-    
+
     // Dynamically create and inject the CSS for the output container.
     const style = document.createElement('style');
     style.textContent = `
@@ -139,7 +139,7 @@ class BackgroundRemoval {
 
   async run() {
     const result = await this.model(this.imageURL);
-    
+
     // Prepare result to display
     const offscreenCanvas = await result[0].toCanvas();
 
@@ -155,8 +155,8 @@ class BackgroundRemoval {
       output.appendChild(finalCanvas);
     }
 
-      finalCanvas.width = offscreenCanvas.width;
-      finalCanvas.height = offscreenCanvas.height;
+    finalCanvas.width = offscreenCanvas.width;
+    finalCanvas.height = offscreenCanvas.height;
 
     const ctx = finalCanvas.getContext('2d');
     if (ctx) {
@@ -174,52 +174,52 @@ class TextReranking {
     this.device = device;
     this.query = "Who wrote 'To Kill a Mockingbird'?"
     this.documents = ["'To Kill a Mockingbird' is a novel by Harper Lee published in 1960. It was immediately successful, winning the Pulitzer Prize, and has become a classic of modern American literature.",
-    "The novel 'Moby-Dick' was written by Herman Melville and first published in 1851. It is considered a masterpiece of American literature and deals with complex themes of obsession, revenge, and the conflict between good and evil.",
-    "Harper Lee, an American novelist widely known for her novel 'To Kill a Mockingbird', was born in 1926 in Monroeville, Alabama. She received the Pulitzer Prize for Fiction in 1961.",
-    "Jane Austen was an English novelist known primarily for her six major novels, which interpret, critique and comment upon the British landed gentry at the end of the 18th century.",
-    "The 'Harry Potter' series, which consists of seven fantasy novels written by British author J.K. Rowling, is among the most popular and critically acclaimed books of the modern era.",
-    "'The Great Gatsby', a novel written by American author F. Scott Fitzgerald, was published in 1925. The story is set in the Jazz Age and follows the life of millionaire Jay Gatsby and his pursuit of Daisy Buchanan."]
+      "The novel 'Moby-Dick' was written by Herman Melville and first published in 1851. It is considered a masterpiece of American literature and deals with complex themes of obsession, revenge, and the conflict between good and evil.",
+      "Harper Lee, an American novelist widely known for her novel 'To Kill a Mockingbird', was born in 1926 in Monroeville, Alabama. She received the Pulitzer Prize for Fiction in 1961.",
+      "Jane Austen was an English novelist known primarily for her six major novels, which interpret, critique and comment upon the British landed gentry at the end of the 18th century.",
+      "The 'Harry Potter' series, which consists of seven fantasy novels written by British author J.K. Rowling, is among the most popular and critically acclaimed books of the modern era.",
+      "'The Great Gatsby', a novel written by American author F. Scott Fitzgerald, was published in 1925. The story is set in the Jazz Age and follows the life of millionaire Jay Gatsby and his pursuit of Daisy Buchanan."]
   }
   async init() {
     document.getElementById('device').textContent = this.device;
     document.getElementById('workload').textContent = "text reranking";
     document.getElementById('input').textContent = `"${this.documents}"`;
-    
+
     const model_id = 'mixedbread-ai/mxbai-rerank-base-v1';
     this.model = await AutoModelForSequenceClassification.from_pretrained(model_id, { device: this.device, dtype: "fp32" });
     this.tokenizer = await AutoTokenizer.from_pretrained(model_id);
   }
 
-    /**
-   * Performs ranking with the CrossEncoder on the given query and documents. Returns a sorted list with the document indices and scores.
-   * @param {string} query A single query
-   * @param {string[]} documents A list of documents
-   * @param {Object} options Options for ranking
-   * @param {number} [options.top_k=undefined] Return the top-k documents. If undefined, all documents are returned.
-   * @param {number} [options.return_documents=false] If true, also returns the documents. If false, only returns the indices and scores.
-   */
+  /**
+ * Performs ranking with the CrossEncoder on the given query and documents. Returns a sorted list with the document indices and scores.
+ * @param {string} query A single query
+ * @param {string[]} documents A list of documents
+ * @param {Object} options Options for ranking
+ * @param {number} [options.top_k=undefined] Return the top-k documents. If undefined, all documents are returned.
+ * @param {number} [options.return_documents=false] If true, also returns the documents. If false, only returns the indices and scores.
+ */
   async rank(query, documents, {
-      top_k = undefined,
-      return_documents = false,} = {}) {
-      const inputs = this.tokenizer(
-          new Array(documents.length).fill(query),
-          {
-              text_pair: documents,
-              padding: true,
-              truncation: true,
-          }
-      )
-      const { logits } = await this.model(inputs);
-      return logits
-          .sigmoid()
-          .tolist()
-          .map(([score], i) => ({
-              corpus_id: i,
-              score,
-              ...(return_documents ? { text: documents[i] } : {})
-          }))
-          .sort((a, b) => b.score - a.score)
-          .slice(0, top_k);
+    top_k = undefined,
+    return_documents = false, } = {}) {
+    const inputs = this.tokenizer(
+      new Array(documents.length).fill(query),
+      {
+        text_pair: documents,
+        padding: true,
+        truncation: true,
+      }
+    )
+    const { logits } = await this.model(inputs);
+    return logits
+      .sigmoid()
+      .tolist()
+      .map(([score], i) => ({
+        corpus_id: i,
+        score,
+        ...(return_documents ? { text: documents[i] } : {})
+      }))
+      .sort((a, b) => b.score - a.score)
+      .slice(0, top_k);
   }
 
   async run() {
@@ -263,7 +263,7 @@ class ZeroShotImageClassification {
     document.getElementById('device').textContent = this.device;
     document.getElementById('workload').textContent = "zero-shot image classification";
     document.getElementById('input').textContent = `Classifying a local image against the following labels: ${JSON.stringify(this.texts)}`;
-    
+
     const model_id = "Xenova/mobileclip_s0";
 
     this.tokenizer = await AutoTokenizer.from_pretrained(model_id, { device: this.device });
@@ -312,6 +312,104 @@ class TextToSpeech {
     const output = document.getElementById('output');
     const durationInMs = (result.audio.length / 24000) * 1000;
     output.textContent = `Generated audio of duration ${durationInMs.toFixed(2)} ms`;
+  }
+}
+
+/*--------- Mask generation workload using Xenova/sam-vit-base model ---------*/
+
+class MaskGeneration {
+  constructor(device) {
+    this.device = device;
+    this.imageURL = imageWithBackground;
+  }
+  async init() {
+    document.getElementById('device').textContent = this.device;
+    document.getElementById('workload').textContent = "mask generation";
+    document.getElementById('input').textContent = `Generating mask for center of local image.`;
+
+    const style = document.createElement('style');
+    style.textContent = `
+        #output {
+            border: 1px solid #ccc;
+            width: 256px;
+            height: 256px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    `;
+    document.head.appendChild(style);
+
+    const model_id = "Xenova/sam-vit-base";
+    this.processor = await SamProcessor.from_pretrained(model_id);
+    this.model = await SamModel.from_pretrained(model_id, {
+      device: this.device,
+      dtype: 'quantized'
+    });
+
+    this.image = await RawImage.read(this.imageURL);
+  }
+
+  async run() {
+    const center_x = this.image.width / 2;
+    const center_y = this.image.height / 2;
+
+    const input_points = [[[center_x, center_y]]];
+    const input_labels = [[[1]]];
+
+    const inputs = await this.processor(this.image, { input_points, input_labels });
+    const outputs = await this.model(inputs);
+
+    const masks = await this.processor.post_process_masks(
+      outputs.pred_masks,
+      inputs.original_sizes,
+      inputs.reshaped_input_sizes
+    );
+
+    const mask = masks[0];
+    const output = document.getElementById('output');
+    let finalCanvas = output.querySelector('canvas');
+
+    if (!finalCanvas) {
+      finalCanvas = document.createElement('canvas');
+      finalCanvas.style.width = "100%";
+      finalCanvas.style.height = "100%";
+      output.innerHTML = '';
+      output.appendChild(finalCanvas);
+    }
+
+    const offscreenCanvas = await this.image.toCanvas();
+    finalCanvas.width = offscreenCanvas.width;
+    finalCanvas.height = offscreenCanvas.height;
+
+    const ctx = finalCanvas.getContext('2d');
+    if (ctx) {
+      ctx.drawImage(offscreenCanvas, 0, 0);
+
+      const maskData = mask.data;
+      const maskDims = mask.dims;
+      const height = maskDims[2];
+      const width = maskDims[3];
+
+      const imageData = ctx.getImageData(0, 0, width, height);
+      const data = imageData.data;
+
+      // Iterate over pixels of the first mask (assume channels=1 or pick first channel)
+      for (let y = 0; y < height; ++y) {
+        for (let x = 0; x < width; ++x) {
+          const index = y * width + x;
+          if (maskData[index]) { // first mask/channel
+            const dataIndex = index * 4;
+            data[dataIndex] = 255;     // R
+            data[dataIndex + 3] = 128; // A
+          }
+        }
+      }
+      ctx.putImageData(imageData, 0, 0);
+    } else {
+      console.error("Could not get 2D context from the canvas.");
+    }
   }
 }
 
@@ -381,6 +479,14 @@ const modelConfigs = {
   'text-to-speech-gpu': {
     description: 'Text to speech on gpu',
     create() { return new TextToSpeech('webgpu'); },
+  },
+  'mask-generation-cpu': {
+    description: 'Mask generation on cpu',
+    create() { return new MaskGeneration('wasm'); },
+  },
+  'mask-generation-gpu': {
+    description: 'Mask generation on gpu',
+    create() { return new MaskGeneration('webgpu'); },
   },
 };
 

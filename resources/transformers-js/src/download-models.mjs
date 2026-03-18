@@ -1,4 +1,4 @@
-import { env, pipeline, AutoProcessor, AutoTokenizer, CLIPTextModelWithProjection, CLIPVisionModelWithProjection } from '@huggingface/transformers';
+import { env, pipeline, AutoProcessor, AutoTokenizer, CLIPTextModelWithProjection, CLIPVisionModelWithProjection, SamModel, SamProcessor } from '@huggingface/transformers';
 import { KokoroTTS } from "kokoro-js";
 import fs from 'fs';
 import path from 'path';
@@ -10,34 +10,34 @@ env.localModelPath = MODEL_DIR;
 const CACHE_VERSION = 1;
 
 const MODELS_TO_DOWNLOAD = [
-    { 
-        id: 'Xenova/UAE-Large-V1', 
-        task: 'feature-extraction', 
+    {
+        id: 'Xenova/UAE-Large-V1',
+        task: 'feature-extraction',
         dtype: 'q4'
     },
-    { 
-        id: 'Alibaba-NLP/gte-base-en-v1.5', 
-        task: 'feature-extraction', 
+    {
+        id: 'Alibaba-NLP/gte-base-en-v1.5',
+        task: 'feature-extraction',
         dtype: 'fp32'
     },
-    { 
-        id: 'Xenova/whisper-small', 
-        task: 'automatic-speech-recognition', 
+    {
+        id: 'Xenova/whisper-small',
+        task: 'automatic-speech-recognition',
         dtype: 'q4'
     },
-    { 
-        id: 'Xenova/modnet', 
-        task: 'background-removal', 
+    {
+        id: 'Xenova/modnet',
+        task: 'background-removal',
         dtype: 'uint8'
     },
-    { 
-        id: 'mixedbread-ai/mxbai-rerank-base-v1', 
-        task: 'text-classification', 
+    {
+        id: 'mixedbread-ai/mxbai-rerank-base-v1',
+        task: 'text-classification',
         dtype: 'fp32'
     },
-    { 
-        id: 'AdamCodd/vit-base-nsfw-detector', 
-        task: 'image-classification', 
+    {
+        id: 'AdamCodd/vit-base-nsfw-detector',
+        task: 'image-classification',
         dtype: 'q4'
     }
 ];
@@ -51,16 +51,16 @@ const MOBILECLIP_MODELS_TO_DOWNLOAD = [
 
 const KOKORO_REPO = 'onnx-community/Kokoro-82M-v1.0-ONNX';
 const KOKORO_FILES = [
-   'model.onnx',
-   'config.json',
-   'tokenizer.json',
-   'tokenizer_config.json',
+    'model.onnx',
+    'config.json',
+    'tokenizer.json',
+    'tokenizer_config.json',
 ];
 
 
 
 function getHuggingFaceUrl(repo, filename, branch = 'main') {
-    if(filename.endsWith('.onnx')) {
+    if (filename.endsWith('.onnx')) {
         return `https://huggingface.co/${repo}/resolve/${branch}/onnx/${filename}`;
     }
     return `https://huggingface.co/${repo}/resolve/${branch}/${filename}`;
@@ -69,22 +69,22 @@ function getHuggingFaceUrl(repo, filename, branch = 'main') {
 async function downloadModels() {
     const CACHE_FILE = path.join(MODEL_DIR, 'cache.json');
     const cache = new DownloadCache(CACHE_FILE, CACHE_VERSION, process.argv.includes('--force'));
-    
+
     if (!fs.existsSync(MODEL_DIR)) {
         console.log(`Creating directory: ${MODEL_DIR}`);
-        fs.mkdirSync(MODEL_DIR, { recursive: true }); 
+        fs.mkdirSync(MODEL_DIR, { recursive: true });
     }
 
     console.log(`Starting model downloads to: ${MODEL_DIR}`);
 
     const originalAllowRemote = env.allowRemoteModels;
-    env.allowRemoteModels = true; 
+    env.allowRemoteModels = true;
 
     try {
         // Download models that work with pipeline
         for (const modelInfo of MODELS_TO_DOWNLOAD) {
             const { id: modelId, task: modelTask, dtype: modelDType } = modelInfo;
-            
+
             const cacheKey = `${modelId}-${modelTask}-${modelDType}`;
             if (cache.has(cacheKey)) {
                 console.log(`Model ${modelId} (${modelTask}, dtype: ${modelDType}) already cached. Skipping.`);
@@ -92,15 +92,15 @@ async function downloadModels() {
             }
 
             console.log(`Downloading files for ${modelId} (${modelTask}, dtype: ${modelDType})...`);
-            
+
             await pipeline(
-                modelTask, 
-                modelId, 
-                { 
+                modelTask,
+                modelId,
+                {
                     cache_dir: env.localModelPath,
                     dtype: modelDType
                 });
-            
+
             console.log(`Successfully downloaded and cached ${modelId}`);
             cache.put(cacheKey);
         }
@@ -124,6 +124,20 @@ async function downloadModels() {
             cache.put(cacheKey);
         }
         console.log(`Successfully checked Xenova/mobileclip_s0`);
+
+        // Download Xenova/sam-vit-base model
+        console.log(`Checking Xenova/sam-vit-base models...`);
+        if (!cache.has('SAM-SamModel-quantized')) {
+            console.log(`Downloading Xenova/sam-vit-base (SamModel, quantized)...`);
+            await SamModel.from_pretrained("Xenova/sam-vit-base", { cache_dir: env.localModelPath, dtype: 'quantized' });
+            cache.put('SAM-SamModel-quantized');
+        }
+        if (!cache.has('SAM-SamProcessor-default')) {
+            console.log(`Downloading Xenova/sam-vit-base (SamProcessor)...`);
+            await SamProcessor.from_pretrained("Xenova/sam-vit-base", { cache_dir: env.localModelPath });
+            cache.put('SAM-SamProcessor-default');
+        }
+        console.log(`Successfully checked Xenova/sam-vit-base`);
 
         // Download onnx-community/Kokoro-82M-v1.0-ONNX model
         console.log(`Starting manual download check for ${KOKORO_REPO}...`);

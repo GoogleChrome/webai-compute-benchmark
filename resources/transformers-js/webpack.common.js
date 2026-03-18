@@ -20,6 +20,8 @@ module.exports = {
         'zero-shot-image-classification-gpu': './src/zero-shot-image-classification-gpu.mjs',
         'text-to-speech-cpu': './src/text-to-speech-cpu.mjs',
         'text-to-speech-gpu': './src/text-to-speech-gpu.mjs',
+        'mask-generation-cpu': './src/mask-generation-cpu.mjs',
+        'mask-generation-gpu': './src/mask-generation-gpu.mjs',
     },
     plugins: [
         new HtmlWebpackPlugin({
@@ -117,6 +119,18 @@ module.exports = {
             template: path.resolve(__dirname, "src", "index.html"),
             filename: 'text-to-speech-gpu.html',
             chunks: ['text-to-speech-gpu'],
+        }),
+        new HtmlWebpackPlugin({
+            title: "Transfomers.js Runner",
+            template: path.resolve(__dirname, "src", "index.html"),
+            filename: 'mask-generation-cpu.html',
+            chunks: ['mask-generation-cpu'],
+        }),
+        new HtmlWebpackPlugin({
+            title: "Transfomers.js Runner",
+            template: path.resolve(__dirname, "src", "index.html"),
+            filename: 'mask-generation-gpu.html',
+            chunks: ['mask-generation-gpu'],
         }),
     ],
     output: {

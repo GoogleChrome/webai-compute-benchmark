@@ -109,6 +109,8 @@ async function updateModelInfoTable() {
     "Zero-shot-Image-Classification-webgpu": "Xenova/mobileclip_s0",
     "Text-to-Speech-wasm": "onnx-community/Kokoro-82M-v1.0-ONNX",
     "Text-to-Speech-webgpu": "onnx-community/Kokoro-82M-v1.0-ONNX",
+    "Mask-Generation-wasm": "Xenova/sam-vit-base",
+    "Mask-Generation-webgpu": "Xenova/sam-vit-base",
     "Image-Segmentation-LiteRT.js-wasm": "qualcomm/MediaPipe-Selfie-Segmentation",
     "Image-Segmentation-LiteRT.js-webgpu": "qualcomm/MediaPipe-Selfie-Segmentation",
     "Image-Classification-LiteRT.js-wasm": "qualcomm/MobileNet-v3-Small",

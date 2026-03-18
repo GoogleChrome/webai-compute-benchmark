@@ -98,6 +98,18 @@ export const defaultSuites = [
         type: "remote",
     },
     {
+        name: "Mask-Generation-wasm",
+        url: "resources/transformers-js/dist/mask-generation-cpu.html",
+        tags: ["default", "mask-generation", "wasm", "transformers-js"],
+        type: "remote",
+    },
+    {
+        name: "Mask-Generation-webgpu",
+        url: "resources/transformers-js/dist/mask-generation-gpu.html",
+        tags: ["default", "mask-generation", "webgpu", "transformers-js"],
+        type: "remote",
+    },
+    {
         name: "Image-Segmentation-LiteRT.js-wasm",
         url: "resources/litert-js/dist/image-segmentation-cpu.html",
         tags: ["default", "image-segmentation", "wasm", "litert-js"],
