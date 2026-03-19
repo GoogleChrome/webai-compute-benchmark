@@ -343,9 +343,15 @@ class MaskGeneration {
 
     const model_id = "Xenova/sam-vit-base";
     this.processor = await SamProcessor.from_pretrained(model_id);
+<<<<<<< HEAD
     this.model = await SamModel.from_pretrained(model_id, {
       device: this.device,
       dtype: 'quantized'
+=======
+    this.model = await SamModel.from_pretrained(model_id, {
+        device: this.device,
+        dtype: 'fp32'
+>>>>>>> 75e7a1e (almost complete)
     });
 
     this.image = await RawImage.read(this.imageURL);
@@ -395,16 +401,17 @@ class MaskGeneration {
       const imageData = ctx.getImageData(0, 0, width, height);
       const data = imageData.data;
 
-      // Iterate over pixels of the first mask (assume channels=1 or pick first channel)
-      for (let y = 0; y < height; ++y) {
-        for (let x = 0; x < width; ++x) {
-          const index = y * width + x;
-          if (maskData[index]) { // first mask/channel
-            const dataIndex = index * 4;
-            data[dataIndex] = 255;     // R
-            data[dataIndex + 3] = 128; // A
-          }
+      // Optimized single-pass loop over the 1D mask array
+      let dataIndex = 0;
+      const len = maskData.length;
+      for (let i = 0; i < len; ++i) {
+        if (maskData[i]) {
+          data[dataIndex] = 0;       // R
+          data[dataIndex + 1] = 212;   // G
+          data[dataIndex + 2] = 255;   // B
+          data[dataIndex + 3] = 153;   // A (approx 60% opacity)
         }
+        dataIndex += 4;
       }
       ctx.putImageData(imageData, 0, 0);
     } else {
