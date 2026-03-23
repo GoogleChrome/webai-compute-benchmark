@@ -10,34 +10,34 @@ env.localModelPath = MODEL_DIR;
 const CACHE_VERSION = 1;
 
 const MODELS_TO_DOWNLOAD = [
-    {
-        id: 'Xenova/UAE-Large-V1',
-        task: 'feature-extraction',
+    { 
+        id: 'Xenova/UAE-Large-V1', 
+        task: 'feature-extraction', 
         dtype: 'q4'
     },
-    {
-        id: 'Alibaba-NLP/gte-base-en-v1.5',
-        task: 'feature-extraction',
+    { 
+        id: 'Alibaba-NLP/gte-base-en-v1.5', 
+        task: 'feature-extraction', 
         dtype: 'fp32'
     },
-    {
-        id: 'Xenova/whisper-small',
-        task: 'automatic-speech-recognition',
+    { 
+        id: 'Xenova/whisper-small', 
+        task: 'automatic-speech-recognition', 
         dtype: 'q4'
     },
-    {
-        id: 'Xenova/modnet',
-        task: 'background-removal',
+    { 
+        id: 'Xenova/modnet', 
+        task: 'background-removal', 
         dtype: 'uint8'
     },
-    {
-        id: 'mixedbread-ai/mxbai-rerank-base-v1',
-        task: 'text-classification',
+    { 
+        id: 'mixedbread-ai/mxbai-rerank-base-v1', 
+        task: 'text-classification', 
         dtype: 'fp32'
     },
-    {
-        id: 'AdamCodd/vit-base-nsfw-detector',
-        task: 'image-classification',
+    { 
+        id: 'AdamCodd/vit-base-nsfw-detector', 
+        task: 'image-classification', 
         dtype: 'q4'
     }
 ];
@@ -51,16 +51,16 @@ const MOBILECLIP_MODELS_TO_DOWNLOAD = [
 
 const KOKORO_REPO = 'onnx-community/Kokoro-82M-v1.0-ONNX';
 const KOKORO_FILES = [
-    'model.onnx',
-    'config.json',
-    'tokenizer.json',
-    'tokenizer_config.json',
+   'model.onnx',
+   'config.json',
+   'tokenizer.json',
+   'tokenizer_config.json',
 ];
 
 
 
 function getHuggingFaceUrl(repo, filename, branch = 'main') {
-    if (filename.endsWith('.onnx')) {
+    if(filename.endsWith('.onnx')) {
         return `https://huggingface.co/${repo}/resolve/${branch}/onnx/${filename}`;
     }
     return `https://huggingface.co/${repo}/resolve/${branch}/${filename}`;
@@ -72,13 +72,13 @@ async function downloadModels() {
 
     if (!fs.existsSync(MODEL_DIR)) {
         console.log(`Creating directory: ${MODEL_DIR}`);
-        fs.mkdirSync(MODEL_DIR, { recursive: true });
+        fs.mkdirSync(MODEL_DIR, { recursive: true }); 
     }
 
     console.log(`Starting model downloads to: ${MODEL_DIR}`);
 
     const originalAllowRemote = env.allowRemoteModels;
-    env.allowRemoteModels = true;
+    env.allowRemoteModels = true; 
 
     try {
         // Download models that work with pipeline
@@ -94,13 +94,13 @@ async function downloadModels() {
             console.log(`Downloading files for ${modelId} (${modelTask}, dtype: ${modelDType})...`);
 
             await pipeline(
-                modelTask,
-                modelId,
-                {
+                modelTask, 
+                modelId, 
+                { 
                     cache_dir: env.localModelPath,
                     dtype: modelDType
                 });
-
+                
             console.log(`Successfully downloaded and cached ${modelId}`);
             cache.put(cacheKey);
         }

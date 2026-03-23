@@ -56,7 +56,7 @@ class SentenceSimilarity {
   constructor(device) {
     this.device = device;
     this.SENTENCES = ["San Francisco has a unique Mediterranean climate characterized by mild, wet winters and dry, cool summers",
-      "The city is famous for its persistent fog which keeps temperatures comfortable and often cool near the coast"]
+								      "The city is famous for its persistent fog which keeps temperatures comfortable and often cool near the coast"]
 
   }
 
@@ -73,7 +73,7 @@ class SentenceSimilarity {
     // You can ignore the warning in the console: https://github.com/huggingface/transformers.js/issues/736#issuecomment-2101078957
     const result = await this.model(this.SENTENCES, { pooling: 'cls', normalize: true });
 
-    const [source_embeddings, ...document_embeddings] = result.tolist();
+    const [source_embeddings, ...document_embeddings ] = result.tolist();
     const similarities = document_embeddings.map(x => 100 * dot(source_embeddings, x));
     const output = document.getElementById('output');
     output.textContent = similarities;
@@ -100,7 +100,7 @@ class SpeechRecognition {
   }
 
   async run() {
-    const result = await this.model(this.audioData, { language: 'en' });
+    const result = await this.model(this.audioData, {language: 'en'});
     const output = document.getElementById('output');
     output.textContent = result.text;
   }
@@ -174,11 +174,11 @@ class TextReranking {
     this.device = device;
     this.query = "Who wrote 'To Kill a Mockingbird'?"
     this.documents = ["'To Kill a Mockingbird' is a novel by Harper Lee published in 1960. It was immediately successful, winning the Pulitzer Prize, and has become a classic of modern American literature.",
-      "The novel 'Moby-Dick' was written by Herman Melville and first published in 1851. It is considered a masterpiece of American literature and deals with complex themes of obsession, revenge, and the conflict between good and evil.",
-      "Harper Lee, an American novelist widely known for her novel 'To Kill a Mockingbird', was born in 1926 in Monroeville, Alabama. She received the Pulitzer Prize for Fiction in 1961.",
-      "Jane Austen was an English novelist known primarily for her six major novels, which interpret, critique and comment upon the British landed gentry at the end of the 18th century.",
-      "The 'Harry Potter' series, which consists of seven fantasy novels written by British author J.K. Rowling, is among the most popular and critically acclaimed books of the modern era.",
-      "'The Great Gatsby', a novel written by American author F. Scott Fitzgerald, was published in 1925. The story is set in the Jazz Age and follows the life of millionaire Jay Gatsby and his pursuit of Daisy Buchanan."]
+    "The novel 'Moby-Dick' was written by Herman Melville and first published in 1851. It is considered a masterpiece of American literature and deals with complex themes of obsession, revenge, and the conflict between good and evil.",
+    "Harper Lee, an American novelist widely known for her novel 'To Kill a Mockingbird', was born in 1926 in Monroeville, Alabama. She received the Pulitzer Prize for Fiction in 1961.",
+    "Jane Austen was an English novelist known primarily for her six major novels, which interpret, critique and comment upon the British landed gentry at the end of the 18th century.",
+    "The 'Harry Potter' series, which consists of seven fantasy novels written by British author J.K. Rowling, is among the most popular and critically acclaimed books of the modern era.",
+    "'The Great Gatsby', a novel written by American author F. Scott Fitzgerald, was published in 1925. The story is set in the Jazz Age and follows the life of millionaire Jay Gatsby and his pursuit of Daisy Buchanan."]
   }
   async init() {
     document.getElementById('device').textContent = this.device;
@@ -190,36 +190,36 @@ class TextReranking {
     this.tokenizer = await AutoTokenizer.from_pretrained(model_id);
   }
 
-  /**
- * Performs ranking with the CrossEncoder on the given query and documents. Returns a sorted list with the document indices and scores.
- * @param {string} query A single query
- * @param {string[]} documents A list of documents
- * @param {Object} options Options for ranking
- * @param {number} [options.top_k=undefined] Return the top-k documents. If undefined, all documents are returned.
- * @param {number} [options.return_documents=false] If true, also returns the documents. If false, only returns the indices and scores.
- */
+    /**
+  * Performs ranking with the CrossEncoder on the given query and documents. Returns a sorted list with the document indices and scores.
+  * @param {string} query A single query
+  * @param {string[]} documents A list of documents
+  * @param {Object} options Options for ranking
+  * @param {number} [options.top_k=undefined] Return the top-k documents. If undefined, all documents are returned.
+  * @param {number} [options.return_documents=false] If true, also returns the documents. If false, only returns the indices and scores.
+  */
   async rank(query, documents, {
-    top_k = undefined,
-    return_documents = false, } = {}) {
-    const inputs = this.tokenizer(
-      new Array(documents.length).fill(query),
-      {
-        text_pair: documents,
-        padding: true,
-        truncation: true,
-      }
-    )
-    const { logits } = await this.model(inputs);
-    return logits
-      .sigmoid()
-      .tolist()
-      .map(([score], i) => ({
-        corpus_id: i,
-        score,
-        ...(return_documents ? { text: documents[i] } : {})
-      }))
-      .sort((a, b) => b.score - a.score)
-      .slice(0, top_k);
+      top_k = undefined,
+      return_documents = false, } = {}) {
+      const inputs = this.tokenizer(
+        new Array(documents.length).fill(query),
+        {
+          text_pair: documents,
+          padding: true,
+          truncation: true,
+        }
+      )
+      const { logits } = await this.model(inputs);
+      return logits
+        .sigmoid()
+        .tolist()
+        .map(([score], i) => ({
+          corpus_id: i,
+          score,
+          ...(return_documents ? { text: documents[i] } : {})
+        }))
+        .sort((a, b) => b.score - a.score)
+        .slice(0, top_k);
   }
 
   async run() {
@@ -263,7 +263,7 @@ class ZeroShotImageClassification {
     document.getElementById('device').textContent = this.device;
     document.getElementById('workload').textContent = "zero-shot image classification";
     document.getElementById('input').textContent = `Classifying a local image against the following labels: ${JSON.stringify(this.texts)}`;
-
+    
     const model_id = "Xenova/mobileclip_s0";
 
     this.tokenizer = await AutoTokenizer.from_pretrained(model_id, { device: this.device });
