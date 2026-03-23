@@ -56,7 +56,7 @@ class SentenceSimilarity {
   constructor(device) {
     this.device = device;
     this.SENTENCES = ["San Francisco has a unique Mediterranean climate characterized by mild, wet winters and dry, cool summers",
-								"The city is famous for its persistent fog which keeps temperatures comfortable and often cool near the coast"]
+                      "The city is famous for its persistent fog which keeps temperatures comfortable and often cool near the coast"]
 
   }
 
@@ -197,10 +197,10 @@ class TextReranking {
    * @param {Object} options Options for ranking
    * @param {number} [options.top_k=undefined] Return the top-k documents. If undefined, all documents are returned.
    * @param {number} [options.return_documents=false] If true, also returns the documents. If false, only returns the indices and scores.
-  */
+    */
   async rank(query, documents, {
       top_k = undefined,
-      return_documents = false} = {}) {
+      return_documents = false,} = {}) {
       const inputs = this.tokenizer(
           new Array(documents.length).fill(query),
           {

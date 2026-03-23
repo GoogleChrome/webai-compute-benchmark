@@ -84,7 +84,7 @@ async function downloadModels() {
         // Download models that work with pipeline
         for (const modelInfo of MODELS_TO_DOWNLOAD) {
             const { id: modelId, task: modelTask, dtype: modelDType } = modelInfo;
-                
+            
             const cacheKey = `${modelId}-${modelTask}-${modelDType}`;
             if (cache.has(cacheKey)) {
                 console.log(`Model ${modelId} (${modelTask}, dtype: ${modelDType}) already cached. Skipping.`);
