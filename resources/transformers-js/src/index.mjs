@@ -343,15 +343,9 @@ class MaskGeneration {
 
     const model_id = "Xenova/sam-vit-base";
     this.processor = await SamProcessor.from_pretrained(model_id);
-<<<<<<< HEAD
-    this.model = await SamModel.from_pretrained(model_id, {
-      device: this.device,
-      dtype: 'quantized'
-=======
     this.model = await SamModel.from_pretrained(model_id, {
         device: this.device,
-        dtype: 'fp32'
->>>>>>> 75e7a1e (almost complete)
+      dtype: 'fp32'
     });
 
     this.image = await RawImage.read(this.imageURL);
