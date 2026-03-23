@@ -56,7 +56,7 @@ class SentenceSimilarity {
   constructor(device) {
     this.device = device;
     this.SENTENCES = ["San Francisco has a unique Mediterranean climate characterized by mild, wet winters and dry, cool summers",
-								      "The city is famous for its persistent fog which keeps temperatures comfortable and often cool near the coast"]
+								"The city is famous for its persistent fog which keeps temperatures comfortable and often cool near the coast"]
 
   }
 
@@ -72,7 +72,7 @@ class SentenceSimilarity {
   async run() {
     // You can ignore the warning in the console: https://github.com/huggingface/transformers.js/issues/736#issuecomment-2101078957
     const result = await this.model(this.SENTENCES, { pooling: 'cls', normalize: true });
-
+    
     const [source_embeddings, ...document_embeddings ] = result.tolist();
     const similarities = document_embeddings.map(x => 100 * dot(source_embeddings, x));
     const output = document.getElementById('output');
@@ -117,7 +117,7 @@ class BackgroundRemoval {
     document.getElementById('device').textContent = this.device;
     document.getElementById('workload').textContent = "background removal";
     document.getElementById('input').textContent = `Removing background from local image.`;
-
+    
     // Dynamically create and inject the CSS for the output container.
     const style = document.createElement('style');
     style.textContent = `
@@ -155,8 +155,8 @@ class BackgroundRemoval {
       output.appendChild(finalCanvas);
     }
 
-    finalCanvas.width = offscreenCanvas.width;
-    finalCanvas.height = offscreenCanvas.height;
+      finalCanvas.width = offscreenCanvas.width;
+      finalCanvas.height = offscreenCanvas.height;
 
     const ctx = finalCanvas.getContext('2d');
     if (ctx) {
@@ -191,35 +191,35 @@ class TextReranking {
   }
 
     /**
-  * Performs ranking with the CrossEncoder on the given query and documents. Returns a sorted list with the document indices and scores.
-  * @param {string} query A single query
-  * @param {string[]} documents A list of documents
-  * @param {Object} options Options for ranking
-  * @param {number} [options.top_k=undefined] Return the top-k documents. If undefined, all documents are returned.
-  * @param {number} [options.return_documents=false] If true, also returns the documents. If false, only returns the indices and scores.
+   * Performs ranking with the CrossEncoder on the given query and documents. Returns a sorted list with the document indices and scores.
+   * @param {string} query A single query
+   * @param {string[]} documents A list of documents
+   * @param {Object} options Options for ranking
+   * @param {number} [options.top_k=undefined] Return the top-k documents. If undefined, all documents are returned.
+   * @param {number} [options.return_documents=false] If true, also returns the documents. If false, only returns the indices and scores.
   */
   async rank(query, documents, {
       top_k = undefined,
-      return_documents = false, } = {}) {
+      return_documents = false} = {}) {
       const inputs = this.tokenizer(
-        new Array(documents.length).fill(query),
-        {
-          text_pair: documents,
-          padding: true,
-          truncation: true,
-        }
+          new Array(documents.length).fill(query),
+          {
+              text_pair: documents,
+              padding: true,
+              truncation: true,
+          }
       )
       const { logits } = await this.model(inputs);
       return logits
-        .sigmoid()
-        .tolist()
-        .map(([score], i) => ({
-          corpus_id: i,
-          score,
-          ...(return_documents ? { text: documents[i] } : {})
-        }))
-        .sort((a, b) => b.score - a.score)
-        .slice(0, top_k);
+          .sigmoid()
+          .tolist()
+          .map(([score], i) => ({
+              corpus_id: i,
+              score,
+              ...(return_documents ? { text: documents[i] } : {})
+          }))
+          .sort((a, b) => b.score - a.score)
+          .slice(0, top_k);
   }
 
   async run() {
@@ -263,7 +263,7 @@ class ZeroShotImageClassification {
     document.getElementById('device').textContent = this.device;
     document.getElementById('workload').textContent = "zero-shot image classification";
     document.getElementById('input').textContent = `Classifying a local image against the following labels: ${JSON.stringify(this.texts)}`;
-    
+
     const model_id = "Xenova/mobileclip_s0";
 
     this.tokenizer = await AutoTokenizer.from_pretrained(model_id, { device: this.device });
