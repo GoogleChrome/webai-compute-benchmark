@@ -139,7 +139,7 @@ class BackgroundRemoval {
 
   async run() {
     const result = await this.model(this.imageURL);
-
+    
     // Prepare result to display
     const offscreenCanvas = await result[0].toCanvas();
 
