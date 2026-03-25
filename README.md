@@ -22,12 +22,6 @@ See the Speedometer repo for a more detailed explanation, e.g., in which phases 
 - `npm run dev` in the root directory to start the server.
 -  Navigate to `http://localhost:8080/resources/<workload-group>/dist/<workload>.html` (e.g. `http://localhost:8080/resources/transformers-js/dist/feature-extraction-cpu.html`) then do `manualRun()` in the developer console.
 
-## Benchmark Methodology
-
-- **Iterations**: By default, the benchmark suite runs for **5 iterations** (controlled by `iterationCount` URL parameter).
-- **Inferences per Iteration**: Each iteration runs the inference **5 times by default** (controlled by `subIterationCount` URL parameter).
-- **Consistent Input**: The **same input data is used for all inferences** across all iterations. The input data and model are loaded once during initialization to ensure measurements focus on compute performance.
-
 ## Developer Mode and Custom Parameters
 
 The runner supports a number of options to control how the benchmarks are run.
@@ -42,6 +36,12 @@ You can select workloads by tag (e.g. all `#wasm` or `#webgpu` workloads) and ch
 Changing them in the developer menu should be immediately reflected in the URL, producing e.g. `http://localhost:8080/?iterationCount=1&tags=wasm`
 
 A full list of the runner options can be found in [params.mjs](resources/shared/params.mjs).
+
+## Benchmark Methodology
+
+- **Iterations**: By default, the benchmark suite runs for **5 iterations** (controlled by `iterationCount` URL parameter or `Iterations` in the developer menu).
+- **Inferences per Iteration**: Each iteration runs the inference **5 times by default** (controlled by `subIterationCount` URL parameter or `Sub-iterations` in the developer menu).
+- **Consistent Input**: The **same input data is used for all inferences** across all iterations. The input data and model are loaded once during initialization to ensure measurements focus on compute performance.
 
 ## Contributing
 
