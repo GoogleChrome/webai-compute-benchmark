@@ -125,6 +125,8 @@ async function downloadModels() {
         }
         console.log(`Successfully checked Xenova/mobileclip_s0`);
 
+        // Download Xenova/sam-vit-base models
+        console.log(`Checking Xenova/sam-vit-base models...`);
         if (!cache.has('SAM-SamModel-fp32')) {
             console.log(`Downloading Xenova/sam-vit-base (SamModel, fp32)...`);
             await SamModel.from_pretrained("Xenova/sam-vit-base", { cache_dir: env.localModelPath, dtype: 'fp32' });

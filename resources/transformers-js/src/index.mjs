@@ -22,6 +22,45 @@ env.allowLocalModels = true;
 // Set location of .wasm files so the CDN is not used.
 env.backends.onnx.wasm.wasmPaths = '';
 
+function ensureOutputStyles() {
+
+  if (!document.getElementById('visual-style')) {
+    const style = document.createElement('style');
+    style.id = 'visual-style';
+    style.textContent = `
+        #output {
+            border: 1px solid #ccc;
+            width: 256px;
+            height: 256px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    `;
+    document.head.appendChild(style);
+  }
+}
+
+async function getVisualOutputCanvas(width, height) {
+  const output = document.getElementById('output');
+  let finalCanvas = output.querySelector('canvas');
+
+  if (!finalCanvas) {
+    finalCanvas = document.createElement('canvas');
+    finalCanvas.style.width = "100%";
+    finalCanvas.style.height = "100%";
+    output.innerHTML = '';
+    output.appendChild(finalCanvas);
+  }
+
+  finalCanvas.width = width;
+  finalCanvas.height = height;
+
+  const ctx = finalCanvas.getContext('2d', { willReadFrequently: true });
+  return { ctx, canvas: finalCanvas };
+}
+
 // TODO: Model loading time is not currently included in the benchmark. We should
 // investigate if the model loading code is different for the different device types.
 
@@ -117,20 +156,7 @@ class BackgroundRemoval {
     document.getElementById('device').textContent = this.device;
     document.getElementById('workload').textContent = "background removal";
     document.getElementById('input').textContent = `Removing background from local image.`;
-    
-    // Dynamically create and inject the CSS for the output container.
-    const style = document.createElement('style');
-    style.textContent = `
-        #output {
-            border: 1px solid #ccc;
-            width: 256px;
-            height: 256px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-    `;
-    document.head.appendChild(style);
+    ensureOutputStyles();
 
     // TODO: Initially we wanted to use briaai/RMBG-2.0 model, but it has a known issue (https://github.com/microsoft/onnxruntime/issues/21968) cause it to be not usable.
     // We should check later if the issue has been resolved or select another model. In the meanwhile, we will use Xenova/modnet.
@@ -142,23 +168,7 @@ class BackgroundRemoval {
     
     // Prepare result to display
     const offscreenCanvas = await result[0].toCanvas();
-
-    const output = document.getElementById('output');
-    let finalCanvas = output.querySelector('canvas');
-
-    // If canvas doesn't exist, create and append it.
-    if (!finalCanvas) {
-      finalCanvas = document.createElement('canvas');
-      finalCanvas.style.width = "100%";
-      finalCanvas.style.height = "100%";
-      output.innerHTML = '';
-      output.appendChild(finalCanvas);
-    }
-
-      finalCanvas.width = offscreenCanvas.width;
-      finalCanvas.height = offscreenCanvas.height;
-
-    const ctx = finalCanvas.getContext('2d');
+    const { ctx } = await getVisualOutputCanvas(offscreenCanvas.width, offscreenCanvas.height);
     if (ctx) {
       ctx.drawImage(offscreenCanvas, 0, 0);
     } else {
@@ -325,21 +335,8 @@ class MaskGeneration {
   async init() {
     document.getElementById('device').textContent = this.device;
     document.getElementById('workload').textContent = "mask generation";
-    document.getElementById('input').textContent = `Generating mask for center of local image.`;
-
-    const style = document.createElement('style');
-    style.textContent = `
-        #output {
-            border: 1px solid #ccc;
-            width: 256px;
-            height: 256px;
-            position: relative;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-    `;
-    document.head.appendChild(style);
+    document.getElementById('input').textContent = `Generating mask for the center of local image.`;
+    ensureOutputStyles();
 
     const model_id = "Xenova/sam-vit-base";
     this.processor = await SamProcessor.from_pretrained(model_id);
@@ -349,16 +346,15 @@ class MaskGeneration {
     });
 
     this.image = await RawImage.read(this.imageURL);
-  }
-
-  async run() {
     const center_x = this.image.width / 2;
     const center_y = this.image.height / 2;
 
-    const input_points = [[[center_x, center_y]]];
-    const input_labels = [[[1]]];
+    this.input_points = [[[center_x, center_y]]];
+    this.input_labels = [[[1]]];
+  }
 
-    const inputs = await this.processor(this.image, { input_points, input_labels });
+  async run() {
+    const inputs = await this.processor(this.image, { input_points: this.input_points, input_labels: this.input_labels });
     const outputs = await this.model(inputs);
 
     const masks = await this.processor.post_process_masks(
@@ -368,22 +364,8 @@ class MaskGeneration {
     );
 
     const mask = masks[0];
-    const output = document.getElementById('output');
-    let finalCanvas = output.querySelector('canvas');
-
-    if (!finalCanvas) {
-      finalCanvas = document.createElement('canvas');
-      finalCanvas.style.width = "100%";
-      finalCanvas.style.height = "100%";
-      output.innerHTML = '';
-      output.appendChild(finalCanvas);
-    }
-
     const offscreenCanvas = await this.image.toCanvas();
-    finalCanvas.width = offscreenCanvas.width;
-    finalCanvas.height = offscreenCanvas.height;
-
-    const ctx = finalCanvas.getContext('2d');
+    const { ctx } = await getVisualOutputCanvas(offscreenCanvas.width, offscreenCanvas.height);
     if (ctx) {
       ctx.drawImage(offscreenCanvas, 0, 0);
 
@@ -395,7 +377,6 @@ class MaskGeneration {
       const imageData = ctx.getImageData(0, 0, width, height);
       const data = imageData.data;
 
-      // Optimized single-pass loop over the 1D mask array
       let dataIndex = 0;
       const len = maskData.length;
       for (let i = 0; i < len; ++i) {
