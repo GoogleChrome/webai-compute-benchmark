@@ -42,6 +42,7 @@ A full list of the runner options can be found in [params.mjs](resources/shared/
 - **Iterations**: By default, the benchmark suite runs for **5 iterations** (controlled by `iterationCount` URL parameter or `Iterations` in the developer menu).
 - **Inferences per Iteration**: Each iteration runs the inference **5 times by default** (controlled by `subIterationCount` URL parameter or `Sub-iterations` in the developer menu).
 - **Consistent Input**: The **same input data is used for all inferences** across all iterations. The input data and model are loaded once during initialization to ensure measurements focus on compute performance.
+- **Initialization Time**: Time spent on **model loading and data preparation** is **not included** in the benchmark execution time. Initialization happens once upfront before measurement begins.
 
 ## Contributing
 
