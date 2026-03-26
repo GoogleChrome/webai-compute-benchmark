@@ -23,22 +23,15 @@ env.allowLocalModels = true;
 env.backends.onnx.wasm.wasmPaths = '';
 
 function ensureOutputStyles() {
-
-  if (!document.getElementById('visual-style')) {
-    const style = document.createElement('style');
-    style.id = 'visual-style';
-    style.textContent = `
-        #output {
-            border: 1px solid #ccc;
-            width: 256px;
-            height: 256px;
-            position: relative;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-    `;
-    document.head.appendChild(style);
+  const output = document.getElementById('output');
+  if (output) {
+    output.style.border = '1px solid #ccc';
+    output.style.width = '256px';
+    output.style.height = '256px';
+    output.style.position = 'relative';
+    output.style.display = 'flex';
+    output.style.alignItems = 'center';
+    output.style.justifyContent = 'center';
   }
 }
 
@@ -341,16 +334,19 @@ class MaskGeneration {
     const model_id = "Xenova/sam-vit-base";
     this.processor = await SamProcessor.from_pretrained(model_id);
     this.model = await SamModel.from_pretrained(model_id, {
-        device: this.device,
+      device: this.device,
       dtype: 'fp32'
     });
 
     this.image = await RawImage.read(this.imageURL);
-    const center_x = this.image.width / 2;
-    const center_y = this.image.height / 2;
 
-    this.input_points = [[[center_x, center_y]]];
-    this.input_labels = [[[1]]];
+    this.input_points = [[
+      [550, 540],
+      [410, 540],
+      [550, 640],
+      [410, 640]
+    ]];
+    this.input_labels = [[1, 1, 1, 1]];
   }
 
   async run() {
@@ -370,18 +366,31 @@ class MaskGeneration {
       ctx.drawImage(offscreenCanvas, 0, 0);
 
       const maskData = mask.data;
+
+      // Find the mask with the highest score.
+      const scores = outputs.iou_scores.data;
+      let bestMaskIndex = 0;
+      let maxScore = scores[0];
+      for (let i = 1; i < scores.length; ++i) {
+        if (scores[i] > maxScore) {
+          maxScore = scores[i];
+          bestMaskIndex = i;
+        }
+      }
+
       const maskDims = mask.dims;
       const height = maskDims[2];
       const width = maskDims[3];
+      const maskSize = height * width;
 
       const imageData = ctx.getImageData(0, 0, width, height);
       const data = imageData.data;
 
+      const offset = bestMaskIndex * maskSize;
       let dataIndex = 0;
-      const len = maskData.length;
-      for (let i = 0; i < len; ++i) {
-        if (maskData[i]) {
-          data[dataIndex] = 0;       // R
+      for (let i = 0; i < maskSize; ++i) {
+        if (maskData[offset + i]) {
+          data[dataIndex] = 0;         // R
           data[dataIndex + 1] = 212;   // G
           data[dataIndex + 2] = 255;   // B
           data[dataIndex + 3] = 153;   // A (approx 60% opacity)
