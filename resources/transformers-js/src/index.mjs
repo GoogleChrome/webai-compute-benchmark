@@ -372,6 +372,8 @@ class MaskGeneration {
       const imageData = ctx.getImageData(0, 0, width, height);
       const data = imageData.data;
 
+      // The `maskData` contains 3 flattened masks (whole, sub-part, part).
+      // We use the first one (index 0) directly, so no offset is needed.
       let dataIndex = 0;
       for (let i = 0; i < maskSize; ++i) {
         if (maskData[i]) {
