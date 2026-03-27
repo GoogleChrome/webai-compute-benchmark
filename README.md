@@ -44,6 +44,16 @@ A full list of the runner options can be found in [params.mjs](resources/shared/
 - **Consistent Input**: The **same input data is used for all inferences** across all iterations. The input data and model are loaded once during initialization to ensure measurements focus on compute performance.
 - **Initialization Time**: Time spent on **model loading and data preparation** is **not included** in the benchmark execution time. Initialization happens once upfront before measurement begins.
 
+## Interpreting Results
+
+The benchmark UI displays results at three levels of detail:
+
+- **Workload Overview (Top of Page)**: Displays the total time per workload. This is calculated as the sum of all sub-iteration times, averaged across all iterations.
+- **Sub-Iteration Averages (Scrolling Down)**: Displays the average time for each specific sub-iteration slot across all iterations (e.g., the average of `sub-iter-1` from Iteration 0 to Iteration 4).
+- **Detailed Tables (Expanding "Table")**: Displays the raw inference time for **every single sub-iteration in every iteration** in a grid format.
+
+Each individual sub-iteration represents a single inference run (a single call to the model's execution function using the same input data).
+
 ## Contributing
 
 See the [CONTRIBUTING](CONTRIBUTING.md) file for how to help out.
