@@ -340,13 +340,10 @@ class MaskGeneration {
 
     this.image = await RawImage.read(this.imageURL);
 
-    this.input_points = [[
-      [550, 540],
-      [410, 540],
-      [550, 640],
-      [410, 640]
-    ]];
-    this.input_labels = [[1, 1, 1, 1]];
+    // First point is origami, second point is hand
+    this.input_points = [[[480, 580], [360, 900]]];
+    // 1 to include, 0 to exclude
+    this.input_labels = [[1, 0]];
   }
 
   async run() {
@@ -367,17 +364,6 @@ class MaskGeneration {
 
       const maskData = mask.data;
 
-      // Find the mask with the highest score.
-      const scores = outputs.iou_scores.data;
-      let bestMaskIndex = 0;
-      let maxScore = scores[0];
-      for (let i = 1; i < scores.length; ++i) {
-        if (scores[i] > maxScore) {
-          maxScore = scores[i];
-          bestMaskIndex = i;
-        }
-      }
-
       const maskDims = mask.dims;
       const height = maskDims[2];
       const width = maskDims[3];
@@ -386,10 +372,9 @@ class MaskGeneration {
       const imageData = ctx.getImageData(0, 0, width, height);
       const data = imageData.data;
 
-      const offset = bestMaskIndex * maskSize;
       let dataIndex = 0;
       for (let i = 0; i < maskSize; ++i) {
-        if (maskData[offset + i]) {
+        if (maskData[i]) {
           data[dataIndex] = 0;         // R
           data[dataIndex + 1] = 212;   // G
           data[dataIndex + 2] = 255;   // B
