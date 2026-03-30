@@ -328,7 +328,7 @@ class MaskGeneration {
   async init() {
     document.getElementById('device').textContent = this.device;
     document.getElementById('workload').textContent = "mask generation";
-    document.getElementById('input').textContent = `Generating mask for the center of local image.`;
+    document.getElementById('input').textContent = `Generating a mask for one positive and one negative marker.`;
     ensureOutputStyles();
 
     const model_id = "Xenova/sam-vit-base";
