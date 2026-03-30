@@ -1,5 +1,5 @@
 import { BenchmarkConnector } from "speedometer-utils/benchmark.mjs";
-import { createSubIteratedSuite } from "speedometer-utils/helpers.mjs";
+import { createSubIteratedSuite, getVisualOutputCanvas } from "speedometer-utils/helpers.mjs";
 import { params } from "speedometer-utils/params.mjs";
 import { pipeline, env, dot, read_audio, AutoTokenizer, AutoModelForSequenceClassification, AutoProcessor, RawImage, CLIPTextModelWithProjection, CLIPVisionModelWithProjection, softmax, SamModel, SamProcessor } from '@huggingface/transformers';
 import { KokoroTTS } from "kokoro-js";
@@ -22,37 +22,6 @@ env.allowLocalModels = true;
 // Set location of .wasm files so the CDN is not used.
 env.backends.onnx.wasm.wasmPaths = '';
 
-function ensureOutputStyles() {
-  const output = document.getElementById('output');
-  if (output) {
-    output.style.border = '1px solid #ccc';
-    output.style.width = '256px';
-    output.style.height = '256px';
-    output.style.position = 'relative';
-    output.style.display = 'flex';
-    output.style.alignItems = 'center';
-    output.style.justifyContent = 'center';
-  }
-}
-
-async function getVisualOutputCanvas(width, height) {
-  const output = document.getElementById('output');
-  let finalCanvas = output.querySelector('canvas');
-
-  if (!finalCanvas) {
-    finalCanvas = document.createElement('canvas');
-    finalCanvas.style.width = "100%";
-    finalCanvas.style.height = "100%";
-    output.innerHTML = '';
-    output.appendChild(finalCanvas);
-  }
-
-  finalCanvas.width = width;
-  finalCanvas.height = height;
-
-  const ctx = finalCanvas.getContext('2d', { willReadFrequently: true });
-  return { ctx, canvas: finalCanvas };
-}
 
 // TODO: Model loading time is not currently included in the benchmark. We should
 // investigate if the model loading code is different for the different device types.
@@ -149,7 +118,6 @@ class BackgroundRemoval {
     document.getElementById('device').textContent = this.device;
     document.getElementById('workload').textContent = "background removal";
     document.getElementById('input').textContent = `Removing background from local image.`;
-    ensureOutputStyles();
 
     // TODO: Initially we wanted to use briaai/RMBG-2.0 model, but it has a known issue (https://github.com/microsoft/onnxruntime/issues/21968) cause it to be not usable.
     // We should check later if the issue has been resolved or select another model. In the meanwhile, we will use Xenova/modnet.
@@ -329,7 +297,6 @@ class MaskGeneration {
     document.getElementById('device').textContent = this.device;
     document.getElementById('workload').textContent = "mask generation";
     document.getElementById('input').textContent = `Generating a mask for one positive and one negative marker.`;
-    ensureOutputStyles();
 
     const model_id = "Xenova/sam-vit-base";
     this.processor = await SamProcessor.from_pretrained(model_id);

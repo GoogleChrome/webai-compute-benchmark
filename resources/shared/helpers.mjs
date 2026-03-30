@@ -49,3 +49,23 @@ export function createSubIteratedSuite(benchmark, subIterationCount) {
     }
     return new AsyncBenchmarkSuite("default", steps);
 }
+
+export async function getVisualOutputCanvas(width, height) {
+  const output = document.getElementById('output');
+  output.classList.add('visual-output');
+  let finalCanvas = output.querySelector('canvas');
+
+  if (!finalCanvas) {
+    finalCanvas = document.createElement('canvas');
+    finalCanvas.style.width = "100%";
+    finalCanvas.style.height = "100%";
+    output.innerHTML = '';
+    output.appendChild(finalCanvas);
+  }
+
+  finalCanvas.width = width;
+  finalCanvas.height = height;
+
+  const ctx = finalCanvas.getContext('2d', { willReadFrequently: true });
+  return { ctx, canvas: finalCanvas };
+}

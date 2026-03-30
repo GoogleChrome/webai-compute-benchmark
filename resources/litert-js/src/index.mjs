@@ -1,5 +1,5 @@
 import { BenchmarkConnector } from "speedometer-utils/benchmark.mjs";
-import { createSubIteratedSuite } from "speedometer-utils/helpers.mjs";
+import { createSubIteratedSuite, getVisualOutputCanvas } from "speedometer-utils/helpers.mjs";
 import { params } from "speedometer-utils/params.mjs";
 import * as tf from '@tensorflow/tfjs';
 import { loadAndCompile, loadLiteRt, Tensor } from '@litertjs/core';
@@ -55,8 +55,7 @@ class ImageSegmentation {
 * @param {HTMLImageElement} originalImage - Reference to the loaded <img> element.
 */
 async renderSegmentation(maskData, originalImage) {
-   const outputCanvas = document.getElementById('outputCanvas');
-   const ctx = outputCanvas.getContext('2d');
+   const { ctx, canvas: outputCanvas } = await getVisualOutputCanvas(this.INPUT_WIDTH, this.INPUT_HEIGHT);
 
    // 1. Draw the original image onto the canvas. This is fast.
    ctx.drawImage(originalImage, 0, 0, outputCanvas.width, outputCanvas.height);
@@ -107,7 +106,6 @@ async renderSegmentation(maskData, originalImage) {
    document.getElementById('device').textContent = this.device;
    document.getElementById('workload').textContent = "Image segmentation";
    document.getElementById('input').textContent = `Segmentation on a local image.`;
-   document.getElementById('result-text').textContent = 'Segmentation Result';
    // Load the input image into an in-memory Image object.
    this.originalImage.src = origamiImage;
    await this.originalImage.decode();
@@ -232,9 +230,8 @@ class HandDetection {
   * Draws hand landmarks and connecting lines on the output canvas.
   * @param {Float32Array} landmarkData - The raw landmark data from the model.
   */
-  drawHandLandmarks(landmarkData) {
-    const outputCanvas = document.getElementById('outputCanvas');
-    const ctx = outputCanvas.getContext('2d');
+  async drawHandLandmarks(landmarkData) {
+    const { ctx, canvas: outputCanvas } = await getVisualOutputCanvas(this.INPUT_WIDTH, this.INPUT_HEIGHT);
     ctx.drawImage(this.originalImage, 0, 0, outputCanvas.width, outputCanvas.height);
 
     // Define connections between landmarks
@@ -280,7 +277,6 @@ class HandDetection {
     document.getElementById('device').textContent = this.device;
     document.getElementById('workload').textContent = "Hand detection";
     document.getElementById('input').textContent = `Hand detection on a local image.`;
-    document.getElementById('result-text').textContent = 'Hand Detection Result';
 
     this.originalImage.src = handImage;
     await this.originalImage.decode();
@@ -323,7 +319,7 @@ class HandDetection {
     const landmarkData = landmarksTensor.toTypedArray();
     landmarksTensor.delete();
 
-    this.drawHandLandmarks(landmarkData);
+    await this.drawHandLandmarks(landmarkData);
   }
 }
 
@@ -362,15 +358,6 @@ let appName;
 export async function initializeBenchmark(modelType) {
  if (!modelType || !modelConfigs[modelType]) {
    throw new Error(`Invalid configuration '${modelType}.'`);
- }
-
- // To make sure image container is not showing for text-only workloads.
- if (modelType.startsWith('image-segmentation') || modelType.startsWith('hand-detection')) {
-   document.getElementById('imageContainer').style.display = 'block';
-   document.getElementById('textContainer').style.display = 'none';
- } else {
-   document.getElementById('imageContainer').style.display = 'none';
-   document.getElementById('textContainer').style.display = 'block';
  }
 
  appName = modelConfigs[modelType].description;

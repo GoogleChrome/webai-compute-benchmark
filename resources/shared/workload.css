@@ -9,3 +9,13 @@ https://developers.google.com/open-source/licenses/bsd
 body {
     font-family: sans-serif;
 }
+
+.visual-output {
+    border: 1px solid #ccc;
+    width: 256px;
+    height: 256px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}

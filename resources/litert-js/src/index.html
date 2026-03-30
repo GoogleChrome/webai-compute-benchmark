@@ -6,29 +6,15 @@
         <link rel="stylesheet" href="../../shared/workload.css">
         <meta name="description" content="Benchmark workloads" />
         <title>Workload on ...</title>
-        <style>
-        #imageContainer { display: flex; justify-content: center; align-items: flex-start; gap: 30px; margin-top: 20px; }
-        #inputImage, #outputCanvas { width: 256px; height: 256px; border: 1px solid #ccc; }
-        #textContainer { display: none; } /* Initially hidden */
-    </style>
     </head>
 
     <body>
         <p>This is a <span id="workload">...</span> workload on <span id="device">...</span></p>
 
         <p>Input</p>
-            <p id="input">...</p>
+        <p id="input">...</p>
 
-        <div id="imageContainer">
-        <div>
-            <p id="result-text">Result</p>
-            <canvas id="outputCanvas" width="256" height="256"></canvas>
-        </div>
-        </div>
-
-        <div id="textContainer">
-            <p>Result</p>
-            <pre id="output">N/A</pre>
-        </div>
+        <p>Result</p>
+        <div id="output">N/A</div>
     </body>
 </html>
