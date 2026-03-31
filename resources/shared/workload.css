@@ -19,3 +19,8 @@ body {
     align-items: center;
     justify-content: center;
 }
+
+.visual-output canvas {
+    width: 100%;
+    height: 100%;
+}

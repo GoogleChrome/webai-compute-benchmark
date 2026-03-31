@@ -57,8 +57,6 @@ export async function getVisualOutputCanvas(width, height) {
 
   if (!finalCanvas) {
     finalCanvas = document.createElement('canvas');
-    finalCanvas.style.width = "100%";
-    finalCanvas.style.height = "100%";
     output.innerHTML = '';
     output.appendChild(finalCanvas);
   }
