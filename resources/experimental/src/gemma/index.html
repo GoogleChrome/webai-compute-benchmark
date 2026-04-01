@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemma.cpp.js Test Runner</title>
+    <style>
+        :root {
+            --bg-color: #0d1117;
+            --container-bg: #161b22;
+            --border-color: #30363d;
+            --text-color: #c9d1d9;
+            --header-color: #58a6ff;
+            --accent-color: #238636;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            box-sizing: border-box;
+        }
+        header {
+            margin-bottom: 16px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 8px;
+        }
+        h1 {
+            color: var(--header-color);
+            margin: 0;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        #output-container {
+            flex-grow: 1;
+            background-color: var(--container-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        #output-header {
+            background-color: rgba(255, 255, 255, 0.05);
+            padding: 8px 16px;
+            font-size: 12px;
+            text-transform: uppercase;
+            font-weight: 600;
+            border-bottom: 1px solid var(--border-color);
+            color: #8b949e;
+        }
+        #output {
+            flex-grow: 1;
+            padding: 16px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+            line-height: 1.5;
+            font-size: 13px;
+        }
+        .log-line { margin-bottom: 4px; }
+        .log { color: #c9d1d9; }
+        .error { color: #f85149; font-weight: bold; }
+        .warn { color: #d29922; }
+        .success { color: #3fb950; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Gemma.cpp.js Test Runner</h1>
+    </header>
+
+    <div id="output-container">
+        <div id="output-header">Console Logs</div>
+        <div id="output"></div>
+    </div>
+
+    <!-- Override console.log / console.error to intercept messages -->
+    <script>
+        const outputDiv = document.getElementById('output');
+        const originalLog = console.log;
+        const originalError = console.error;
+        const originalWarn = console.warn;
+
+        function appendToUI(message, type) {
+            const line = document.createElement('div');
+            line.className = `log-line ${type}`;
+            line.textContent = message;
+            outputDiv.appendChild(line);
+            outputDiv.scrollTop = outputDiv.scrollHeight;
+        }
+
+        console.log = (...args) => {
+            originalLog(...args);
+            appendToUI(args.map(a => typeof a === 'object' ? JSON.stringify(a, null, 2) : a).join(' '), 'log');
+        };
+
+        console.error = (...args) => {
+            originalError(...args);
+            appendToUI(args.map(a => typeof a === 'object' ? JSON.stringify(a, null, 2) : a).join(' '), 'error');
+        };
+
+        console.warn = (...args) => {
+            originalWarn(...args);
+            appendToUI(args.map(a => typeof a === 'object' ? JSON.stringify(a, null, 2) : a).join(' '), 'warn');
+        };
+
+        window.addEventListener('unhandledrejection', (event) => {
+            console.error('Unhandled Promise Rejection:', event.reason);
+        });
+
+        window.addEventListener('error', (event) => {
+            console.error('Error:', event.message);
+        });
+
+        appendToUI('Initializing environment...', 'log');
+    </script>
+</body>
+</html>

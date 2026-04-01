@@ -157,4 +157,10 @@ export const defaultSuites = [
         tags: ["experimental", "text2text-generation", "webgpu", "transformers-js"],
         type: "remote",
     },
+    {
+        name: "Experimental-Gemma-CPP-wasm",
+        url: "resources/experimental/dist/gemma.html",
+        tags: ["experimental", "gemma", "wasm"],
+        type: "remote",
+    },
 ];

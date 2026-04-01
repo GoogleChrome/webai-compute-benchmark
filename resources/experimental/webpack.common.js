@@ -9,6 +9,7 @@ module.exports = {
     entry: {
         'text2text-generation-cpu': './src/text2text-generation-cpu.mjs',
         'text2text-generation-gpu': './src/text2text-generation-gpu.mjs',
+        'gemma': './src/gemma/benchmark.mjs',
     },
     plugins: [
         new HtmlWebpackPlugin({
@@ -22,6 +23,12 @@ module.exports = {
             template: path.resolve(__dirname, "src", "index.html"),
             filename: 'text2text-generation-gpu.html',
             chunks: ['text2text-generation-gpu'],
+        }),
+        new HtmlWebpackPlugin({
+            title: "Experimental Gemma Runner",
+            template: path.resolve(__dirname, "src", "gemma", "index.html"),
+            filename: 'gemma.html',
+            chunks: ['gemma'],
         }),
     ],
     output: {
