@@ -2,6 +2,9 @@ const path = require("path");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
 
 module.exports = {
+    cache: {
+        type: 'filesystem',
+    },
     target: ["web", "es2020"],
     entry: {
         'feature-extraction-cpu': './src/feature-extraction-cpu.mjs',

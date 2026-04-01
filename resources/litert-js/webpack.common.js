@@ -3,6 +3,9 @@ const HtmlWebpackPlugin = require("html-webpack-plugin");
 const CopyPlugin = require("copy-webpack-plugin");
 
 module.exports = {
+    cache: {
+        type: 'filesystem',
+    },
     target: ["web", "es2020"],
     entry: {
         'image-segmentation-cpu': './src/image-segmentation-cpu.mjs',
