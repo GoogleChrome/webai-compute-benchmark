@@ -30,6 +30,7 @@ jobs:
               with:
                   node-version-file: "package.json"
                   cache: "npm"
+                  lfs: true
 
             - name: Install Node Packages
               run: npm ci
