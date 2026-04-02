@@ -24,13 +24,14 @@ jobs:
 
             - name: Checkout Branch
               uses: actions/checkout@v4
+              with:
+                  lfs: true
 
             - name: Setup Node
               uses: actions/setup-node@v4
               with:
                   node-version-file: "package.json"
                   cache: "npm"
-                  lfs: true
 
             - name: Install Node Packages
               run: npm ci
