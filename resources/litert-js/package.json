@@ -17,7 +17,7 @@
     "author": "",
     "license": "ISC",
     "dependencies": {
-        "@litertjs/core": "^0.2.1",
+        "@litertjs/core": "^2.4.0",
         "@tensorflow/tfjs": "^4.22.0",
         "@tensorflow/tfjs-node": "^4.22.0",
         "html-webpack-plugin": "^5.6.4",
