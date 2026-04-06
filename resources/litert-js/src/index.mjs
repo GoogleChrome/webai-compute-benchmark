@@ -128,7 +128,8 @@ async renderSegmentation(maskData, originalImage) {
  }
 
  async run() {
-   const [maskTensor] = this.model.run([this.litertImageTensor]);
+   const runResult = await this.model.run([this.litertImageTensor]);
+   const [maskTensor] = runResult;
    await this.visualizeOutput(maskTensor, this.originalImage);
  }
 }
@@ -198,7 +199,7 @@ class ImageClassification {
  }
 
  async run() {
-   const [outputTensor] = this.model.run([this.litertImageTensor]);
+   const [outputTensor] = await this.model.run([this.litertImageTensor]);
    let cpuOutputTensor;
    if (outputTensor.accelerator === 'webgpu') {
      cpuOutputTensor = await outputTensor.copyTo('wasm');
@@ -301,7 +302,8 @@ class HandDetection {
     // landmarks: 21 landmarks suitable for 2D drawing
     // world_landmarks: 21 landmarks suitable for real world 3D coordination system
     // handedness: left hand or right hand
-    const [landmarks, worldLandmarks, handedness] = this.model.run([this.litertImageTensor]);
+    const runResult = await this.model.run([this.litertImageTensor]);
+    const [handedness, worldLandmarks, landmarks] = runResult;
 
     let landmarksTensor;
     if (this.device === 'webgpu') {
