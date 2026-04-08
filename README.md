@@ -54,6 +54,22 @@ The benchmark UI displays results at three levels of detail:
 
 Each individual sub-iteration represents a single inference run (a single call to the model's execution function using the same input data).
 
+## Version Branches
+
+Here are the versions of key libraries in different branches:
+
+- **main (v0.2.0)**
+  - Transformers.js: `4.0.1`
+  - LiteRT.js: `2.4.0`
+
+- **version-0.1.0**
+  - Transformers.js: `3.7.5`
+  - LiteRT.js: `2.4.0`
+
+- **version-0.0.1**
+  - Transformers.js: `3.7.5`
+  - LiteRT.js: `0.2.1`
+
 ## Contributing
 
 See the [CONTRIBUTING](CONTRIBUTING.md) file for how to help out.
