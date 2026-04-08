@@ -128,7 +128,7 @@ class BackgroundRemoval {
     const result = await this.model(this.imageURL);
     
     // Prepare result to display
-    const offscreenCanvas = await result[0].toCanvas();
+    const offscreenCanvas = await result.toCanvas();
     const { ctx } = await getVisualOutputCanvas(offscreenCanvas.width, offscreenCanvas.height);
     if (ctx) {
       ctx.drawImage(offscreenCanvas, 0, 0);
@@ -180,7 +180,9 @@ class TextReranking {
               truncation: true,
           }
       )
+      console.log("Calling model for ranking...");
       const { logits } = await this.model(inputs);
+      console.log("Model output (logits) received.");
       return logits
           .sigmoid()
           .tolist()
@@ -194,7 +196,9 @@ class TextReranking {
   }
 
   async run() {
+    console.log("TextReranking run started");
     const results = await this.rank(this.query, this.documents, { return_documents: true, top_k: 3 });
+    console.log("TextReranking run results:", results);
     const output = document.getElementById('output');
     output.textContent = JSON.stringify(results, null, 2);
   }
@@ -447,7 +451,9 @@ export async function initializeBenchmark(modelType) {
   let benchmark;
   try {
     benchmark = modelConfigs[modelType].create();
+    console.log("Creating benchmark instance for:", modelType);
     await benchmark.init();
+    console.log("Benchmark instance initialized.");
   } catch (error) {
     console.error(error);
   }

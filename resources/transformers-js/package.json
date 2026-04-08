@@ -17,7 +17,7 @@
     "author": "",
     "license": "ISC",
     "dependencies": {
-        "@huggingface/transformers": "^3.7.5",
+        "@huggingface/transformers": "4.0.1",
         "html-webpack-plugin": "^5.6.4",
         "http-server": "^14.1.1",
         "kokoro-js": "^1.2.1",
@@ -25,6 +25,9 @@
         "speedometer-utils": "../shared",
         "webpack": "^5.105.2",
         "webpack-merge": "^6.0.1"
+    },
+    "overrides": {
+        "@huggingface/transformers": "4.0.1"
     },
     "devDependencies": {
         "webpack-cli": "^6.0.1"
