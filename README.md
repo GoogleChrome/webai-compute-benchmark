@@ -74,6 +74,10 @@ Here are the versions of key libraries in different branches:
 
 See the [CONTRIBUTING](CONTRIBUTING.md) file for how to help out.
 
+## Model Analyzer Scripts
+
+There are Python scripts in [script/model-analyzer](script/model-analyzer) to analyze ONNX and TFLite models. See its [README](script/model-analyzer/README.md) for setup and usage.
+
 ## Source Code Headers
 
 Every file containing source code must include copyright and license
