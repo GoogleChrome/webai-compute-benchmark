@@ -81,44 +81,6 @@ async function downloadModels() {
     env.allowRemoteModels = true; 
 
     try {
-        // Download models that work with pipeline
-        await Promise.all(MODELS_TO_DOWNLOAD.map(modelInfo => downloadPipelineModel(modelInfo, cache)));
-
-        // Download Xenova/mobileclip_s0 models via components
-        console.log(`Checking Xenova/mobileclip_s0 models...`);
-        for (const modelInfo of MOBILECLIP_MODELS_TO_DOWNLOAD) {
-            const className = modelInfo.modelClass.name;
-            const cacheKey = `mobileclip-${className}-${modelInfo.dtype || ''}`;
-            if (cache.has(cacheKey)) {
-                console.log(`Model ${className} (dtype: ${modelInfo.dtype}) already cached. Skipping.`);
-                continue;
-            }
-
-            console.log(`Downloading Xenova/mobileclip_s0 (${className}${modelInfo.dtype ? `, dtype: ${modelInfo.dtype}` : ''})...`);
-            await modelInfo.modelClass.from_pretrained("Xenova/mobileclip_s0", {
-                cache_dir: env.localModelPath,
-                dtype: modelInfo.dtype
-            });
-
-            cache.put(cacheKey);
-        }
-        console.log(`Successfully checked Xenova/mobileclip_s0`);
-
-        // Download Xenova/sam-vit-base models
-        console.log(`Checking Xenova/sam-vit-base models...`);
-        if (!cache.has('SAM-SamModel-fp32')) {
-            console.log(`Downloading Xenova/sam-vit-base (SamModel, fp32)...`);
-            await SamModel.from_pretrained("Xenova/sam-vit-base", { cache_dir: env.localModelPath, dtype: 'fp32' });
-            cache.put('SAM-SamModel-fp32');
-        }
-        if (!cache.has('SAM-SamProcessor-default')) {
-            console.log(`Downloading Xenova/sam-vit-base (SamProcessor)...`);
-            await SamProcessor.from_pretrained("Xenova/sam-vit-base", { cache_dir: env.localModelPath });
-            cache.put('SAM-SamProcessor-default');
-        }
-        console.log(`Successfully checked Xenova/sam-vit-base`);
-
-        // Download onnx-community/Kokoro-82M-v1.0-ONNX model
         console.log(`Starting manual download check for ${KOKORO_REPO}...`);
         const kokoroModelPath = path.join(MODEL_DIR, KOKORO_REPO);
         if (!fs.existsSync(kokoroModelPath)) {
@@ -129,8 +91,22 @@ async function downloadModels() {
             fs.mkdirSync(onnxDir, { recursive: true });
         }
 
-        await Promise.all(KOKORO_FILES.map(filename => downloadKokoroFile(filename, cache, kokoroModelPath, onnxDir)));
-        console.log(`Successfully checked all files for ${KOKORO_REPO}`);
+        console.log(`Downloading all Transformers.js models in parallel...`);
+        await Promise.all([
+            // Download models that work with pipeline
+            ...MODELS_TO_DOWNLOAD.map(modelInfo => downloadPipelineModel(modelInfo, cache)),
+
+            // Download Xenova/mobileclip_s0 models via components
+            ...MOBILECLIP_MODELS_TO_DOWNLOAD.map(modelInfo => downloadMobileClipModel(modelInfo, cache)),
+
+            // Download Xenova/sam-vit-base models
+            downloadSamModel(cache),
+            downloadSamProcessor(cache),
+
+            // Download onnx-community/Kokoro-82M-v1.0-ONNX model
+            ...KOKORO_FILES.map(filename => downloadKokoroFile(filename, cache, kokoroModelPath, onnxDir))
+        ]);
+        console.log(`Successfully checked and downloaded all models.`);
 
     } catch (err) {
         console.error("Model download failed:", err);
@@ -161,6 +137,39 @@ async function downloadPipelineModel(modelInfo, cache) {
     
     console.log(`Successfully downloaded and cached ${modelId}`);
     cache.put(cacheKey);
+}
+
+async function downloadMobileClipModel(modelInfo, cache) {
+    const className = modelInfo.modelClass.name;
+    const cacheKey = `mobileclip-${className}-${modelInfo.dtype || ''}`;
+    if (cache.has(cacheKey)) {
+        console.log(`Model ${className} (dtype: ${modelInfo.dtype}) already cached. Skipping.`);
+        return;
+    }
+
+    console.log(`Downloading Xenova/mobileclip_s0 (${className}${modelInfo.dtype ? `, dtype: ${modelInfo.dtype}` : ''})...`);
+    await modelInfo.modelClass.from_pretrained("Xenova/mobileclip_s0", {
+        cache_dir: env.localModelPath,
+        dtype: modelInfo.dtype
+    });
+
+    cache.put(cacheKey);
+}
+
+async function downloadSamModel(cache) {
+    if (!cache.has('SAM-SamModel-fp32')) {
+        console.log(`Downloading Xenova/sam-vit-base (SamModel, fp32)...`);
+        await SamModel.from_pretrained("Xenova/sam-vit-base", { cache_dir: env.localModelPath, dtype: 'fp32' });
+        cache.put('SAM-SamModel-fp32');
+    }
+}
+
+async function downloadSamProcessor(cache) {
+    if (!cache.has('SAM-SamProcessor-default')) {
+        console.log(`Downloading Xenova/sam-vit-base (SamProcessor)...`);
+        await SamProcessor.from_pretrained("Xenova/sam-vit-base", { cache_dir: env.localModelPath });
+        cache.put('SAM-SamProcessor-default');
+    }
 }
 
 async function downloadKokoroFile(filename, cache, kokoroModelPath, onnxDir) {
