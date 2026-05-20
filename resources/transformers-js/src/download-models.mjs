@@ -82,28 +82,7 @@ async function downloadModels() {
 
     try {
         // Download models that work with pipeline
-        for (const modelInfo of MODELS_TO_DOWNLOAD) {
-            const { id: modelId, task: modelTask, dtype: modelDType } = modelInfo;
-            
-            const cacheKey = `${modelId}-${modelTask}-${modelDType}`;
-            if (cache.has(cacheKey)) {
-                console.log(`Model ${modelId} (${modelTask}, dtype: ${modelDType}) already cached. Skipping.`);
-                continue;
-            }
-
-            console.log(`Downloading files for ${modelId} (${modelTask}, dtype: ${modelDType})...`);
-            
-            await pipeline(
-                modelTask, 
-                modelId, 
-                { 
-                    cache_dir: env.localModelPath,
-                    dtype: modelDType
-                });
-            
-            console.log(`Successfully downloaded and cached ${modelId}`);
-            cache.put(cacheKey);
-        }
+        await Promise.all(MODELS_TO_DOWNLOAD.map(modelInfo => downloadPipelineModel(modelInfo, cache)));
 
         // Download Xenova/mobileclip_s0 models via components
         console.log(`Checking Xenova/mobileclip_s0 models...`);
@@ -145,45 +124,12 @@ async function downloadModels() {
         if (!fs.existsSync(kokoroModelPath)) {
             fs.mkdirSync(kokoroModelPath, { recursive: true });
         }
-
-        for (const filename of KOKORO_FILES) {
-            const cacheKey = `${KOKORO_REPO}-${filename}`;
-            if (cache.has(cacheKey)) {
-                console.log(`  ${filename} already exists, skipping.`);
-                continue;
-            }
-            const isOnnxFile = filename.endsWith('.onnx') || filename.endsWith('.onnx_data');
-            const modelUrl = getHuggingFaceUrl(KOKORO_REPO, filename);
-            let outputPath;
-
-            if (isOnnxFile) {
-                const onnxDir = path.join(kokoroModelPath, 'onnx');
-                if (!fs.existsSync(onnxDir)) {
-                    fs.mkdirSync(onnxDir, { recursive: true });
-                }
-                outputPath = path.join(onnxDir, filename);
-            } else {
-                outputPath = path.join(kokoroModelPath, filename);
-            }
-
-            console.log(`  Downloading ${filename}...`);
-            try {
-                const response = await fetch(modelUrl);
-                if (!response.ok) {
-                    throw new Error(`Failed to fetch ${filename}: ${response.statusText}`);
-                }
-                const fileStream = fs.createWriteStream(outputPath);
-                await new Promise((resolve, reject) => {
-                    response.body.pipe(fileStream);
-                    response.body.on('error', reject);
-                    fileStream.on('finish', resolve);
-                });
-
-                cache.put(cacheKey);
-            } catch (err) {
-                console.error(`  Failed to download ${filename}:`, err.message);
-            }
+        const onnxDir = path.join(kokoroModelPath, 'onnx');
+        if (!fs.existsSync(onnxDir)) {
+            fs.mkdirSync(onnxDir, { recursive: true });
         }
+
+        await Promise.all(KOKORO_FILES.map(filename => downloadKokoroFile(filename, cache, kokoroModelPath, onnxDir)));
         console.log(`Successfully checked all files for ${KOKORO_REPO}`);
 
     } catch (err) {
@@ -192,6 +138,58 @@ async function downloadModels() {
         throw err;
     }
     env.allowRemoteModels = originalAllowRemote;
+}
+
+async function downloadPipelineModel(modelInfo, cache) {
+    const { id: modelId, task: modelTask, dtype: modelDType } = modelInfo;
+    
+    const cacheKey = `${modelId}-${modelTask}-${modelDType}`;
+    if (cache.has(cacheKey)) {
+        console.log(`Model ${modelId} (${modelTask}, dtype: ${modelDType}) already cached. Skipping.`);
+        return;
+    }
+
+    console.log(`Downloading files for ${modelId} (${modelTask}, dtype: ${modelDType})...`);
+    
+    await pipeline(
+        modelTask, 
+        modelId, 
+        { 
+            cache_dir: env.localModelPath,
+            dtype: modelDType
+        });
+    
+    console.log(`Successfully downloaded and cached ${modelId}`);
+    cache.put(cacheKey);
+}
+
+async function downloadKokoroFile(filename, cache, kokoroModelPath, onnxDir) {
+    const cacheKey = `${KOKORO_REPO}-${filename}`;
+    if (cache.has(cacheKey)) {
+        console.log(`  ${filename} already exists, skipping.`);
+        return;
+    }
+    const isOnnxFile = filename.endsWith('.onnx') || filename.endsWith('.onnx_data');
+    const modelUrl = getHuggingFaceUrl(KOKORO_REPO, filename);
+    let outputPath = isOnnxFile ? path.join(onnxDir, filename) : path.join(kokoroModelPath, filename);
+
+    console.log(`  Downloading ${filename}...`);
+    try {
+        const response = await fetch(modelUrl);
+        if (!response.ok) {
+            throw new Error(`Failed to fetch ${filename}: ${response.statusText}`);
+        }
+        const fileStream = fs.createWriteStream(outputPath);
+        await new Promise((resolve, reject) => {
+            response.body.pipe(fileStream);
+            response.body.on('error', reject);
+            fileStream.on('finish', resolve);
+        });
+
+        cache.put(cacheKey);
+    } catch (err) {
+        console.error(`  Failed to download ${filename}:`, err.message);
+    }
 }
 
 downloadModels().catch(err => {
