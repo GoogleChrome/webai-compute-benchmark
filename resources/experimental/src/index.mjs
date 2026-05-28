@@ -3,10 +3,6 @@ import { createSubIteratedSuite } from "speedometer-utils/helpers.mjs";
 import { pipeline, env } from '@huggingface/transformers';
 import { params } from "speedometer-utils/params.mjs";
 
-/*
-Paste below into dev console for manual testing:
-manualRun();
-*/
 
 // Please ensure that models are self-contained for this benchmark and not loaded remotely from a CDN or the Hugging Face Hub.
 
@@ -81,9 +77,4 @@ export async function initializeBenchmark(modelType) {
 
   const benchmarkConnector = new BenchmarkConnector(suites, appName, appVersion);
   benchmarkConnector.connect();
-}
-
-globalThis.manualRun = () => {
-  window.addEventListener("message", (event) => console.log(event.data));
-  window.postMessage({ id: appName + '-' + appVersion, key: "benchmark-connector", type: "benchmark-suite", name: "default" }, "*");
 }

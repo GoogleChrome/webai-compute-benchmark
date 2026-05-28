@@ -6,10 +6,6 @@ import { loadAndCompile, loadLiteRt, Tensor } from '@litertjs/core';
 import origamiImage from '../../media/image.jpg';
 import handImage from '../../media/hand.jpg';
 
-/*
-Paste below into dev console for manual testing:
-manualRun();
-*/
 
 // TODO: Model loading time is not currently included in the benchmark. We should
 // investigate if the model loading code is different for the different device types.
@@ -378,7 +374,3 @@ export async function initializeBenchmark(modelType) {
  benchmarkConnector.connect();
 }
 
-globalThis.manualRun = () => {
- window.addEventListener("message", (event) => console.log(event.data));
- window.postMessage({ id: appName + '-' + appVersion, key: "benchmark-connector", type: "benchmark-suite", name: "default" }, "*");
-}
