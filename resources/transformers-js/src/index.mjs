@@ -6,10 +6,6 @@ import { KokoroTTS } from "kokoro-js";
 import jfkAudio from '../../media/jfk_1962_0912_spaceeffort.wav';
 import imageWithBackground from '../../media/image.jpg';
 
-/*
-Paste below into dev console for manual testing:
-manualRun();
-*/
 
 // Workloads and models: https://docs.google.com/spreadsheets/d/1tRzuM34dUpijXcJwHmmK7-JDK6zZHhBPHECvBXEF0n8/edit?usp=sharing
 // Model selection documentation: https://docs.google.com/document/d/1EDyRD5dHxYpONyE_xf_Tb1A3GvNSrLQpp-msCcWNnF0/edit?usp=sharing
@@ -460,9 +456,4 @@ export async function initializeBenchmark(modelType) {
 
   const benchmarkConnector = new BenchmarkConnector(suites, appName, appVersion);
   benchmarkConnector.connect();
-}
-
-globalThis.manualRun = () => {
-  window.addEventListener("message", (event) => console.log(event.data));
-  window.postMessage({ id: appName + '-' + appVersion, key: "benchmark-connector", type: "benchmark-suite", name: "default" }, "*");
 }
