@@ -373,4 +373,3 @@ export async function initializeBenchmark(modelType) {
  const benchmarkConnector = new BenchmarkConnector(suites, appName, appVersion);
  benchmarkConnector.connect();
 }
-
