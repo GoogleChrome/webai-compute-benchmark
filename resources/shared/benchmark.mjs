@@ -141,6 +141,7 @@ export class BenchmarkConnector {
 
     connect() {
         window.addEventListener("message", this.onMessage);
+        this.sendMessage({ type: "app-ready", status: "success", appId: this.appId });
 
         if (window.top === window) {
             window.addEventListener("message", (event) => {
@@ -148,11 +149,7 @@ export class BenchmarkConnector {
                     console.log(event.data);
                 }
             });
-        }
 
-        this.sendMessage({ type: "app-ready", status: "success", appId: this.appId });
-
-        if (window.top === window) {
             console.log("Running in individual mode. Automatically starting benchmark...");
             // Trigger the run
             window.postMessage({
