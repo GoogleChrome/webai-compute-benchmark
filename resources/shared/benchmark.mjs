@@ -128,9 +128,6 @@ export class BenchmarkConnector {
                     console.error(`Suite with the name of "${event.data.name}" not found!`);
                 const { result } = await suite.runAndRecord(params, (test) => this.sendMessage({ type: "step-complete", status: "success", appId: this.appId, name: this.name, test }));
                 this.sendMessage({ type: "suite-complete", status: "success", appId: this.appId, result });
-                if (window.top === window) {
-                    console.log("Running in individual mode. Benchmark execution complete.", result);
-                }
                 this.disconnect();
                 break;
             default:
@@ -147,6 +144,12 @@ export class BenchmarkConnector {
         this.sendMessage({ type: "app-ready", status: "success", appId: this.appId });
 
         if (window.top === window) {
+            window.addEventListener("message", (event) => {
+                if (event.data && (event.data.appId === this.appId || event.data.id === this.appId)) {
+                    console.log(event.data);
+                }
+            });
+
             console.log("Running in individual mode. Automatically starting benchmark...");
             // Trigger the run
             window.postMessage({
