@@ -157,9 +157,11 @@ class MainBenchmarkClient {
         this._hasResults = true;
         this._metrics = metrics;
 
-        const scoreResults = this._computeResults(this._measuredValuesList, "score");
-        if (scoreResults.isValid)
-            this._populateValidScore(scoreResults);
+        const wasmScoreResults = this._computeResults(this._measuredValuesList, "wasmScore", "score");
+        const webgpuScoreResults = this._computeResults(this._measuredValuesList, "webgpuScore", "score");
+
+        if (wasmScoreResults.isValid || webgpuScoreResults.isValid)
+            this._populateValidScores(wasmScoreResults, webgpuScoreResults);
         else
             this._populateInvalidScore();
 
@@ -178,28 +180,37 @@ class MainBenchmarkClient {
         throw error;
     }
 
-    _populateValidScore(scoreResults) {
+    _populateValidScores(wasmScoreResults, webgpuScoreResults) {
         document.getElementById("summary").className = "valid";
 
-        this._updateGaugeNeedle(scoreResults.mean);
-        document.getElementById("result-number").textContent = scoreResults.formattedMean;
-        if (scoreResults.formattedDelta)
-            document.getElementById("confidence-number").textContent = `\u00b1 ${scoreResults.formattedDelta}`;
+        if (wasmScoreResults.isValid) {
+            document.getElementById("wasm-result-number").textContent = wasmScoreResults.formattedMean;
+            if (wasmScoreResults.formattedDelta)
+                document.getElementById("wasm-confidence-number").textContent = `\u00b1 ${wasmScoreResults.formattedDelta}`;
+        } else {
+            document.getElementById("wasm-result-number").textContent = "N/A";
+            document.getElementById("wasm-confidence-number").textContent = "";
+        }
+
+        if (webgpuScoreResults.isValid) {
+            document.getElementById("webgpu-result-number").textContent = webgpuScoreResults.formattedMean;
+            if (webgpuScoreResults.formattedDelta)
+                document.getElementById("webgpu-confidence-number").textContent = `\u00b1 ${webgpuScoreResults.formattedDelta}`;
+        } else {
+            document.getElementById("webgpu-result-number").textContent = "N/A";
+            document.getElementById("webgpu-confidence-number").textContent = "";
+        }
     }
 
     _populateInvalidScore() {
         document.getElementById("summary").className = "invalid";
-        document.getElementById("result-number").textContent = "Error";
-        document.getElementById("confidence-number").textContent = "";
+        document.getElementById("wasm-result-number").textContent = "Error";
+        document.getElementById("wasm-confidence-number").textContent = "";
+        document.getElementById("webgpu-result-number").textContent = "Error";
+        document.getElementById("webgpu-confidence-number").textContent = "";
     }
 
-    _computeResults(measuredValuesList, displayUnit) {
-        function valueForUnit(measuredValues) {
-            if (displayUnit === "ms")
-                return measuredValues.geomean;
-            return measuredValues.score;
-        }
-
+    _computeResults(measuredValuesList, valueKey, displayUnit) {
         function sigFigFromPercentDelta(percentDelta) {
             return Math.ceil(-Math.log(percentDelta) / Math.log(10)) + 3;
         }
@@ -209,7 +220,7 @@ class MainBenchmarkClient {
             return number.toPrecision(Math.max(nonDecimalDigitCount, Math.min(6, sigFig)));
         }
 
-        const values = measuredValuesList.map(valueForUnit);
+        const values = measuredValuesList.map(v => v[valueKey]);
         const sum = values.reduce((a, b) => a + b, 0);
         const arithmeticMean = sum / values.length;
         let meanSigFig = 4;
@@ -248,17 +259,6 @@ class MainBenchmarkClient {
         table.appendChild(row);
     }
 
-    _updateGaugeNeedle(score) {
-        const needleAngle = Math.max(0, Math.min(score, 140)) - 70;
-        const needleRotationValue = `rotate(${needleAngle}deg)`;
-
-        const gaugeNeedleElement = document.querySelector("#summary > .gauge .needle");
-        gaugeNeedleElement.style.setProperty("-webkit-transform", needleRotationValue);
-        gaugeNeedleElement.style.setProperty("-moz-transform", needleRotationValue);
-        gaugeNeedleElement.style.setProperty("-ms-transform", needleRotationValue);
-        gaugeNeedleElement.style.setProperty("transform", needleRotationValue);
-    }
-
     _populateDetailedResults(metrics) {
         this._populateNonStandardParams();
 
@@ -283,8 +283,12 @@ class MainBenchmarkClient {
         const trackHeight = 24;
         document.documentElement.style.setProperty("--metrics-line-height", `${trackHeight}px`);
         const plotWidth = (params.viewport.width - 120) / 2;
-        const aggregateMetrics = [metrics.Geomean];
-        if (params.measurePrepare)
+        const aggregateMetrics = [];
+        if (metrics["WASM-Score"])
+            aggregateMetrics.push(metrics["WASM-Score"]);
+        if (metrics["WebGPU-Score"])
+            aggregateMetrics.push(metrics["WebGPU-Score"]);
+        if (params.measurePrepare && metrics.Prepare)
             aggregateMetrics.push(metrics.Prepare);
         document.getElementById("aggregate-chart").innerHTML = renderMetricView({
             metrics: aggregateMetrics,

@@ -66,13 +66,18 @@
                 <a href="#home" class="logo">
                     <div class="version next">next</div>
                 </a>
-                <h1>Score</h1>
-                <div class="gauge">
-                    <div class="window"><div class="needle"></div></div>
+                <div class="scores-container">
+                    <div class="score-box">
+                        <h2>WASM Score</h2>
+                        <div id="wasm-result-number" class="score-value"></div>
+                        <div id="wasm-confidence-number" class="score-confidence"></div>
+                    </div>
+                    <div class="score-box">
+                        <h2>WebGPU Score</h2>
+                        <div id="webgpu-result-number" class="score-value"></div>
+                        <div id="webgpu-confidence-number" class="score-confidence"></div>
+                    </div>
                 </div>
-                <hr />
-                <div id="result-number"></div>
-                <div id="confidence-number"></div>
                 <div id="invalid-score-text">
                     One or more subtests produced no duration.<br />
                     Please check your <a href="./instructions.html" target="_blank">browser settings</a> and re-run the benchmark.<br />
