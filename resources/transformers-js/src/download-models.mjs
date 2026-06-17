@@ -4,6 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import fetch from 'node-fetch';
 import DownloadCache from '../../shared/download-cache.mjs';
+import { retry } from '../../shared/download-utils.mjs';
 
 const MODEL_DIR = './models';
 env.localModelPath = MODEL_DIR;
@@ -64,18 +65,6 @@ function getHuggingFaceUrl(repo, filename, branch = 'main') {
         return `https://huggingface.co/${repo}/resolve/${branch}/onnx/${filename}`;
     }
     return `https://huggingface.co/${repo}/resolve/${branch}/${filename}`;
-}
-
-async function retry(fn, retries = 3, delay = 2000) {
-    for (let i = 0; i < retries; i++) {
-        try {
-            return await fn();
-        } catch (err) {
-            if (i === retries - 1) throw err;
-            console.warn(`Attempt ${i + 1} failed. Retrying in ${delay}ms...`, err.message);
-            await new Promise(resolve => setTimeout(resolve, delay));
-        }
-    }
 }
 
 async function downloadModels() {
