@@ -15,12 +15,14 @@ const SUITES_FIXTURE = [
         name: "Suite 1",
         async prepare(page) {},
         enabled: true,
+        tags: ["webgpu"],
         steps: [STEP_FIXTURE("Test 1"), STEP_FIXTURE("Test 2"), STEP_FIXTURE("Test 3")],
     },
     {
         name: "Suite 2",
         async prepare(page) {},
         enabled: true,
+        tags: ["wasm"],
         steps: [STEP_FIXTURE("Test 1")],
     },
 ];
@@ -239,16 +241,15 @@ describe("BenchmarkRunner", () => {
                     const asyncTime = asyncEnd - syncEnd;
 
                     const total = syncTime + asyncTime;
-                    const mean = total / suite.steps.length;
                     const geomean = Math.pow(total, 1 / suite.steps.length);
-                    const score = 1000 / geomean;
+                    const score = 100000 / geomean;
 
-                    const { total: measuredTotal, mean: measuredMean, geomean: measuredGeomean, score: measuredScore } = runner._measuredValues;
+                    const { wasmGeomean, wasmScore, webgpuGeomean, webgpuScore } = runner._measuredValues;
 
-                    expect(measuredTotal).to.equal(total);
-                    expect(measuredMean).to.equal(mean);
-                    expect(measuredGeomean).to.equal(geomean);
-                    expect(measuredScore).to.equal(score);
+                    expect(wasmGeomean).to.equal(geomean);
+                    expect(wasmScore).to.equal(score);
+                    expect(webgpuGeomean).to.equal(0);
+                    expect(webgpuScore).to.equal(Infinity);
 
                     assert.calledWith(runner._client.didRunSuites, runner._measuredValues);
                 });
