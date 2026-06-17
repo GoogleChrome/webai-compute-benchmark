@@ -242,7 +242,7 @@ describe("BenchmarkRunner", () => {
 
                     const total = syncTime + asyncTime;
                     const geomean = Math.pow(total, 1 / suite.steps.length);
-                    const score = 100000 / geomean;
+                    const score = 10000 / geomean;
 
                     const { wasmGeomean, wasmScore, webgpuGeomean, webgpuScore } = runner._measuredValues;
 

@@ -219,7 +219,7 @@ class PageElement {
 }
 
 function geomeanToScore(geomean) {
-    return 100000 / geomean;
+    return 10000 / geomean;
 }
 
 // The WarmupSuite is used to make sure all runner helper functions and
@@ -347,7 +347,7 @@ export class BenchmarkRunner {
         const iterationEndLabel = "iteration-end";
         for (let i = 0; i < this._iterationCount; i++) {
             performance.mark(iterationStartLabel);
-            await this.runAllSuites();
+            await this.runAllSuites(i);
             performance.mark(iterationEndLabel);
             performance.measure(`iteration-${i}`, iterationStartLabel, iterationEndLabel);
         }
@@ -410,7 +410,7 @@ export class BenchmarkRunner {
         }
     }
 
-    async runAllSuites() {
+    async runAllSuites(iteration) {
         const suites = await this._prepareAllSuites();
         try {
             for (const suite of suites) {
@@ -447,16 +447,16 @@ export class BenchmarkRunner {
                 }
             }
         } finally {
-            await this._finishRunAllSuites();
+            await this._finishRunAllSuites(iteration);
         }
     }
 
-    async _finishRunAllSuites() {
+    async _finishRunAllSuites(iteration) {
         const finalizeStartLabel = "runner-finalize-start";
         const finalizeEndLabel = "runner-finalize-end";
 
         performance.mark(finalizeStartLabel);
-        await this._finalize();
+        await this._finalize(iteration);
         performance.mark(finalizeEndLabel);
         performance.measure("runner-finalize", finalizeStartLabel, finalizeEndLabel);
         await this._wakeLock.release();
@@ -471,8 +471,8 @@ export class BenchmarkRunner {
         await suiteRunner.run();
     }
 
-    async _finalize() {
-        this._appendIterationMetrics();
+    async _finalize(iteration) {
+        this._appendIterationMetrics(iteration);
         if (this._client?.didRunSuites) {
             let wasmProduct = 1;
             let wasmCount = 0;
@@ -505,7 +505,7 @@ export class BenchmarkRunner {
         }
     }
 
-    _appendIterationMetrics() {
+    _appendIterationMetrics(iteration) {
         const getMetric = (name, unit = "ms") => this._metrics[name] || (this._metrics[name] = new Metric(name, unit));
         const iterationMetric = (i, name) => {
             if (i >= params.iterationCount)
@@ -548,7 +548,6 @@ export class BenchmarkRunner {
 
         const wasmGeomean = getMetric("WASM-Geomean");
         const webgpuGeomean = getMetric("WebGPU-Geomean");
-        const iteration = wasmGeomean.length;
         const iterationWasmTotal = iterationMetric(iteration, "WASM-Total");
         const iterationWebgpuTotal = iterationMetric(iteration, "WebGPU-Total");
 
