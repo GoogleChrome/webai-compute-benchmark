@@ -4,6 +4,7 @@ import fs from 'fs';
 import path from 'path';
 import fetch from 'node-fetch';
 import DownloadCache from '../../shared/download-cache.mjs';
+import { retry } from '../../shared/download-utils.mjs';
 
 const MODEL_DIR = './models';
 env.localModelPath = MODEL_DIR;
@@ -93,13 +94,13 @@ async function downloadModels() {
 
             console.log(`Downloading files for ${modelId} (${modelTask}, dtype: ${modelDType})...`);
             
-            await pipeline(
+            await retry(() => pipeline(
                 modelTask, 
                 modelId, 
                 { 
                     cache_dir: env.localModelPath,
                     dtype: modelDType
-                });
+                }));
             
             console.log(`Successfully downloaded and cached ${modelId}`);
             cache.put(cacheKey);
@@ -116,10 +117,10 @@ async function downloadModels() {
             }
 
             console.log(`Downloading Xenova/mobileclip_s0 (${className}${modelInfo.dtype ? `, dtype: ${modelInfo.dtype}` : ''})...`);
-            await modelInfo.modelClass.from_pretrained("Xenova/mobileclip_s0", {
+            await retry(() => modelInfo.modelClass.from_pretrained("Xenova/mobileclip_s0", {
                 cache_dir: env.localModelPath,
                 dtype: modelInfo.dtype
-            });
+            }));
 
             cache.put(cacheKey);
         }
@@ -129,12 +130,12 @@ async function downloadModels() {
         console.log(`Checking Xenova/sam-vit-base models...`);
         if (!cache.has('SAM-SamModel-fp32')) {
             console.log(`Downloading Xenova/sam-vit-base (SamModel, fp32)...`);
-            await SamModel.from_pretrained("Xenova/sam-vit-base", { cache_dir: env.localModelPath, dtype: 'fp32' });
+            await retry(() => SamModel.from_pretrained("Xenova/sam-vit-base", { cache_dir: env.localModelPath, dtype: 'fp32' }));
             cache.put('SAM-SamModel-fp32');
         }
         if (!cache.has('SAM-SamProcessor-default')) {
             console.log(`Downloading Xenova/sam-vit-base (SamProcessor)...`);
-            await SamProcessor.from_pretrained("Xenova/sam-vit-base", { cache_dir: env.localModelPath });
+            await retry(() => SamProcessor.from_pretrained("Xenova/sam-vit-base", { cache_dir: env.localModelPath }));
             cache.put('SAM-SamProcessor-default');
         }
         console.log(`Successfully checked Xenova/sam-vit-base`);
@@ -168,20 +169,22 @@ async function downloadModels() {
 
             console.log(`  Downloading ${filename}...`);
             try {
-                const response = await fetch(modelUrl);
-                if (!response.ok) {
-                    throw new Error(`Failed to fetch ${filename}: ${response.statusText}`);
-                }
-                const fileStream = fs.createWriteStream(outputPath);
-                await new Promise((resolve, reject) => {
-                    response.body.pipe(fileStream);
-                    response.body.on('error', reject);
-                    fileStream.on('finish', resolve);
+                await retry(async () => {
+                    const response = await fetch(modelUrl);
+                    if (!response.ok) {
+                        throw new Error(`Failed to fetch ${filename}: ${response.statusText}`);
+                    }
+                    const fileStream = fs.createWriteStream(outputPath);
+                    await new Promise((resolve, reject) => {
+                        response.body.pipe(fileStream);
+                        response.body.on('error', reject);
+                        fileStream.on('finish', resolve);
+                    });
                 });
 
                 cache.put(cacheKey);
             } catch (err) {
-                console.error(`  Failed to download ${filename}:`, err.message);
+                console.error(`  Failed to download ${filename} after retries:`, err.message);
             }
         }
         console.log(`Successfully checked all files for ${KOKORO_REPO}`);

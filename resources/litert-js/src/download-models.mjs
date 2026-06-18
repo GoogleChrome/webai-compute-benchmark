@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import fetch from 'node-fetch';
 import DownloadCache from '../../shared/download-cache.mjs';
+import { retry } from '../../shared/download-utils.mjs';
 import AdmZip from 'adm-zip';
 
 // --- Configuration ---
@@ -25,6 +26,7 @@ const MODELS_TO_DOWNLOAD = [
         url: 'https://qaihub-public-assets.s3.us-west-2.amazonaws.com/qai-hub-models/models/mediapipe_hand/releases/v0.46.0/mediapipe_hand-tflite-float.zip'
     }
 ];
+
 
 async function downloadModels() {
     const CACHE_FILE = path.join(MODEL_DIR, 'cache.json');
@@ -53,17 +55,19 @@ async function downloadModels() {
         console.log(`URL: ${modelUrl}`);
 
         try {
-            const response = await fetch(modelUrl);
+            await retry(async () => {
+                const response = await fetch(modelUrl);
 
-            if (!response.ok) {
-                throw new Error(`Failed to fetch: ${response.statusText} (${response.status})`);
-            }
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch: ${response.statusText} (${response.status})`);
+                }
 
-            const fileStream = fs.createWriteStream(outputPath);
-            await new Promise((resolve, reject) => {
-                response.body.pipe(fileStream);
-                response.body.on('error', reject);
-                fileStream.on('finish', resolve);
+                const fileStream = fs.createWriteStream(outputPath);
+                await new Promise((resolve, reject) => {
+                    response.body.pipe(fileStream);
+                    response.body.on('error', reject);
+                    fileStream.on('finish', resolve);
+                });
             });
             
             console.log(`Successfully downloaded **${filename}** to **${outputPath}**`);
@@ -79,7 +83,7 @@ async function downloadModels() {
 
             cache.put(cacheKey);
         } catch (err) {
-            console.error(`Model download failed for ${repo}/${filename}:`, err.message);
+            console.error(`Model download failed for ${repo}/${filename} after retries:`, err.message);
         }
     }
     console.log('TFLite download process finished.');
