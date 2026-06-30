@@ -284,11 +284,11 @@ class MainBenchmarkClient {
         document.documentElement.style.setProperty("--metrics-line-height", `${trackHeight}px`);
         const plotWidth = (params.viewport.width - 120) / 2;
         const aggregateMetrics = [];
-        if (metrics["WASM-Score"])
+        if (metrics["WASM-Score"]?.values.length > 0)
             aggregateMetrics.push(metrics["WASM-Score"]);
-        if (metrics["WebGPU-Score"])
+        if (metrics["WebGPU-Score"]?.values.length > 0)
             aggregateMetrics.push(metrics["WebGPU-Score"]);
-        if (params.measurePrepare && metrics.Prepare)
+        if (params.measurePrepare && metrics.Prepare?.values.length > 0)
             aggregateMetrics.push(metrics.Prepare);
         document.getElementById("aggregate-chart").innerHTML = renderMetricView({
             metrics: aggregateMetrics,
