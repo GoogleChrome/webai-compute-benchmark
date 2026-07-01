@@ -77,8 +77,8 @@ async function testPage(url) {
 function validateMetrics(metrics) {
     for (const [name, metric] of Object.entries(metrics))
         validateMetric(name, metric);
-    assert(metrics.Geomean.mean > 0);
-    assert(metrics.Score.mean > 0);
+    assert((metrics["WASM-Geomean"]?.mean > 0) || (metrics["WebGPU-Geomean"]?.mean > 0));
+    assert((metrics["WASM-Score"]?.mean > 0) || (metrics["WebGPU-Score"]?.mean > 0));
 }
 
 function validateMetric(name, metric) {
@@ -100,8 +100,14 @@ async function testIterations() {
             assert(!(suite.name in metrics));
         }
     });
-    assert(metrics.Geomean.values.length === iterationCount);
-    assert(metrics.Score.values.length === iterationCount);
+    if (metrics["WASM-Geomean"]?.mean > 0) {
+        assert(metrics["WASM-Geomean"].values.length === iterationCount);
+        assert(metrics["WASM-Score"].values.length === iterationCount);
+    }
+    if (metrics["WebGPU-Geomean"]?.mean > 0) {
+        assert(metrics["WebGPU-Geomean"].values.length === iterationCount);
+        assert(metrics["WebGPU-Score"].values.length === iterationCount);
+    }
 }
 
 async function testSubIterations() {
@@ -140,8 +146,14 @@ async function testAll() {
         const metric = metrics[suite.name];
         assert(metric.values.length === 1);
     });
-    assert(metrics.Geomean.values.length === 1);
-    assert(metrics.Score.values.length === 1);
+    if (metrics["WASM-Geomean"]?.mean > 0) {
+        assert(metrics["WASM-Geomean"].values.length === 1);
+        assert(metrics["WASM-Score"].values.length === 1);
+    }
+    if (metrics["WebGPU-Geomean"]?.mean > 0) {
+        assert(metrics["WebGPU-Geomean"].values.length === 1);
+        assert(metrics["WebGPU-Score"].values.length === 1);
+    }
 }
 
 async function testDeveloperMode() {
