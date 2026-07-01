@@ -39,52 +39,13 @@ async function downloadModels() {
 
     console.log(`Starting TFLite model downloads to: **${MODEL_DIR}**`);
 
-    for (const modelInfo of MODELS_TO_DOWNLOAD) {
-        const { repo, filename, url } = modelInfo;
-
-        const cacheKey = `${repo}-${filename}`;
-        if (cache.has(cacheKey)) {
-            console.log(`Model ${filename} from ${repo} already cached. Skipping.`);
-            continue;
-        }
-
-        const modelUrl = url;
-        const outputPath = path.join(MODEL_DIR, path.basename(filename));
-
-        console.log(`\nAttempting to download **${filename}** from **${repo}**...`);
-        console.log(`URL: ${modelUrl}`);
-
-        try {
-            await retry(async () => {
-                const response = await fetch(modelUrl);
-
-                if (!response.ok) {
-                    throw new Error(`Failed to fetch: ${response.statusText} (${response.status})`);
-                }
-
-                const fileStream = fs.createWriteStream(outputPath);
-                await new Promise((resolve, reject) => {
-                    response.body.pipe(fileStream);
-                    response.body.on('error', reject);
-                    fileStream.on('finish', resolve);
-                });
-            });
-
-            console.log(`Successfully downloaded **${filename}** to **${outputPath}**`);
-
-            if (path.extname(filename) === '.zip') {
-                console.log(`Extracting **${filename}**...`);
-                const zip = new AdmZip(outputPath);
-                zip.extractAllTo(MODEL_DIR, true);
-                console.log(`Successfully extracted **${filename}** to **${MODEL_DIR}**`);
-                fs.unlinkSync(outputPath);
-                console.log(`Deleted zip file **${outputPath}**`);
-            }
-
-            cache.put(cacheKey);
-        } catch (err) {
-            console.error(`Model download failed for ${repo}/${filename} after retries:`, err.message);
-        }
+    try {
+        await Promise.all(
+            MODELS_TO_DOWNLOAD.map(modelInfo => downloadModel(modelInfo, cache))
+        );
+    } catch (err) {
+        console.error("TFLite model download failed:", err);
+        throw err;
     }
     console.log('TFLite download process finished.');
 }
@@ -105,17 +66,19 @@ async function downloadModel(modelInfo, cache) {
     console.log(`URL: ${modelUrl}`);
 
     try {
-        const response = await fetch(modelUrl);
+        await retry(async () => {
+            const response = await fetch(modelUrl);
 
-        if (!response.ok) {
-            throw new Error(`Failed to fetch: ${response.statusText} (${response.status})`);
-        }
+            if (!response.ok) {
+                throw new Error(`Failed to fetch: ${response.statusText} (${response.status})`);
+            }
 
-        const fileStream = fs.createWriteStream(outputPath);
-        await new Promise((resolve, reject) => {
-            response.body.pipe(fileStream);
-            response.body.on('error', reject);
-            fileStream.on('finish', resolve);
+            const fileStream = fs.createWriteStream(outputPath);
+            await new Promise((resolve, reject) => {
+                response.body.pipe(fileStream);
+                response.body.on('error', reject);
+                fileStream.on('finish', resolve);
+            });
         });
 
         console.log(`Successfully downloaded **${filename}** to **${outputPath}**`);
@@ -131,7 +94,7 @@ async function downloadModel(modelInfo, cache) {
 
         cache.put(cacheKey);
     } catch (err) {
-        console.error(`Model download failed for ${repo}/${filename}:`, err.message);
+        console.error(`Model download failed for ${repo}/${filename} after retries:`, err.message);
     }
 }
 

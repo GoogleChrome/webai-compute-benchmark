@@ -82,110 +82,13 @@ async function downloadModels() {
     env.allowRemoteModels = true; 
 
     try {
-        // Download models that work with pipeline
-        for (const modelInfo of MODELS_TO_DOWNLOAD) {
-            const { id: modelId, task: modelTask, dtype: modelDType } = modelInfo;
-            
-            const cacheKey = `${modelId}-${modelTask}-${modelDType}`;
-            if (cache.has(cacheKey)) {
-                console.log(`Model ${modelId} (${modelTask}, dtype: ${modelDType}) already cached. Skipping.`);
-                continue;
-            }
-
-            console.log(`Downloading files for ${modelId} (${modelTask}, dtype: ${modelDType})...`);
-            
-            await retry(() => pipeline(
-                modelTask, 
-                modelId, 
-                { 
-                    cache_dir: env.localModelPath,
-                    dtype: modelDType
-                }));
-            
-            console.log(`Successfully downloaded and cached ${modelId}`);
-            cache.put(cacheKey);
-        }
-
-        // Download Xenova/mobileclip_s0 models via components
-        console.log(`Checking Xenova/mobileclip_s0 models...`);
-        for (const modelInfo of MOBILECLIP_MODELS_TO_DOWNLOAD) {
-            const className = modelInfo.modelClass.name;
-            const cacheKey = `mobileclip-${className}-${modelInfo.dtype || ''}`;
-            if (cache.has(cacheKey)) {
-                console.log(`Model ${className} (dtype: ${modelInfo.dtype}) already cached. Skipping.`);
-                continue;
-            }
-
-            console.log(`Downloading Xenova/mobileclip_s0 (${className}${modelInfo.dtype ? `, dtype: ${modelInfo.dtype}` : ''})...`);
-            await retry(() => modelInfo.modelClass.from_pretrained("Xenova/mobileclip_s0", {
-                cache_dir: env.localModelPath,
-                dtype: modelInfo.dtype
-            }));
-
-            cache.put(cacheKey);
-        }
-        console.log(`Successfully checked Xenova/mobileclip_s0`);
-
-        // Download Xenova/sam-vit-base models
-        console.log(`Checking Xenova/sam-vit-base models...`);
-        if (!cache.has('SAM-SamModel-fp32')) {
-            console.log(`Downloading Xenova/sam-vit-base (SamModel, fp32)...`);
-            await retry(() => SamModel.from_pretrained("Xenova/sam-vit-base", { cache_dir: env.localModelPath, dtype: 'fp32' }));
-            cache.put('SAM-SamModel-fp32');
-        }
-        if (!cache.has('SAM-SamProcessor-default')) {
-            console.log(`Downloading Xenova/sam-vit-base (SamProcessor)...`);
-            await retry(() => SamProcessor.from_pretrained("Xenova/sam-vit-base", { cache_dir: env.localModelPath }));
-            cache.put('SAM-SamProcessor-default');
-        }
-        console.log(`Successfully checked Xenova/sam-vit-base`);
-
-        // Download onnx-community/Kokoro-82M-v1.0-ONNX model
-        console.log(`Starting manual download check for ${KOKORO_REPO}...`);
         const kokoroModelPath = path.join(MODEL_DIR, KOKORO_REPO);
         if (!fs.existsSync(kokoroModelPath)) {
             fs.mkdirSync(kokoroModelPath, { recursive: true });
         }
-
-        for (const filename of KOKORO_FILES) {
-            const cacheKey = `${KOKORO_REPO}-${filename}`;
-            if (cache.has(cacheKey)) {
-                console.log(`  ${filename} already exists, skipping.`);
-                continue;
-            }
-            const isOnnxFile = filename.endsWith('.onnx') || filename.endsWith('.onnx_data');
-            const modelUrl = getHuggingFaceUrl(KOKORO_REPO, filename);
-            let outputPath;
-
-            if (isOnnxFile) {
-                const onnxDir = path.join(kokoroModelPath, 'onnx');
-                if (!fs.existsSync(onnxDir)) {
-                    fs.mkdirSync(onnxDir, { recursive: true });
-                }
-                outputPath = path.join(onnxDir, filename);
-            } else {
-                outputPath = path.join(kokoroModelPath, filename);
-            }
-
-            console.log(`  Downloading ${filename}...`);
-            try {
-                await retry(async () => {
-                    const response = await fetch(modelUrl);
-                    if (!response.ok) {
-                        throw new Error(`Failed to fetch ${filename}: ${response.statusText}`);
-                    }
-                    const fileStream = fs.createWriteStream(outputPath);
-                    await new Promise((resolve, reject) => {
-                        response.body.pipe(fileStream);
-                        response.body.on('error', reject);
-                        fileStream.on('finish', resolve);
-                    });
-                });
-
-                cache.put(cacheKey);
-            } catch (err) {
-                console.error(`  Failed to download ${filename} after retries:`, err.message);
-            }
+        const onnxDir = path.join(kokoroModelPath, 'onnx');
+        if (!fs.existsSync(onnxDir)) {
+            fs.mkdirSync(onnxDir, { recursive: true });
         }
 
         console.log(`Downloading all Transformers.js models in parallel...`);
@@ -224,13 +127,13 @@ async function downloadPipelineModel(modelInfo, cache) {
 
     console.log(`Downloading files for ${modelId} (${modelTask}, dtype: ${modelDType})...`);
     
-    await pipeline(
+    await retry(() => pipeline(
         modelTask, 
         modelId, 
         { 
             cache_dir: env.localModelPath,
             dtype: modelDType
-        });
+        }));
     
     console.log(`Successfully downloaded and cached ${modelId}`);
     cache.put(cacheKey);
@@ -245,10 +148,10 @@ async function downloadMobileClipModel(modelInfo, cache) {
     }
 
     console.log(`Downloading Xenova/mobileclip_s0 (${className}${modelInfo.dtype ? `, dtype: ${modelInfo.dtype}` : ''})...`);
-    await modelInfo.modelClass.from_pretrained("Xenova/mobileclip_s0", {
+    await retry(() => modelInfo.modelClass.from_pretrained("Xenova/mobileclip_s0", {
         cache_dir: env.localModelPath,
         dtype: modelInfo.dtype
-    });
+    }));
 
     cache.put(cacheKey);
 }
@@ -256,7 +159,7 @@ async function downloadMobileClipModel(modelInfo, cache) {
 async function downloadSamModel(cache) {
     if (!cache.has('SAM-SamModel-fp32')) {
         console.log(`Downloading Xenova/sam-vit-base (SamModel, fp32)...`);
-        await SamModel.from_pretrained("Xenova/sam-vit-base", { cache_dir: env.localModelPath, dtype: 'fp32' });
+        await retry(() => SamModel.from_pretrained("Xenova/sam-vit-base", { cache_dir: env.localModelPath, dtype: 'fp32' }));
         cache.put('SAM-SamModel-fp32');
     }
 }
@@ -264,7 +167,7 @@ async function downloadSamModel(cache) {
 async function downloadSamProcessor(cache) {
     if (!cache.has('SAM-SamProcessor-default')) {
         console.log(`Downloading Xenova/sam-vit-base (SamProcessor)...`);
-        await SamProcessor.from_pretrained("Xenova/sam-vit-base", { cache_dir: env.localModelPath });
+        await retry(() => SamProcessor.from_pretrained("Xenova/sam-vit-base", { cache_dir: env.localModelPath }));
         cache.put('SAM-SamProcessor-default');
     }
 }
@@ -281,15 +184,17 @@ async function downloadKokoroFile(filename, cache, kokoroModelPath, onnxDir) {
 
     console.log(`  Downloading ${filename}...`);
     try {
-        const response = await fetch(modelUrl);
-        if (!response.ok) {
-            throw new Error(`Failed to fetch ${filename}: ${response.statusText}`);
-        }
-        const fileStream = fs.createWriteStream(outputPath);
-        await new Promise((resolve, reject) => {
-            response.body.pipe(fileStream);
-            response.body.on('error', reject);
-            fileStream.on('finish', resolve);
+        await retry(async () => {
+            const response = await fetch(modelUrl);
+            if (!response.ok) {
+                throw new Error(`Failed to fetch ${filename}: ${response.statusText}`);
+            }
+            const fileStream = fs.createWriteStream(outputPath);
+            await new Promise((resolve, reject) => {
+                response.body.pipe(fileStream);
+                response.body.on('error', reject);
+                fileStream.on('finish', resolve);
+            });
         });
 
         cache.put(cacheKey);
