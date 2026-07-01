@@ -33,9 +33,9 @@
         "test-e2e:edge": "node tests/run-end2end.mjs --browser edge"
     },
     "devDependencies": {
-        "@babel/core": "^7.29.0",
-        "@babel/eslint-parser": "^7.28.6",
-        "@babel/plugin-proposal-decorators": "^7.29.0",
+        "@babel/core": "^8.0.1",
+        "@babel/eslint-parser": "^8.0.1",
+        "@babel/plugin-proposal-decorators": "^8.0.2",
         "@next/eslint-plugin-next": "^16.1.6",
         "@nuxt/eslint-config": "^1.13.0",
         "@typescript-eslint/eslint-plugin": "^8.54.0",
@@ -44,7 +44,7 @@
         "command-line-usage": "^7.0.3",
         "es-main": "^1.3.0",
         "eslint": "^9.39.2",
-        "eslint-plugin-ember": "^12.7.5",
+        "eslint-plugin-ember": "^13.3.2",
         "eslint-plugin-react": "^7.32.2",
         "eslint-plugin-vue": "^10.7.0",
         "expect.js": "^0.3.1",

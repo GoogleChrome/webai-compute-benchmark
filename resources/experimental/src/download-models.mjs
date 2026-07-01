@@ -1,8 +1,12 @@
 import { env, pipeline} from '@huggingface/transformers';
 import fs from 'fs';
+import path from 'path';
+import DownloadCache from '../../shared/download-cache.mjs';
+import { retry } from '../../shared/download-utils.mjs';
 
 const MODEL_DIR = './models';
 env.localModelPath = MODEL_DIR;
+const CACHE_VERSION = 1;
 
 const MODELS_TO_DOWNLOAD = [
     { 
@@ -12,7 +16,11 @@ const MODELS_TO_DOWNLOAD = [
     },
 ];
 
+
 async function downloadModels() {
+    const CACHE_FILE = path.join(MODEL_DIR, 'cache.json');
+    const cache = new DownloadCache(CACHE_FILE, CACHE_VERSION, process.argv.includes('--force'));
+
     if (!fs.existsSync(MODEL_DIR)) {
         console.log(`Creating directory: ${MODEL_DIR}`);
         fs.mkdirSync(MODEL_DIR, { recursive: true }); 
@@ -28,17 +36,24 @@ async function downloadModels() {
         for (const modelInfo of MODELS_TO_DOWNLOAD) {
             const { id: modelId, task: modelTask, dtype: modelDType } = modelInfo;
             
+            const cacheKey = `${modelId}-${modelTask}-${modelDType}`;
+            if (cache.has(cacheKey)) {
+                console.log(`Model ${modelId} (${modelTask}, dtype: ${modelDType}) already cached. Skipping.`);
+                continue;
+            }
+
             console.log(`Downloading files for ${modelId} (${modelTask}, dtype: ${modelDType})...`);
             
-            await pipeline(
+            await retry(() => pipeline(
                 modelTask, 
                 modelId, 
                 { 
                     cache_dir: env.localModelPath,
                     dtype: modelDType
-                });
+                }));
             
             console.log(`Successfully downloaded and cached ${modelId}`);
+            cache.put(cacheKey);
         }
 
     } catch (err) {

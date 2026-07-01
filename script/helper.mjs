@@ -112,7 +112,8 @@ export async function sh(args, options={}) {
   try {
     return await spawnCaptureStdout(binary, args.slice(1), options);
   } catch(e) {
-    logError(e.stdoutString);
+    if (e.stdout) logError("Stdout:\n" + e.stdout);
+    if (e.stderr) logError("Stderr:\n" + e.stderr);
     throw e;
   } finally {
     if (GITHUB_ACTIONS_OUTPUT)
@@ -121,26 +122,36 @@ export async function sh(args, options={}) {
 }
 
 const SPAWN_OPTIONS =  Object.freeze({ 
-  stdio: ["inherit", "pipe", "inherit"]
+  stdio: ["inherit", "pipe", "pipe"]
 });
 
 async function spawnCaptureStdout(binary, args, options={}) {
   options = Object.assign(options, SPAWN_OPTIONS);
   const childProcess = spawn(binary, args, options);
   childProcess.stdout.pipe(process.stdout);
+  if (childProcess.stderr) {
+    childProcess.stderr.pipe(process.stderr);
+  }
   return new Promise((resolve, reject) => {
     childProcess.stdoutString = "";
+    childProcess.stderrString = "";
     childProcess.stdio[1].on("data", (data) => {
       childProcess.stdoutString += data.toString();
     });
+    if (childProcess.stdio[2]) {
+      childProcess.stdio[2].on("data", (data) => {
+        childProcess.stderrString += data.toString();
+      });
+    }
     childProcess.on("close", (code) => {
       if (code === 0) {
         resolve(childProcess);
       } else {
         // Reject the Promise with an Error on failure
-        const error = new Error(`Command failed with exit code ${code}: ${binary} ${args.join(" ")}`);
+        const error = new Error(`Command failed with exit code ${code}: ${binary} ${args.join(" ")}\nStderr:\n${childProcess.stderrString}`);
         error.process = childProcess;
         error.stdout = childProcess.stdoutString;
+        error.stderr = childProcess.stderrString;
         error.exitCode = code;
         reject(error);
       }

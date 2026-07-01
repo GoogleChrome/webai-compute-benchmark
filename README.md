@@ -20,7 +20,7 @@ See the Speedometer repo for a more detailed explanation, e.g., in which phases 
 
 - If you have not done that yet, run `npm install` and `npm run build` inside `resources/<workload-group>/` to produce output in `dist/`.
 - `npm run dev` in the root directory to start the server.
--  Navigate to `http://localhost:8080/resources/<workload-group>/dist/<workload>.html` (e.g. `http://localhost:8080/resources/transformers-js/dist/feature-extraction-cpu.html`) then do `manualRun()` in the developer console.
+-  Navigate to `http://localhost:8080/resources/<workload-group>/dist/<workload>.html` (e.g. `http://localhost:8080/resources/transformers-js/dist/feature-extraction-cpu.html`) to run the workload automatically.
 
 ## Developer Mode and Custom Parameters
 

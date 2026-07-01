@@ -142,6 +142,23 @@ export class BenchmarkConnector {
     connect() {
         window.addEventListener("message", this.onMessage);
         this.sendMessage({ type: "app-ready", status: "success", appId: this.appId });
+
+        if (window.top === window) {
+            window.addEventListener("message", (event) => {
+                if (event.data && (event.data.appId === this.appId || event.data.id === this.appId)) {
+                    console.log(event.data);
+                }
+            });
+
+            console.log("Running in individual mode. Automatically starting benchmark...");
+            // Trigger the run
+            window.postMessage({
+                id: this.appId,
+                key: "benchmark-connector",
+                type: "benchmark-suite",
+                name: "default"
+            }, "*");
+        }
     }
 
     disconnect() {
