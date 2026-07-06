@@ -474,27 +474,11 @@ export class BenchmarkRunner {
     async _finalize(iteration) {
         this._appendIterationMetrics(iteration);
         if (this._client?.didRunSuites) {
-            let wasmProduct = 1;
-            let wasmCount = 0;
-            let webgpuProduct = 1;
-            let webgpuCount = 0;
+            const iterationWasmMetric = this._metrics[`Iteration-${iteration}-WASM-Total`];
+            const iterationWebgpuMetric = this._metrics[`Iteration-${iteration}-WebGPU-Total`];
 
-            for (const suiteName in this._measuredValues.steps) {
-                const suiteTotal = this._measuredValues.steps[suiteName].total;
-                if (suiteTotal > 0) {
-                    const suite = this._suites.find(s => s.name === suiteName);
-                    if (suite?.tags?.includes("wasm")) {
-                        wasmProduct *= suiteTotal;
-                        wasmCount++;
-                    } else if (suite?.tags?.includes("webgpu")) {
-                        webgpuProduct *= suiteTotal;
-                        webgpuCount++;
-                    }
-                }
-            }
-
-            let wasmGeomean = wasmCount > 0 ? Math.pow(wasmProduct, 1 / wasmCount) : 0;
-            let webgpuGeomean = webgpuCount > 0 ? Math.pow(webgpuProduct, 1 / webgpuCount) : 0;
+            const wasmGeomean = !isNaN(iterationWasmMetric?.geomean) ? iterationWasmMetric.geomean : 0;
+            const webgpuGeomean = !isNaN(iterationWebgpuMetric?.geomean) ? iterationWebgpuMetric.geomean : 0;
 
             this._measuredValues.wasmGeomean = wasmGeomean;
             this._measuredValues.wasmScore = geomeanToScore(wasmGeomean);
