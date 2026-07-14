@@ -35,6 +35,8 @@
         "@babel/core": "^8.0.1",
         "@babel/eslint-parser": "^8.0.1",
         "@babel/plugin-proposal-decorators": "^8.0.2",
+        "@emnapi/core": "^1.10.0",
+        "@emnapi/runtime": "^1.10.0",
         "@next/eslint-plugin-next": "^16.1.6",
         "@nuxt/eslint-config": "^1.13.0",
         "@typescript-eslint/eslint-plugin": "^8.54.0",

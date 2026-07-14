@@ -31,7 +31,7 @@ await logGroup("UPDATING LIBRARY VERSION INFO", updateLibraryVersionInfo);
 await logGroup("UPDATING MODEL INFO TABLE", updateModelInfoTable);
 
 async function buildWorkload(workloadDir) {
-  await sh(["npm", "install"], {cwd: workloadDir});
+  await sh(["npm", "ci"], {cwd: workloadDir});
   await sh(["npm", "run", "build"], {cwd: workloadDir});
 }
 
