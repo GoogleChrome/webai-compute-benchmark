@@ -3,8 +3,8 @@
     "version": "0.2.0",
     "description": "An open source repository for the Web AI Compute Benchmark.",
     "engines": {
-        "node": ">=22.0.0",
-        "npm": ">=8.19.3"
+        "node": ">=22.18.0",
+        "npm": ">=10.5.1"
     },
     "repository": {
         "type": "git",
