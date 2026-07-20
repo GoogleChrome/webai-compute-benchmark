@@ -437,31 +437,45 @@ iframe.test-runner {
     background: var(--running-background);
 }
 
-section#summary > #result-number,
-section#summary > #confidence-number {
+.scores-container {
+    display: flex;
+    justify-content: center;
+    gap: 80px;
+    margin: 40px 0;
     font-family: "Futura-CondensedMedium", Futura, "Helvetica Neue", Helvetica, Verdana, sans-serif;
 }
 
-section#summary > #result-number {
-    text-align: center;
-    font-size: 145px;
-    line-height: 145px;
+.score-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 200px;
 }
 
-section#summary > #confidence-number {
-    text-align: center;
+.score-box h2 {
+    font-size: 20px;
+    margin-bottom: 15px;
+    color: var(--inactive-color);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.score-box .score-value {
     font-size: 36px;
     line-height: 36px;
-    color: var(--inactive-color);
+    font-weight: bold;
+    color: var(--highlight);
 }
 
-section#summary.invalid h1,
-section#summary.invalid .gauge,
-section#summary.invalid hr {
-    opacity: 0.2;
+.score-box .score-confidence {
+    font-size: 16px;
+    line-height: 20px;
+    color: var(--inactive-color);
+    margin-top: 5px;
 }
-section#summary.invalid #result-number {
-    color: var(--highlight);
+
+section#summary.invalid .scores-container {
+    opacity: 0.2;
 }
 section#summary.invalid .buttons {
     display: none;
@@ -732,36 +746,7 @@ section#about .note {
     grid-area: footer;
 }
 
-.gauge {
-    position: relative;
-    width: 738px;
-    height: 78px;
-    background-image: -webkit-image-set(url("gauge@2x.png") 2x, url("gauge.png") 1x);
-    background-image: image-set(url("gauge@2x.png") 2x, url("gauge.png") 1x);
-    background-size: 100% 100%;
-    background-repeat: no-repeat;
-    margin: 0 auto;
-}
 
-.gauge > .window {
-    position: absolute;
-    left: 0;
-    top: 33px;
-    bottom: 0;
-    right: 0;
-    overflow: hidden;
-}
-
-.gauge > .window > .needle {
-    position: absolute;
-    left: 363px;
-    bottom: -88px;
-    width: 4px;
-    height: 400px;
-    background-color: rgb(247, 148, 29);
-    transform: rotate(-70deg);
-    transform-origin: 2px 400px;
-}
 
 .all-metric-results .submetrics {
     display: none;
@@ -959,3 +944,5 @@ section#about .note {
     color: #fff;
     stroke: #fff;
 }
+
+

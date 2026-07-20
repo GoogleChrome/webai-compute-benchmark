@@ -218,8 +218,8 @@ class PageElement {
     }
 }
 
-function geomeanToScore(geomean) {
-    return 1000 / geomean;
+export function geomeanToScore(geomean) {
+    return 10000 / geomean;
 }
 
 // The WarmupSuite is used to make sure all runner helper functions and
@@ -347,7 +347,7 @@ export class BenchmarkRunner {
         const iterationEndLabel = "iteration-end";
         for (let i = 0; i < this._iterationCount; i++) {
             performance.mark(iterationStartLabel);
-            await this.runAllSuites();
+            await this.runAllSuites(i);
             performance.mark(iterationEndLabel);
             performance.measure(`iteration-${i}`, iterationStartLabel, iterationEndLabel);
         }
@@ -410,7 +410,7 @@ export class BenchmarkRunner {
         }
     }
 
-    async runAllSuites() {
+    async runAllSuites(iteration) {
         const suites = await this._prepareAllSuites();
         try {
             for (const suite of suites) {
@@ -447,16 +447,16 @@ export class BenchmarkRunner {
                 }
             }
         } finally {
-            await this._finishRunAllSuites();
+            await this._finishRunAllSuites(iteration);
         }
     }
 
-    async _finishRunAllSuites() {
+    async _finishRunAllSuites(iteration) {
         const finalizeStartLabel = "runner-finalize-start";
         const finalizeEndLabel = "runner-finalize-end";
 
         performance.mark(finalizeStartLabel);
-        await this._finalize();
+        await this._finalize(iteration);
         performance.mark(finalizeEndLabel);
         performance.measure("runner-finalize", finalizeStartLabel, finalizeEndLabel);
         await this._wakeLock.release();
@@ -471,39 +471,35 @@ export class BenchmarkRunner {
         await suiteRunner.run();
     }
 
-    async _finalize() {
-        this._appendIterationMetrics();
+    async _finalize(iteration) {
+        this._appendIterationMetrics(iteration);
         if (this._client?.didRunSuites) {
-            let product = 1;
-            const values = [];
-            let total = 0;
-            let geomean = 0;
+            const iterationWasmMetric = this._metrics[`Iteration-${iteration}-Wasm-Total`];
+            const iterationWebgpuMetric = this._metrics[`Iteration-${iteration}-WebGPU-Total`];
 
-            for (const suiteName in this._measuredValues.steps) {
-                const suiteTotal = this._measuredValues.steps[suiteName].total;
-                if (suiteTotal > 0) {
-                    product *= suiteTotal;
-                    values.push(suiteTotal);
-                }
+            const hasWasm = this._suites.some(s => s.enabled && s.tags?.includes("wasm"));
+            const hasWebgpu = this._suites.some(s => s.enabled && s.tags?.includes("webgpu"));
+
+            if (hasWasm && isNaN(iterationWasmMetric?.geomean)) {
+                throw new Error(`Iteration ${iteration}: Wasm was enabled but produced NaN geomean.`);
+            }
+            if (hasWebgpu && isNaN(iterationWebgpuMetric?.geomean)) {
+                throw new Error(`Iteration ${iteration}: WebGPU was enabled but produced NaN geomean.`);
             }
 
-            let mean = 0;
-            if (values.length > 0) {
-                values.sort((a, b) => a - b); // Avoid the loss of significance for the sum.
-                total = values.reduce((a, b) => a + b, 0);
-                geomean = Math.pow(product, 1 / values.length);
-                mean = total / values.length;
-            }
+            const wasmGeomean = hasWasm ? iterationWasmMetric.geomean : 0;
+            const webgpuGeomean = hasWebgpu ? iterationWebgpuMetric.geomean : 0;
 
-            this._measuredValues.total = total;
-            this._measuredValues.mean = mean;
-            this._measuredValues.geomean = geomean;
-            this._measuredValues.score = geomeanToScore(geomean);
+            this._measuredValues.wasmGeomean = wasmGeomean;
+            this._measuredValues.wasmScore = geomeanToScore(wasmGeomean);
+            this._measuredValues.webgpuGeomean = webgpuGeomean;
+            this._measuredValues.webgpuScore = geomeanToScore(webgpuGeomean);
+
             await this._client.didRunSuites(this._measuredValues);
         }
     }
 
-    _appendIterationMetrics() {
+    _appendIterationMetrics(iteration) {
         const getMetric = (name, unit = "ms") => this._metrics[name] || (this._metrics[name] = new Metric(name, unit));
         const iterationMetric = (i, name) => {
             if (i >= params.iterationCount)
@@ -531,26 +527,47 @@ export class BenchmarkRunner {
 
         if (initializeMetrics) {
             // Prepare all iteration metrics so they are listed at the end of
-            // of the _metrics object, before "Total" and "Score".
-            for (let i = 0; i < this._iterationCount; i++)
-                iterationMetric(i, "Total").description = `Test totals for iteration ${i}`;
-            getMetric("Geomean", "ms").description = "Geomean of test totals";
-            getMetric("Score", "score").description = "Scaled inverse of the Geomean";
+            // of the _metrics object.
+            for (let i = 0; i < this._iterationCount; i++) {
+                iterationMetric(i, "Wasm-Total").description = `Wasm test totals for iteration ${i}`;
+                iterationMetric(i, "WebGPU-Total").description = `WebGPU test totals for iteration ${i}`;
+            }
+            getMetric("Wasm-Geomean", "ms").description = "Geomean of Wasm test totals";
+            getMetric("Wasm-Score", "score").description = "Scaled inverse of the Wasm Geomean";
+            getMetric("WebGPU-Geomean", "ms").description = "Geomean of WebGPU test totals";
+            getMetric("WebGPU-Score", "score").description = "Scaled inverse of the WebGPU Geomean";
             if (params.measurePrepare)
                 getMetric("Prepare", "ms").description = "Geomean of workload prepare times";
         }
 
-        const geomean = getMetric("Geomean");
-        const iteration = geomean.length;
-        const iterationTotal = iterationMetric(iteration, "Total");
-        for (const results of Object.values(iterationResults)) {
-            if (results.total > 0)
-                iterationTotal.add(results.total);
+        const wasmGeomean = getMetric("Wasm-Geomean");
+        const webgpuGeomean = getMetric("WebGPU-Geomean");
+        const iterationWasmTotal = iterationMetric(iteration, "Wasm-Total");
+        const iterationWebgpuTotal = iterationMetric(iteration, "WebGPU-Total");
+
+        for (const [suiteName, results] of Object.entries(iterationResults)) {
+            if (results.total > 0) {
+                const suite = this._suites.find(s => s.name === suiteName);
+                if (suite?.tags?.includes("wasm")) {
+                    iterationWasmTotal.add(results.total);
+                } else if (suite?.tags?.includes("webgpu")) {
+                    iterationWebgpuTotal.add(results.total);
+                } else {
+                    throw new Error(`Suite ${suiteName} has neither "wasm" nor "webgpu" tag.`);
+                }
+            }
         }
-        iterationTotal.computeAggregatedMetrics();
-        if (!isNaN(iterationTotal.geomean) && iterationTotal.geomean > 0) {
-            geomean.add(iterationTotal.geomean);
-            getMetric("Score").add(geomeanToScore(iterationTotal.geomean));
+
+        iterationWasmTotal.computeAggregatedMetrics();
+        iterationWebgpuTotal.computeAggregatedMetrics();
+
+        if (!isNaN(iterationWasmTotal.geomean) && iterationWasmTotal.geomean > 0) {
+            wasmGeomean.add(iterationWasmTotal.geomean);
+            getMetric("Wasm-Score", "score").add(geomeanToScore(iterationWasmTotal.geomean));
+        }
+        if (!isNaN(iterationWebgpuTotal.geomean) && iterationWebgpuTotal.geomean > 0) {
+            webgpuGeomean.add(iterationWebgpuTotal.geomean);
+            getMetric("WebGPU-Score", "score").add(geomeanToScore(iterationWebgpuTotal.geomean));
         }
 
         if (params.measurePrepare) {

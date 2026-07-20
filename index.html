@@ -28,7 +28,7 @@
                         Additionally, the first iteration of the benchmark <b>may take several minutes</b> to complete.
                     </p>
                     <p class="version-note">
-                        Version: <!-- package-version -->0.2.0 (2026-07-14)<!-- /package-version --> (commit: <!-- git-commit-link --><a href="https://github.com/GoogleChrome/webai-compute-benchmark/commit/7d3410a74849c8950e8d390b127aa64e8fead920" target="_blank">7d3410a</a><!-- /git-commit-link -->)
+                        Version: <!-- package-version -->0.3.0 (2026-07-20)<!-- /package-version --> (commit: <!-- git-commit-link --><a href="https://github.com/GoogleChrome/webai-compute-benchmark/commit/8dbb93528d750d4bc10b58ee7b058fd1e8ff0afb" target="_blank">8dbb935</a><!-- /git-commit-link -->)
                     </p>
                     <p id="screen-size-warning">
                         <strong>
@@ -66,13 +66,18 @@
                 <a href="#home" class="logo">
                     <div class="version next">next</div>
                 </a>
-                <h1>Score</h1>
-                <div class="gauge">
-                    <div class="window"><div class="needle"></div></div>
+                <div class="scores-container">
+                    <div class="score-box">
+                        <h2>Wasm Score</h2>
+                        <div id="wasm-result-number" class="score-value"></div>
+                        <div id="wasm-confidence-number" class="score-confidence"></div>
+                    </div>
+                    <div class="score-box">
+                        <h2>WebGPU Score</h2>
+                        <div id="webgpu-result-number" class="score-value"></div>
+                        <div id="webgpu-confidence-number" class="score-confidence"></div>
+                    </div>
                 </div>
-                <hr />
-                <div id="result-number"></div>
-                <div id="confidence-number"></div>
                 <div id="invalid-score-text">
                     One or more subtests produced no duration.<br />
                     Please check your <a href="./instructions.html" target="_blank">browser settings</a> and re-run the benchmark.<br />
@@ -89,7 +94,7 @@
                     <div class="version next">next</div>
                 </a>
                 <div class="section-grid">
-                    <h1 class="section-header">Detailed Results <!-- package-version -->0.2.0 (2026-07-14)<!-- /package-version --></h1>
+                    <h1 class="section-header">Detailed Results <!-- package-version -->0.3.0 (2026-07-20)<!-- /package-version --></h1>
                     <div class="section-content all-metric-results">
                         <div class="non-standard-params">
                             <h2>Non-standard Parameters</h2>
@@ -109,7 +114,7 @@
                             </table>
                         </div>
                         <div class="aggregated-metric-result">
-                            <h2>Aggregate Metric</h2>
+                            <h2>Benchmark Scores</h2>
                             <div id="aggregate-chart"></div>
                             <h2>Test Metrics Overview</h2>
                             <div id="tests-chart"></div>

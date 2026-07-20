@@ -1,4 +1,4 @@
-import { BenchmarkRunner } from "../../resources/benchmark-runner.mjs";
+import { BenchmarkRunner, geomeanToScore } from "../../resources/benchmark-runner.mjs";
 import { SuiteRunner } from "../../resources/suite-runner.mjs";
 import { StepRunner } from "../../resources/shared/step-runner.mjs";
 import { defaultParams } from "../../resources/shared/params.mjs";
@@ -15,12 +15,14 @@ const SUITES_FIXTURE = [
         name: "Suite 1",
         async prepare(page) {},
         enabled: true,
+        tags: ["webgpu"],
         steps: [STEP_FIXTURE("Test 1"), STEP_FIXTURE("Test 2"), STEP_FIXTURE("Test 3")],
     },
     {
         name: "Suite 2",
         async prepare(page) {},
         enabled: true,
+        tags: ["wasm"],
         steps: [STEP_FIXTURE("Test 1")],
     },
 ];
@@ -214,7 +216,11 @@ describe("BenchmarkRunner", () => {
 
                 const params = { measurementMethod: "raf" };
 
+                let originalEnabledState;
                 before(async () => {
+                    originalEnabledState = SUITES_FIXTURE[0].enabled;
+                    SUITES_FIXTURE[0].enabled = false;
+
                     stub(runner, "_measuredValues").value({
                         steps: {},
                     });
@@ -234,21 +240,24 @@ describe("BenchmarkRunner", () => {
                     await runner._finalize();
                 });
 
+                after(() => {
+                    SUITES_FIXTURE[0].enabled = originalEnabledState;
+                });
+
                 it("should calculate measured test values correctly", () => {
                     const syncTime = syncEnd - syncStart;
                     const asyncTime = asyncEnd - syncEnd;
 
                     const total = syncTime + asyncTime;
-                    const mean = total / suite.steps.length;
                     const geomean = Math.pow(total, 1 / suite.steps.length);
-                    const score = 1000 / geomean;
+                    const score = geomeanToScore(geomean);
 
-                    const { total: measuredTotal, mean: measuredMean, geomean: measuredGeomean, score: measuredScore } = runner._measuredValues;
+                    const { wasmGeomean, wasmScore, webgpuGeomean, webgpuScore } = runner._measuredValues;
 
-                    expect(measuredTotal).to.equal(total);
-                    expect(measuredMean).to.equal(mean);
-                    expect(measuredGeomean).to.equal(geomean);
-                    expect(measuredScore).to.equal(score);
+                    expect(wasmGeomean).to.equal(geomean);
+                    expect(wasmScore).to.equal(score);
+                    expect(webgpuGeomean).to.equal(0);
+                    expect(webgpuScore).to.equal(Infinity);
 
                     assert.calledWith(runner._client.didRunSuites, runner._measuredValues);
                 });
