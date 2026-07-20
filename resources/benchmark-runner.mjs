@@ -218,7 +218,7 @@ class PageElement {
     }
 }
 
-function geomeanToScore(geomean) {
+export function geomeanToScore(geomean) {
     return 10000 / geomean;
 }
 
@@ -474,11 +474,21 @@ export class BenchmarkRunner {
     async _finalize(iteration) {
         this._appendIterationMetrics(iteration);
         if (this._client?.didRunSuites) {
-            const iterationWasmMetric = this._metrics[`Iteration-${iteration}-WASM-Total`];
+            const iterationWasmMetric = this._metrics[`Iteration-${iteration}-Wasm-Total`];
             const iterationWebgpuMetric = this._metrics[`Iteration-${iteration}-WebGPU-Total`];
 
-            const wasmGeomean = !isNaN(iterationWasmMetric?.geomean) ? iterationWasmMetric.geomean : 0;
-            const webgpuGeomean = !isNaN(iterationWebgpuMetric?.geomean) ? iterationWebgpuMetric.geomean : 0;
+            const hasWasm = this._suites.some(s => s.enabled && s.tags?.includes("wasm"));
+            const hasWebgpu = this._suites.some(s => s.enabled && s.tags?.includes("webgpu"));
+
+            if (hasWasm && isNaN(iterationWasmMetric?.geomean)) {
+                throw new Error(`Iteration ${iteration}: Wasm was enabled but produced NaN geomean.`);
+            }
+            if (hasWebgpu && isNaN(iterationWebgpuMetric?.geomean)) {
+                throw new Error(`Iteration ${iteration}: WebGPU was enabled but produced NaN geomean.`);
+            }
+
+            const wasmGeomean = hasWasm ? iterationWasmMetric.geomean : 0;
+            const webgpuGeomean = hasWebgpu ? iterationWebgpuMetric.geomean : 0;
 
             this._measuredValues.wasmGeomean = wasmGeomean;
             this._measuredValues.wasmScore = geomeanToScore(wasmGeomean);
@@ -519,20 +529,20 @@ export class BenchmarkRunner {
             // Prepare all iteration metrics so they are listed at the end of
             // of the _metrics object.
             for (let i = 0; i < this._iterationCount; i++) {
-                iterationMetric(i, "WASM-Total").description = `WASM test totals for iteration ${i}`;
+                iterationMetric(i, "Wasm-Total").description = `Wasm test totals for iteration ${i}`;
                 iterationMetric(i, "WebGPU-Total").description = `WebGPU test totals for iteration ${i}`;
             }
-            getMetric("WASM-Geomean", "ms").description = "Geomean of WASM test totals";
-            getMetric("WASM-Score", "score").description = "Scaled inverse of the WASM Geomean";
+            getMetric("Wasm-Geomean", "ms").description = "Geomean of Wasm test totals";
+            getMetric("Wasm-Score", "score").description = "Scaled inverse of the Wasm Geomean";
             getMetric("WebGPU-Geomean", "ms").description = "Geomean of WebGPU test totals";
             getMetric("WebGPU-Score", "score").description = "Scaled inverse of the WebGPU Geomean";
             if (params.measurePrepare)
                 getMetric("Prepare", "ms").description = "Geomean of workload prepare times";
         }
 
-        const wasmGeomean = getMetric("WASM-Geomean");
+        const wasmGeomean = getMetric("Wasm-Geomean");
         const webgpuGeomean = getMetric("WebGPU-Geomean");
-        const iterationWasmTotal = iterationMetric(iteration, "WASM-Total");
+        const iterationWasmTotal = iterationMetric(iteration, "Wasm-Total");
         const iterationWebgpuTotal = iterationMetric(iteration, "WebGPU-Total");
 
         for (const [suiteName, results] of Object.entries(iterationResults)) {
@@ -542,6 +552,8 @@ export class BenchmarkRunner {
                     iterationWasmTotal.add(results.total);
                 } else if (suite?.tags?.includes("webgpu")) {
                     iterationWebgpuTotal.add(results.total);
+                } else {
+                    throw new Error(`Suite ${suiteName} has neither "wasm" nor "webgpu" tag.`);
                 }
             }
         }
@@ -551,7 +563,7 @@ export class BenchmarkRunner {
 
         if (!isNaN(iterationWasmTotal.geomean) && iterationWasmTotal.geomean > 0) {
             wasmGeomean.add(iterationWasmTotal.geomean);
-            getMetric("WASM-Score", "score").add(geomeanToScore(iterationWasmTotal.geomean));
+            getMetric("Wasm-Score", "score").add(geomeanToScore(iterationWasmTotal.geomean));
         }
         if (!isNaN(iterationWebgpuTotal.geomean) && iterationWebgpuTotal.geomean > 0) {
             webgpuGeomean.add(iterationWebgpuTotal.geomean);

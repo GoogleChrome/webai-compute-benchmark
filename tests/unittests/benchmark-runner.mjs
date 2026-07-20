@@ -1,4 +1,4 @@
-import { BenchmarkRunner } from "../../resources/benchmark-runner.mjs";
+import { BenchmarkRunner, geomeanToScore } from "../../resources/benchmark-runner.mjs";
 import { SuiteRunner } from "../../resources/suite-runner.mjs";
 import { StepRunner } from "../../resources/shared/step-runner.mjs";
 import { defaultParams } from "../../resources/shared/params.mjs";
@@ -216,7 +216,11 @@ describe("BenchmarkRunner", () => {
 
                 const params = { measurementMethod: "raf" };
 
+                let originalEnabledState;
                 before(async () => {
+                    originalEnabledState = SUITES_FIXTURE[0].enabled;
+                    SUITES_FIXTURE[0].enabled = false;
+
                     stub(runner, "_measuredValues").value({
                         steps: {},
                     });
@@ -236,13 +240,17 @@ describe("BenchmarkRunner", () => {
                     await runner._finalize();
                 });
 
+                after(() => {
+                    SUITES_FIXTURE[0].enabled = originalEnabledState;
+                });
+
                 it("should calculate measured test values correctly", () => {
                     const syncTime = syncEnd - syncStart;
                     const asyncTime = asyncEnd - syncEnd;
 
                     const total = syncTime + asyncTime;
                     const geomean = Math.pow(total, 1 / suite.steps.length);
-                    const score = 10000 / geomean;
+                    const score = geomeanToScore(geomean);
 
                     const { wasmGeomean, wasmScore, webgpuGeomean, webgpuScore } = runner._measuredValues;
 
