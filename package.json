@@ -16,6 +16,7 @@
     "license": "SEE LICENSE IN LICENSE",
     "scripts": {
         "build": "node script/build.mjs",
+        "clean": "node script/clean.mjs",
         "dev": "node tests/server.mjs",
         "lint:check": "eslint **/*.{js,mjs,jsx,ts,tsx}",
         "lint:fix": "eslint \"**/*.{js,mjs,jsx,ts,tsx}\" --fix",

@@ -15,6 +15,7 @@ See the Speedometer repo for a more detailed explanation, e.g., in which phases 
     - Workloads are in `resources/transformers-js/` and `resources/litert-js`.
     - Shared files are in `resources/shared/`, which is depended-upon as a local package.
     - The default suite / tests to run are in `resources/default-tests.mjs`.
+- Cleaning build artifacts and cached models (optional): Run `npm run clean` in the root directory. This will delete the `dist` directories and clear cached models for all workloads (while preserving the large `gemma` model to avoid unnecessary re-downloads).
 
 ## How to Run Individual Workload
 

@@ -32,29 +32,11 @@ async function downloadModels() {
     env.allowRemoteModels = true; 
 
     try {
-        // Download models that work with pipeline
-        for (const modelInfo of MODELS_TO_DOWNLOAD) {
-            const { id: modelId, task: modelTask, dtype: modelDType } = modelInfo;
-            
-            const cacheKey = `${modelId}-${modelTask}-${modelDType}`;
-            if (cache.has(cacheKey)) {
-                console.log(`Model ${modelId} (${modelTask}, dtype: ${modelDType}) already cached. Skipping.`);
-                continue;
-            }
-
-            console.log(`Downloading files for ${modelId} (${modelTask}, dtype: ${modelDType})...`);
-            
-            await retry(() => pipeline(
-                modelTask, 
-                modelId, 
-                { 
-                    cache_dir: env.localModelPath,
-                    dtype: modelDType
-                }));
-            
-            console.log(`Successfully downloaded and cached ${modelId}`);
-            cache.put(cacheKey);
-        }
+        console.log(`Downloading all experimental models in parallel...`);
+        await Promise.all(
+            MODELS_TO_DOWNLOAD.map(modelInfo => downloadPipelineModel(modelInfo, cache))
+        );
+        console.log(`Successfully checked and downloaded all models.`);
 
     } catch (err) {
         console.error("Model download failed:", err);
@@ -62,6 +44,29 @@ async function downloadModels() {
         throw err;
     }
     env.allowRemoteModels = originalAllowRemote;
+}
+
+async function downloadPipelineModel(modelInfo, cache) {
+    const { id: modelId, task: modelTask, dtype: modelDType } = modelInfo;
+    
+    const cacheKey = `${modelId}-${modelTask}-${modelDType}`;
+    if (cache.has(cacheKey)) {
+        console.log(`Model ${modelId} (${modelTask}, dtype: ${modelDType}) already cached. Skipping.`);
+        return;
+    }
+
+    console.log(`Downloading files for ${modelId} (${modelTask}, dtype: ${modelDType})...`);
+    
+    await retry(() => pipeline(
+        modelTask, 
+        modelId, 
+        { 
+            cache_dir: env.localModelPath,
+            dtype: modelDType
+        }));
+    
+    console.log(`Successfully downloaded and cached ${modelId}`);
+    cache.put(cacheKey);
 }
 
 downloadModels().catch(err => {
