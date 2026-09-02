@@ -163,4 +163,10 @@ export const defaultSuites = [
         tags: ["experimental", "gemma", "wasm"],
         type: "remote",
     },
+    {
+        name: "Experimental-LiteRT-LM-webgpu",
+        url: "resources/experimental/dist/litert-lm.html",
+        tags: ["experimental", "gemma", "litert-lm", "webgpu"],
+        type: "remote",
+    },
 ];

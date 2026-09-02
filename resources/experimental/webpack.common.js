@@ -1,5 +1,6 @@
 const path = require("path");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
+const CopyPlugin = require("copy-webpack-plugin");
 
 module.exports = {
     cache: {
@@ -10,6 +11,7 @@ module.exports = {
         'text2text-generation-cpu': './src/text2text-generation-cpu.mjs',
         'text2text-generation-gpu': './src/text2text-generation-gpu.mjs',
         'gemma': './src/gemma/benchmark.mjs',
+        'litert-lm': './src/litert-lm/benchmark.mjs',
     },
     plugins: [
         new HtmlWebpackPlugin({
@@ -26,9 +28,25 @@ module.exports = {
         }),
         new HtmlWebpackPlugin({
             title: "Experimental Gemma Runner",
-            template: path.resolve(__dirname, "src", "gemma", "index.html"),
+            template: path.resolve(__dirname, "src", "console-runner.html"),
             filename: 'gemma.html',
             chunks: ['gemma'],
+        }),
+        new HtmlWebpackPlugin({
+            title: "Experimental LiteRT-LM Runner",
+            template: path.resolve(__dirname, "src", "console-runner.html"),
+            filename: 'litert-lm.html',
+            chunks: ['litert-lm'],
+        }),
+        new CopyPlugin({
+            patterns: [
+                {
+                    from: path.resolve(__dirname, 'node_modules/@litert-lm/core/wasm'),
+                    to: path.resolve(__dirname, 'dist/resources/wasm'),
+                    force: true,
+                    noErrorOnMissing: true,
+                },
+            ],
         }),
     ],
     output: {
