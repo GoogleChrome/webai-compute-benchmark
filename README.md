@@ -8,7 +8,7 @@ See the Speedometer repo for a more detailed explanation, e.g., in which phases 
 
 ## Setup Instructions, How to Run Workloads
 
-- Prerequisites: Node.js and NPM (see [`.nvmrc`](.nvmrc) for the recommended version, or run `nvm use`), and *Git LFS* (only needed to download the experimental Gemma model). Run `npm install` to install the dependencies of the runner.
+- Prerequisites: Node.js and NPM (see [`.nvmrc`](.nvmrc) for the recommended version, or run `nvm use`), and *Git LFS* (only needed to download the experimental Gemma and LiteRT-LM models; LiteRT-LM also requires a browser with WebGPU support). Run `npm install` to install the dependencies of the runner.
 - Building the individual workloads: Run `npm run build` in the root directory. This will install dependencies and build all workloads in `resources/`. Alternatively, you can also manually run `npm install` and `npm run build` inside each `resources/<workload-group>/` sub-directory to produce output in `resources/<workload-group>/dist/`.
 - Starting the web server: `npm run dev` in the root directory.
 - Most important files:
@@ -20,7 +20,7 @@ See the Speedometer repo for a more detailed explanation, e.g., in which phases 
 
 - If you have not done that yet, run `npm install` and `npm run build` inside `resources/<workload-group>/` to produce output in `dist/`.
 - `npm run dev` in the root directory to start the server.
--  Navigate to `http://localhost:8080/resources/<workload-group>/dist/<workload>.html` (e.g. `http://localhost:8080/resources/transformers-js/dist/feature-extraction-cpu.html`) to run the workload automatically.
+-  Navigate to `http://localhost:8080/resources/<workload-group>/dist/<workload>.html` (e.g. `http://localhost:8080/resources/transformers-js/dist/feature-extraction-cpu.html` or `http://localhost:8080/resources/experimental/dist/litert-lm.html`) to run the workload automatically.
 
 ## Developer Mode and Custom Parameters
 
