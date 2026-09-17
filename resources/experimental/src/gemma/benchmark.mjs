@@ -3,6 +3,10 @@ import { BenchmarkConnector } from "speedometer-utils/benchmark.mjs";
 import { createDownloadProgressLogger } from "speedometer-utils/download-utils.mjs";
 import { createSubIteratedSuite } from "speedometer-utils/helpers.mjs";
 import { params } from "speedometer-utils/params.mjs";
+import {
+  LLM_BENCHMARK_PROMPT,
+  LLM_MAX_OUTPUT_TOKENS,
+} from "../llm-benchmark-config.mjs";
 
 const weightsPath = '../models/gemma/270m-sfp-it.sbs';
 
@@ -16,10 +20,14 @@ class GemmaBenchmark {
     this.model = await gemma.pipeline(weightsPath, { progress: createDownloadProgressLogger() });
   }
   async run() {
-    const sentence = 'Max 100 word response. Why is the sky blue?';
     console.log('Generating...');
     console.time('gemma-generation')
-    const result = await this.model(sentence);
+    const result = await this.model(LLM_BENCHMARK_PROMPT, {
+      max_tokens: LLM_MAX_OUTPUT_TOKENS,
+      temperature: 0,
+      top_k: 1,
+      ignore_eos: true,
+    });
     console.timeEnd('gemma-generation')
     console.log(result);
   }

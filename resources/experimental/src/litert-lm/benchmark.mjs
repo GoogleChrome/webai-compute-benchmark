@@ -8,11 +8,15 @@
  * Experimental LiteRT-LM benchmark using WebGPU and the Gemma model.
  */
 
-import { Engine, loadLiteRtLm } from "@litert-lm/core";
+import { Engine, loadLiteRtLm, SamplerType } from "@litert-lm/core";
 import { BenchmarkConnector } from "speedometer-utils/benchmark.mjs";
 import { fetchModelWithProgress } from "speedometer-utils/download-utils.mjs";
 import { createSubIteratedSuite } from "speedometer-utils/helpers.mjs";
 import { params } from "speedometer-utils/params.mjs";
+import {
+  LLM_BENCHMARK_PROMPT,
+  LLM_MAX_OUTPUT_TOKENS,
+} from "../llm-benchmark-config.mjs";
 
 const weightsPath = "../models/litert-lm/gemma3-270m-it-q4_0-web.litertlm";
 const wasmPath = "resources/wasm/";
@@ -41,11 +45,21 @@ class LiteRtLmBenchmark {
   }
 
   async run() {
-    const sentence = "Max 100 word response. Why is the sky blue?";
     console.log("Generating...");
-    const conversation = await this.engine.createConversation();
+    const conversation = await this.engine.createConversation({
+      sessionConfig: {
+        maxOutputTokens: LLM_MAX_OUTPUT_TOKENS,
+        stopTokenIds: [],
+        samplerParams: {
+          type: SamplerType.GREEDY,
+          temperature: 0,
+          k: 1,
+          seed: 42,
+        },
+      },
+    });
     try {
-      const result = await conversation.sendMessage(sentence);
+      const result = await conversation.sendMessage(LLM_BENCHMARK_PROMPT);
       console.log(result?.content?.[0]?.text ?? result);
       const benchmarkInfo = await conversation.getBenchmarkInfo();
       console.log("Benchmark info:", {
