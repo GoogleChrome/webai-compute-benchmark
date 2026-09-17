@@ -6,6 +6,8 @@ import { params } from "speedometer-utils/params.mjs";
 import {
   LLM_BENCHMARK_PROMPT,
   LLM_MAX_OUTPUT_TOKENS,
+  LLM_TEMPERATURE,
+  LLM_TOP_K,
 } from "../llm-benchmark-config.mjs";
 
 const weightsPath = '../models/gemma/270m-sfp-it.sbs';
@@ -24,8 +26,8 @@ class GemmaBenchmark {
     console.time('gemma-generation')
     const result = await this.model(LLM_BENCHMARK_PROMPT, {
       max_tokens: LLM_MAX_OUTPUT_TOKENS,
-      temperature: 0,
-      top_k: 1,
+      temperature: LLM_TEMPERATURE,
+      top_k: LLM_TOP_K,
       ignore_eos: true,
     });
     console.timeEnd('gemma-generation')
