@@ -169,4 +169,16 @@ export const defaultSuites = [
         tags: ["experimental", "gemma", "litert-lm", "webgpu"],
         type: "remote",
     },
+    {
+        name: "Experimental-Llama-CPP-wasm",
+        url: "resources/experimental/dist/llama-cpp-wasm.html",
+        tags: ["experimental", "gemma", "llama-cpp", "wasm"],
+        type: "remote",
+    },
+    {
+        name: "Experimental-Llama-CPP-webgpu",
+        url: "resources/experimental/dist/llama-cpp-webgpu.html",
+        tags: ["experimental", "gemma", "llama-cpp", "webgpu"],
+        type: "remote",
+    },
 ];
