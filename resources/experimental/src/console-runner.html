@@ -1,3 +1,10 @@
+<!--
+Copyright 2026 Google LLC
+
+Use of this source code is governed by a BSD-style
+license that can be found in the LICENSE file or at
+https://developers.google.com/open-source/licenses/bsd
+-->
 <!doctype html>
 <html lang="en">
   <head>
@@ -111,40 +118,26 @@
         outputDiv.scrollTop = outputDiv.scrollHeight;
       }
 
+      function formatArg(a) {
+        if (a instanceof Error) {
+          return a.stack || a.message;
+        }
+        return typeof a === "object" ? JSON.stringify(a, null, 2) : a;
+      }
+
       console.log = (...args) => {
         originalLog(...args);
-        appendToUI(
-          args
-            .map((a) =>
-              typeof a === "object" ? JSON.stringify(a, null, 2) : a,
-            )
-            .join(" "),
-          "log",
-        );
+        appendToUI(args.map(formatArg).join(" "), "log");
       };
 
       console.error = (...args) => {
         originalError(...args);
-        appendToUI(
-          args
-            .map((a) =>
-              typeof a === "object" ? JSON.stringify(a, null, 2) : a,
-            )
-            .join(" "),
-          "error",
-        );
+        appendToUI(args.map(formatArg).join(" "), "error");
       };
 
       console.warn = (...args) => {
         originalWarn(...args);
-        appendToUI(
-          args
-            .map((a) =>
-              typeof a === "object" ? JSON.stringify(a, null, 2) : a,
-            )
-            .join(" "),
-          "warn",
-        );
+        appendToUI(args.map(formatArg).join(" "), "warn");
       };
 
       window.addEventListener("unhandledrejection", (event) => {

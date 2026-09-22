@@ -1,6 +1,6 @@
+const fs = require("fs");
 const path = require("path");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
-const CopyPlugin = require("copy-webpack-plugin");
 
 module.exports = {
     cache: {
@@ -38,16 +38,17 @@ module.exports = {
             filename: 'litert-lm.html',
             chunks: ['litert-lm'],
         }),
-        new CopyPlugin({
-            patterns: [
-                {
-                    from: path.resolve(__dirname, 'node_modules/@litert-lm/core/wasm'),
-                    to: path.resolve(__dirname, 'dist/resources/wasm'),
-                    force: true,
-                    noErrorOnMissing: true,
-                },
-            ],
-        }),
+        {
+            apply(compiler) {
+                compiler.hooks.afterEmit.tap("CopyWasmPlugin", () => {
+                    fs.cpSync(
+                        path.resolve(__dirname, "node_modules/@litert-lm/core/wasm"),
+                        path.resolve(__dirname, "dist/resources/wasm"),
+                        { recursive: true, force: true },
+                    );
+                });
+            },
+        },
     ],
     output: {
         filename: "[name].bundle.js",

@@ -1,3 +1,9 @@
+// Copyright 2026 Google LLC
+//
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file or at
+// https://developers.google.com/open-source/licenses/bsd
+
 /**
  * Experimental LiteRT-LM benchmark using WebGPU and the Gemma model.
  */
@@ -27,6 +33,11 @@ async function fetchModelWithProgress(url) {
 
   const contentLength = response.headers.get("content-length");
   const total = contentLength ? parseInt(contentLength, 10) : null;
+  if (total !== null && total < ONE_MB) {
+    throw new Error(
+      `Model file appears to be a Git LFS pointer (${total} bytes). Run 'git lfs pull'.`,
+    );
+  }
   let loaded = 0;
   let lastLogged = -1;
 
@@ -48,6 +59,15 @@ async function fetchModelWithProgress(url) {
       }
       controller.enqueue(chunk);
     },
+    flush(controller) {
+      if (loaded < ONE_MB) {
+        controller.error(
+          new Error(
+            `Model file appears to be a Git LFS pointer (${loaded} bytes). Run 'git lfs pull'.`,
+          ),
+        );
+      }
+    },
   });
 
   return response.body.pipeThrough(progressStream);
@@ -59,14 +79,21 @@ class LiteRtLmBenchmark {
   }
 
   async init() {
-    console.log("Loading LiteRT-LM wasm module...");
+    console.log(
+      "Loading LiteRT-LM wasm module (not part of benchmark measurement)...",
+    );
     await loadLiteRtLm(wasmPath);
-    console.log("Downloading model and initializing LiteRT-LM engine...");
+    console.log(
+      "Downloading model and initializing LiteRT-LM engine (not part of benchmark measurement)...",
+    );
     const modelStream = await fetchModelWithProgress(weightsPath);
     this.engine = await Engine.create({
       model: modelStream,
+      benchmarkEnabled: true,
     });
-    console.log("LiteRT-LM engine initialized.");
+    console.log(
+      "LiteRT-LM engine initialized. Model download and initialization are complete; starting measured benchmark runs...",
+    );
   }
 
   async run() {
@@ -76,6 +103,13 @@ class LiteRtLmBenchmark {
     try {
       const result = await conversation.sendMessage(sentence);
       console.log(result?.content?.[0]?.text ?? result);
+      const benchmarkInfo = await conversation.getBenchmarkInfo();
+      console.log("Benchmark info:", {
+        timeToFirstTokenInSecond: benchmarkInfo.timeToFirstTokenInSecond,
+        lastPrefillTokensPerSecond: benchmarkInfo.lastPrefillTokensPerSecond,
+        lastDecodeTokensPerSecond: benchmarkInfo.lastDecodeTokensPerSecond,
+        lastDecodeTokenCount: benchmarkInfo.lastDecodeTokenCount,
+      });
     } finally {
       await conversation.delete();
     }
@@ -94,7 +128,11 @@ try {
     default: createSubIteratedSuite(benchmark, params.subIterationCount),
   };
 
-  const benchmarkConnector = new BenchmarkConnector(suites, appName, appVersion);
+  const benchmarkConnector = new BenchmarkConnector(
+    suites,
+    appName,
+    appVersion,
+  );
   benchmarkConnector.connect();
 } catch (error) {
   console.error("Failed to initialize LiteRT-LM benchmark:", error);
