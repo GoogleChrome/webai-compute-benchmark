@@ -1,25 +1,10 @@
 import Gemma from './build/gemma_cpp_js.mjs';
 import { BenchmarkConnector } from "speedometer-utils/benchmark.mjs";
+import { createDownloadProgressLogger } from "speedometer-utils/download-utils.mjs";
 import { createSubIteratedSuite } from "speedometer-utils/helpers.mjs";
 import { params } from "speedometer-utils/params.mjs";
 
 const weightsPath = '../models/gemma/270m-sfp-it.sbs';
-
-let lastPercent = -1;
-function logDownloadProgress(progress) {
-  if (progress.total) {
-    const percent = Math.floor((progress.loaded / progress.total) * 100);
-    if (percent !== lastPercent) {
-      console.log(`Downloading model: ${percent}%`);
-      lastPercent = percent;
-    }
-  } else {
-    // Log every 10 MB if total length is unknown
-    if (Math.floor(progress.loaded / 10485760) !== Math.floor((progress.loaded - progress.chunkLength) / 10485760)) {
-      console.log(`Downloading model: ${Math.floor(progress.loaded / 1048576)} MB`);
-    }
-  }
-}
 
 class GemmaBenchmark {
   constructor() {
@@ -28,7 +13,7 @@ class GemmaBenchmark {
   async init() {
     const gemma = await Gemma();
     console.log('Downloading weights and initializing pipeline...');
-    this.model = await gemma.pipeline(weightsPath, { progress: logDownloadProgress });
+    this.model = await gemma.pipeline(weightsPath, { progress: createDownloadProgressLogger() });
   }
   async run() {
     const sentence = 'Max 100 word response. Why is the sky blue?';

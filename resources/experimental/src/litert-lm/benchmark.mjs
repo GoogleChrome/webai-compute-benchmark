@@ -10,68 +10,12 @@
 
 import { Engine, loadLiteRtLm } from "@litert-lm/core";
 import { BenchmarkConnector } from "speedometer-utils/benchmark.mjs";
+import { fetchModelWithProgress } from "speedometer-utils/download-utils.mjs";
 import { createSubIteratedSuite } from "speedometer-utils/helpers.mjs";
 import { params } from "speedometer-utils/params.mjs";
 
 const weightsPath = "../models/litert-lm/gemma3-270m-it-q4_0-web.litertlm";
 const wasmPath = "resources/wasm/";
-
-const ONE_MB = 1024 * 1024;
-const TEN_MB = 10 * ONE_MB;
-
-async function fetchModelWithProgress(url) {
-  console.log(`Fetching model from ${url}...`);
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error(
-      `Failed to fetch model from ${url}: ${response.status} ${response.statusText}`,
-    );
-  }
-  if (!response.body) {
-    throw new Error(`Response body is empty for ${url}`);
-  }
-
-  const contentLength = response.headers.get("content-length");
-  const total = contentLength ? parseInt(contentLength, 10) : null;
-  if (total !== null && total < ONE_MB) {
-    throw new Error(
-      `Model file appears to be a Git LFS pointer (${total} bytes). Run 'git lfs pull'.`,
-    );
-  }
-  let loaded = 0;
-  let lastLogged = -1;
-
-  const progressStream = new TransformStream({
-    transform(chunk, controller) {
-      loaded += chunk.byteLength;
-      if (total) {
-        const percent = Math.floor((loaded / total) * 100);
-        if (percent !== lastLogged) {
-          console.log(`Downloading model: ${percent}%`);
-          lastLogged = percent;
-        }
-      } else {
-        const currentMb = Math.floor(loaded / TEN_MB);
-        if (currentMb !== lastLogged) {
-          console.log(`Downloading model: ${Math.floor(loaded / ONE_MB)} MB`);
-          lastLogged = currentMb;
-        }
-      }
-      controller.enqueue(chunk);
-    },
-    flush(controller) {
-      if (loaded < ONE_MB) {
-        controller.error(
-          new Error(
-            `Model file appears to be a Git LFS pointer (${loaded} bytes). Run 'git lfs pull'.`,
-          ),
-        );
-      }
-    },
-  });
-
-  return response.body.pipeThrough(progressStream);
-}
 
 class LiteRtLmBenchmark {
   constructor() {
