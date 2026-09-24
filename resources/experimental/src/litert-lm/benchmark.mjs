@@ -49,6 +49,8 @@ class LiteRtLmBenchmark {
     const conversation = await this.engine.createConversation({
       sessionConfig: {
         maxOutputTokens: LLM_MAX_OUTPUT_TOKENS,
+        // Override the default EOS/stop token sequences so generation always
+        // runs to maxOutputTokens.
         stopTokenIds: [],
         samplerParams: {
           type: SamplerType.GREEDY,
