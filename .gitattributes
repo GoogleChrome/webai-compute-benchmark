@@ -1,2 +1,3 @@
 resources/experimental/models/gemma/270m-sfp-it.sbs filter=lfs diff=lfs merge=lfs -text
 resources/experimental/models/litert-lm/gemma3-270m-it-q4_0-web.litertlm filter=lfs diff=lfs merge=lfs -text
+resources/experimental/models/llama-cpp/gemma-3-270m-it-Q8_0.gguf filter=lfs diff=lfs merge=lfs -text

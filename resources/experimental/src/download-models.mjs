@@ -19,7 +19,7 @@ const MODELS_TO_DOWNLOAD = [
 
 async function downloadModels() {
     const CACHE_FILE = path.join(MODEL_DIR, 'cache.json');
-    const cache = new DownloadCache(CACHE_FILE, CACHE_VERSION, process.argv.includes('--force'), ['gemma', 'litert-lm']);
+    const cache = new DownloadCache(CACHE_FILE, CACHE_VERSION, process.argv.includes('--force'), ['gemma', 'litert-lm', 'llama-cpp']);
 
     if (!fs.existsSync(MODEL_DIR)) {
         console.log(`Creating directory: ${MODEL_DIR}`);
