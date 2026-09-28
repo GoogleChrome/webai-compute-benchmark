@@ -12,6 +12,9 @@
  */
 
 export const LLM_MAX_OUTPUT_TOKENS = 64;
+export const LLM_TEMPERATURE = 0;
+export const LLM_TOP_K = 1;
+export const LLM_SEED = 42;
 
 export const LLM_BENCHMARK_PROMPT = `Sunlight reaches Earth's atmosphere and is scattered in all directions by all the gases and particles in the air. Because sunlight is composed of a continuous spectrum of electromagnetic radiation with wavelengths ranging from ultraviolet to infrared, its interaction with atmospheric constituents depends strongly on the size of the scattering particles relative to the wavelength of the incident light.
 
