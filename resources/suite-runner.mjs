@@ -129,8 +129,12 @@ export class SuiteRunner {
                 resolve();
             };
             frame.onerror = () => reject();
-            let suiteParams = '';
-            frame.src = `${this.#suite.url}?${this.#params.toSearchParams()}`;
+            const targetUrl = new URL(`${this.#suite.url}?${this.#params.toSearchParams()}`, window.location.href);
+            if (targetUrl.protocol !== "http:" && targetUrl.protocol !== "https:") {
+                reject(new Error(`Unsupported suite URL protocol: ${targetUrl.protocol}`));
+                return;
+            }
+            frame.src = targetUrl.href;
         });
     }
 

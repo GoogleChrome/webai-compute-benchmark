@@ -1,4 +1,5 @@
 import { Params, defaultParams } from "../../resources/shared/params.mjs";
+import { BenchmarkConfigurator } from "../../resources/benchmark-configurator.mjs";
 
 describe("Params", () => {
     describe("toSearchParams", () => {
@@ -108,6 +109,56 @@ describe("Params", () => {
                 })
             );
             expect(params.suites).to.eql(["SuiteB", "Suite1", "SuiteA"]);
+        });
+        it("should parse valid http/https and relative config URLs", () => {
+            const httpParams = new Params(
+                new URLSearchParams({
+                    config: "http://localhost:8080/resources/config.json",
+                })
+            );
+            expect(httpParams.config).to.equal("http://localhost:8080/resources/config.json");
+
+            const relativeParams = new Params(
+                new URLSearchParams({
+                    config: "resources/config.json",
+                })
+            );
+            expect(relativeParams.config).to.equal("resources/config.json");
+        });
+        it("should reject non-http/https config URLs", () => {
+            expect(() => {
+                new Params(
+                    new URLSearchParams({
+                        config: "javascript:alert(1)//",
+                    })
+                );
+            }).to.throwError();
+
+            expect(() => {
+                new Params(
+                    new URLSearchParams({
+                        config: "data:application/json,{}",
+                    })
+                );
+            }).to.throwError();
+        });
+    });
+
+    describe("BenchmarkConfigurator._isValidUrl", () => {
+        const configurator = new BenchmarkConfigurator();
+
+        it("should accept http, https, and relative URLs", () => {
+            expect(configurator._isValidUrl("http://example.com/suite.html")).to.be(true);
+            expect(configurator._isValidUrl("https://example.com/suite.html")).to.be(true);
+            expect(configurator._isValidUrl("resources/transformers-js/dist/feature-extraction-cpu.html")).to.be(true);
+        });
+
+        it("should reject javascript:, data:, and empty URLs", () => {
+            expect(configurator._isValidUrl("javascript:alert(1)//")).to.be(false);
+            expect(configurator._isValidUrl("JaVaScRiPt:alert(1)//")).to.be(false);
+            expect(configurator._isValidUrl("  javascript:alert(1)//")).to.be(false);
+            expect(configurator._isValidUrl("data:text/html,<script>alert(1)</script>")).to.be(false);
+            expect(configurator._isValidUrl("")).to.be(false);
         });
     });
 });

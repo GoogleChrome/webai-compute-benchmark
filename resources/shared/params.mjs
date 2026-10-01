@@ -216,8 +216,9 @@ function isValidJsonUrl(url) {
         return false;
 
     try {
-        new URL(url, "http://www.example.com");
-        return true;
+        const base = globalThis.location?.href ?? "http://www.example.com";
+        const parsed = new URL(url, base);
+        return parsed.protocol === "http:" || parsed.protocol === "https:";
     } catch (error) {
         return false;
     }

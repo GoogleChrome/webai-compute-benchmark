@@ -32,8 +32,9 @@ export class BenchmarkConfigurator {
             return false;
 
         try {
-            new URL(url, "http://www.example.com");
-            return true;
+            const base = globalThis.location?.href ?? "http://www.example.com";
+            const parsed = new URL(url, base);
+            return parsed.protocol === "http:" || parsed.protocol === "https:";
         } catch (error) {
             return false;
         }
@@ -74,7 +75,8 @@ export class BenchmarkConfigurator {
         if (params.config) {
             try {
                 const benchmarkUrl = new URL(window.location);
-                if (DISALLOWED_DOMAINS.some((domain) => benchmarkUrl.hostname.endsWith(domain))) {
+                const normalizedHost = benchmarkUrl.hostname.replace(/\.+$/, "").toLowerCase();
+                if (DISALLOWED_DOMAINS.some((domain) => normalizedHost === domain || normalizedHost.endsWith(`.${domain}`))) {
                     console.warn("Configuration fetch not allowed. Loading default suites.");
                     this._loadDefaultSuites();
                     return;
