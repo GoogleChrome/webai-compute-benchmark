@@ -1,9 +1,10 @@
+import os from "os";
 import commandLineUsage from "command-line-usage";
 import commandLineArgs from "command-line-args";
 import serve from "./server.mjs";
 
 import { Builder, logging } from "selenium-webdriver";
-import { Options as ChromeOptions, ServiceBuilder } from "selenium-webdriver/chrome.js";
+import { Options as ChromeOptions } from "selenium-webdriver/chrome.js";
 import { Options as FirefoxOptions } from "selenium-webdriver/firefox.js";
 import { Options as EdgeOptions } from "selenium-webdriver/edge.js";
 import { Options as SafariOptions } from "selenium-webdriver/safari.js";
@@ -12,6 +13,7 @@ const optionDefinitions = [
     { name: "browser", type: String, description: "Set the browser to test, choices are [safari, firefox, chrome]. By default the $BROWSER env variable is used." },
     { name: "browser-arg", type: String, multiple: true, description: "Additional arguments to pass to the browser. Use one arg per --browser-arg switch." },
     { name: "port", type: Number, defaultValue: 8010, description: "Set the test-server port, The default value is 8010." },
+    { name: "concurrency", alias: "j", type: Number, defaultValue: Math.min(16, os.availableParallelism()), description: "Number of parallel browser instances to use." },
     { name: "help", alias: "h", description: "Print this help text." },
 ];
 
@@ -70,8 +72,10 @@ export default async function testSetup(helpText) {
     browserOptions.setLoggingPrefs(prefs);
 
     const PORT = options.port;
+    const concurrency = Math.max(1, options.concurrency || 1);
     const server = await serve(PORT);
-    let driver;
+    const drivers = [];
+    let stopped = false;
 
     process.on("unhandledRejection", (err) => {
         console.error(err);
@@ -87,13 +91,21 @@ export default async function testSetup(helpText) {
     if (browserArgs && browserArgs.length > 0)
         browserOptions.addArguments(...browserArgs);
 
-    driver = await new Builder().withCapabilities(browserOptions).build();
-    driver.manage().window().setRect({ width: 1200, height: 1000 });
-
-    function stop() {
-        server.close();
-        if (driver)
-            driver.close();
+    async function createDriver() {
+        const newDriver = await new Builder().withCapabilities(browserOptions).build();
+        await newDriver.manage().window().setRect({ width: 1200, height: 1000 });
+        drivers.push(newDriver);
+        return newDriver;
     }
-    return { driver, PORT, stop };
+
+    const driver = await createDriver();
+
+    async function stop() {
+        if (stopped)
+            return;
+        stopped = true;
+        server.close();
+        await Promise.allSettled(drivers.map((d) => d.quit()));
+    }
+    return { driver, createDriver, concurrency, PORT, stop };
 }
