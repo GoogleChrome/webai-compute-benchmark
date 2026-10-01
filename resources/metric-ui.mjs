@@ -4,6 +4,8 @@ export const COLORS = Object.freeze(["blue", "blue-light", "green-light", "green
 
 export function renderMetricView(viewParams) {
     let { metrics, width = 500, trackHeight = 20, subMetricMargin = 35, title = "", colors = COLORS } = viewParams;
+    if (title && !Metric.isValidName(title))
+        throw new Error(`Invalid title=${title}, expected valid identifier.`);
     // Make sure subMetricMargin is set for use in renderSubMetrics.
     viewParams.subMetricMargin = subMetricMargin;
     const scatterPlotParams = { width, trackHeight, colors };

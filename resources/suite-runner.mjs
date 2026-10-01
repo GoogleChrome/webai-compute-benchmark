@@ -1,6 +1,7 @@
 import { STEP_RUNNER_LOOKUP } from "./shared/step-runner.mjs";
 import { isValidUrl } from "./shared/params.mjs";
 import { WarmupSuite } from "./benchmark-runner.mjs";
+import { isValidIdentifier } from "./shared/helpers.mjs";
 
 export class SuiteRunner {
     #frame;
@@ -12,6 +13,10 @@ export class SuiteRunner {
     #prepareTime = 0;
 
     constructor(frame, page, params, suite, client, measuredValues) {
+        if (!isValidIdentifier(suite?.name))
+            throw new Error(`Invalid suite.name=${suite?.name}, expected valid identifier.`);
+        if (suite.steps && (!Array.isArray(suite.steps) || !suite.steps.every((step) => isValidIdentifier(step?.name))))
+            throw new Error(`Invalid step names in suite ${suite.name}`);
         // FIXME: Create SuiteRunner-local measuredValues.
         this.#suiteResults = measuredValues.steps[suite.name];
         if (!this.#suiteResults) {
@@ -211,6 +216,8 @@ export class RemoteSuiteRunner extends SuiteRunner {
         this.frame.contentWindow.postMessage({ id: this.appId, key: "benchmark-connector", type: "benchmark-suite", name: this.suite.config?.name || "default" }, "*");
         // Capture metrics from the completed tests.
         const response = await this._subscribeOnce("suite-complete");
+        if (!Object.keys(response.result.steps).every(isValidIdentifier))
+            throw new Error(`Invalid step names in suite ${this.suite.name}`);
 
         this.suiteResults.steps = {
             ...this.suiteResults.steps,
