@@ -1,5 +1,4 @@
-import { Params, defaultParams } from "../../resources/shared/params.mjs";
-import { BenchmarkConfigurator } from "../../resources/benchmark-configurator.mjs";
+import { Params, defaultParams, isValidUrl } from "../../resources/shared/params.mjs";
 
 describe("Params", () => {
     describe("toSearchParams", () => {
@@ -144,21 +143,19 @@ describe("Params", () => {
         });
     });
 
-    describe("BenchmarkConfigurator._isValidUrl", () => {
-        const configurator = new BenchmarkConfigurator();
-
+    describe("isValidUrl", () => {
         it("should accept http, https, and relative URLs", () => {
-            expect(configurator._isValidUrl("http://example.com/suite.html")).to.be(true);
-            expect(configurator._isValidUrl("https://example.com/suite.html")).to.be(true);
-            expect(configurator._isValidUrl("resources/transformers-js/dist/feature-extraction-cpu.html")).to.be(true);
+            expect(isValidUrl("http://example.com/suite.html")).to.be(true);
+            expect(isValidUrl("https://example.com/suite.html")).to.be(true);
+            expect(isValidUrl("resources/transformers-js/dist/feature-extraction-cpu.html")).to.be(true);
         });
 
         it("should reject javascript:, data:, and empty URLs", () => {
-            expect(configurator._isValidUrl("javascript:alert(1)//")).to.be(false);
-            expect(configurator._isValidUrl("JaVaScRiPt:alert(1)//")).to.be(false);
-            expect(configurator._isValidUrl("  javascript:alert(1)//")).to.be(false);
-            expect(configurator._isValidUrl("data:text/html,<script>alert(1)</script>")).to.be(false);
-            expect(configurator._isValidUrl("")).to.be(false);
+            expect(isValidUrl("javascript:alert(1)//")).to.be(false);
+            expect(isValidUrl("JaVaScRiPt:alert(1)//")).to.be(false);
+            expect(isValidUrl("  javascript:alert(1)//")).to.be(false);
+            expect(isValidUrl("data:text/html,<script>alert(1)</script>")).to.be(false);
+            expect(isValidUrl("")).to.be(false);
         });
     });
 });

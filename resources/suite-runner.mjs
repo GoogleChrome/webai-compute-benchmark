@@ -1,4 +1,5 @@
 import { STEP_RUNNER_LOOKUP } from "./shared/step-runner.mjs";
+import { isValidUrl } from "./shared/params.mjs";
 import { WarmupSuite } from "./benchmark-runner.mjs";
 
 export class SuiteRunner {
@@ -129,12 +130,12 @@ export class SuiteRunner {
                 resolve();
             };
             frame.onerror = () => reject();
-            const targetUrl = new URL(`${this.#suite.url}?${this.#params.toSearchParams()}`, window.location.href);
-            if (targetUrl.protocol !== "http:" && targetUrl.protocol !== "https:") {
-                reject(new Error(`Unsupported suite URL protocol: ${targetUrl.protocol}`));
+            const targetUrl = `${this.#suite.url}?${this.#params.toSearchParams()}`;
+            if (!isValidUrl(targetUrl)) {
+                reject(new Error(`Invalid suite URL: ${targetUrl}`));
                 return;
             }
-            frame.src = targetUrl.href;
+            frame.src = targetUrl;
         });
     }
 

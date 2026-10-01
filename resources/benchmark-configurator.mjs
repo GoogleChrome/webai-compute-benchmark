@@ -2,7 +2,7 @@
 // http://localhost:8080/?developerMode=true&config=http://localhost:8080/resources/config.json
 // since the json doesn't contain a default suite, dismiss warning popups and select from the developerMenu
 import { defaultSuites } from "./default-tests.mjs";
-import { params } from "./shared/params.mjs";
+import { params, isValidUrl } from "./shared/params.mjs";
 
 const DEFAULT_TAGS = ["all", "default", "experimental"];
 const DISALLOWED_DOMAINS = ["browserbench.org"];
@@ -16,28 +16,6 @@ export class BenchmarkConfigurator {
 
     get suites() {
         return this.#suites;
-    }
-
-    /**
-     * Checks if a given string is a valid URL, supporting both absolute and relative paths.
-     *
-     * This function attempts to construct a URL object. For relative paths, it uses
-     * a dummy base URL to allow the URL constructor to parse them successfully.
-     *
-     * @param {string} url The URL string to validate.
-     * @returns {boolean} True if the URL is valid (absolute or relative), false otherwise.
-     */
-    _isValidUrl(url) {
-        if (typeof url !== "string" || url.length === 0)
-            return false;
-
-        try {
-            const base = globalThis.location?.href ?? "http://www.example.com";
-            const parsed = new URL(url, base);
-            return parsed.protocol === "http:" || parsed.protocol === "https:";
-        } catch (error) {
-            return false;
-        }
     }
 
     /**
@@ -75,7 +53,7 @@ export class BenchmarkConfigurator {
         if (params.config) {
             try {
                 const benchmarkUrl = new URL(window.location);
-                const normalizedHost = benchmarkUrl.hostname.replace(/\.+$/, "").toLowerCase();
+                const normalizedHost = benchmarkUrl.hostname.replace(/\.+$/, "");
                 if (DISALLOWED_DOMAINS.some((domain) => normalizedHost === domain || normalizedHost.endsWith(`.${domain}`))) {
                     console.warn("Configuration fetch not allowed. Loading default suites.");
                     this._loadDefaultSuites();
@@ -94,7 +72,7 @@ export class BenchmarkConfigurator {
 
                 config.suites.flatMap((suite) => suite.tags || []).forEach((tag) => this.#tags.add(tag));
                 config.suites.forEach((suite) => {
-                    if (suite && suite.url && this._isValidUrl(suite.url))
+                    if (suite && suite.url && isValidUrl(suite.url))
                         this.#suites.push(suite);
                     else
                         throw new Error("Invalid suite data");
