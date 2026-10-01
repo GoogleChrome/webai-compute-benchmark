@@ -10,13 +10,12 @@ This script runs end2end tests by invoking the benchmark via the main page in /i
 
 const ONE_MINUTE_IN_MS = 60000;
 
-const { driver, PORT, stop } = await testSetup(HELP);
+const { driver, createDriver, concurrency, PORT, stop } = await testSetup(HELP);
 
 // Running all of the benchmarks is very slow (especially when the GPU is emulated). To run the
 // tests faster we run all of the Wasm benchmarks, and only a few GPU tests to cover most of
 // the common code. To run all benchmarks, enable this.
 const RUN_FULL_SUITE = false;
-let tags = 'wasm,gpu-test-suite';
 let suites = benchmarkConfigurator.suites.filter(suite =>
     !suite.url.includes('/experimental/') &&
     suite.tags.some((tag) => tag === 'wasm' || tag === 'gpu-test-suite')
@@ -24,24 +23,62 @@ let suites = benchmarkConfigurator.suites.filter(suite =>
 let timeout = 10 * ONE_MINUTE_IN_MS;
 
 if (RUN_FULL_SUITE) {
-    tags = 'all';
     suites = benchmarkConfigurator.suites;
     timeout = 20 * ONE_MINUTE_IN_MS;
 }
 
-async function testPage(url) {
-    console.log(`Testing: ${url}`);
-    await driver.get(`http://localhost:${PORT}/${url}`);
+const availableDrivers = [driver];
+let createdDriversCount = 1;
+const waitingResolvers = [];
 
-    await driver.executeAsyncScript((callback) => {
+async function acquireDriver() {
+    if (availableDrivers.length > 0)
+        return availableDrivers.pop();
+    if (createdDriversCount < concurrency) {
+        createdDriversCount++;
+        try {
+            const newDriver = await createDriver();
+            await newDriver.manage().setTimeouts({ script: timeout });
+            return newDriver;
+        } catch (e) {
+            createdDriversCount--;
+            throw e;
+        }
+    }
+    return new Promise((resolve) => waitingResolvers.push(resolve));
+}
+
+function releaseDriver(targetDriver) {
+    if (waitingResolvers.length > 0) {
+        const resolve = waitingResolvers.shift();
+        resolve(targetDriver);
+    } else {
+        availableDrivers.push(targetDriver);
+    }
+}
+
+async function withDriver(fn) {
+    const targetDriver = await acquireDriver();
+    try {
+        return await fn(targetDriver);
+    } finally {
+        releaseDriver(targetDriver);
+    }
+}
+
+async function testPage(targetDriver, url) {
+    console.log(`Testing: ${url}`);
+    await targetDriver.get(`http://localhost:${PORT}/${url}`);
+
+    await targetDriver.executeAsyncScript((callback) => {
         if (globalThis.benchmarkClient)
             callback();
         else
             globalThis.addEventListener("BenchmarkReady", () => callback(), { once: true });
     });
 
-    console.log("    - Awaiting Benchmark");
-    const { error, metrics } = await driver.executeAsyncScript((callback) => {
+    console.log(`    - Awaiting Benchmark: ${url}`);
+    const { error, metrics } = await targetDriver.executeAsyncScript((callback) => {
         globalThis.addEventListener(
             "BenchmarkDone",
             () =>
@@ -89,25 +126,35 @@ function validateMetric(name, metric) {
 async function testIterations() {
     const iterationCount = 2;
     const subIterationCount = 1;
-    const metrics = await testPage(`index.html?iterationCount=${iterationCount}&subIterationCount=${subIterationCount}&tags=${tags}`);
-    suites.forEach((suite) => {
-        if (suite.enabled) {
-            const metric = metrics[suite.name];
-            assert(metric, `Missing suite result for ${suite.name}`);
-            assert(metric.values.length === iterationCount);
-            console.log(`Suite ${suite.name} took ${metric.sum}ms`);
-        } else {
-            assert(!(suite.name in metrics));
-        }
-    });
-    if (metrics["Wasm-Geomean"]?.mean > 0) {
-        assert(metrics["Wasm-Geomean"].values.length === iterationCount);
-        assert(metrics["Wasm-Score"].values.length === iterationCount);
-    }
-    if (metrics["WebGPU-Geomean"]?.mean > 0) {
-        assert(metrics["WebGPU-Geomean"].values.length === iterationCount);
-        assert(metrics["WebGPU-Score"].values.length === iterationCount);
-    }
+    const enabledSuites = suites.filter((suite) => suite.enabled);
+    await Promise.all(
+        enabledSuites.map((suite) =>
+            withDriver(async (targetDriver) => {
+                const metrics = await testPage(
+                    targetDriver,
+                    `index.html?iterationCount=${iterationCount}&subIterationCount=${subIterationCount}&suites=${suite.name}`
+                );
+                suites.forEach((otherSuite) => {
+                    if (otherSuite.name === suite.name) {
+                        const metric = metrics[otherSuite.name];
+                        assert(metric, `Missing suite result for ${otherSuite.name}`);
+                        assert(metric.values.length === iterationCount);
+                        console.log(`Suite ${otherSuite.name} took ${metric.sum}ms`);
+                    } else {
+                        assert(!(otherSuite.name in metrics));
+                    }
+                });
+                if (metrics["Wasm-Geomean"]?.mean > 0) {
+                    assert(metrics["Wasm-Geomean"].values.length === iterationCount);
+                    assert(metrics["Wasm-Score"].values.length === iterationCount);
+                }
+                if (metrics["WebGPU-Geomean"]?.mean > 0) {
+                    assert(metrics["WebGPU-Geomean"].values.length === iterationCount);
+                    assert(metrics["WebGPU-Score"].values.length === iterationCount);
+                }
+            })
+        )
+    );
 }
 
 async function testSubIterations() {
@@ -121,7 +168,7 @@ async function testSubIterations() {
     const subIterationCount = 3;
     // URL with suites specified
     const params = [`iterationCount=${iterationCount}`, `subIterationCount=${subIterationCount}`, `suites=${testSuites.join(',')}`];
-    const metrics = await testPage(`index.html?${params.join("&")}`);
+    const metrics = await withDriver((targetDriver) => testPage(targetDriver, `index.html?${params.join("&")}`));
 
     suites.forEach((suite) => {
         const metric = metrics[suite.name];
@@ -140,25 +187,32 @@ async function testSubIterations() {
 }
 
 async function testAll() {
-    const metrics = await testPage(`index.html?iterationCount=1&subIterationCount=1&tags=${tags}`);
-    suites.forEach((suite) => {
-        assert(suite.name in metrics);
-        const metric = metrics[suite.name];
-        assert(metric.values.length === 1);
-    });
-    if (metrics["Wasm-Geomean"]?.mean > 0) {
-        assert(metrics["Wasm-Geomean"].values.length === 1);
-        assert(metrics["Wasm-Score"].values.length === 1);
-    }
-    if (metrics["WebGPU-Geomean"]?.mean > 0) {
-        assert(metrics["WebGPU-Geomean"].values.length === 1);
-        assert(metrics["WebGPU-Score"].values.length === 1);
-    }
+    await Promise.all(
+        suites.map((suite) =>
+            withDriver(async (targetDriver) => {
+                const metrics = await testPage(
+                    targetDriver,
+                    `index.html?iterationCount=1&subIterationCount=1&suites=${suite.name}`
+                );
+                assert(suite.name in metrics);
+                const metric = metrics[suite.name];
+                assert(metric.values.length === 1);
+                if (metrics["Wasm-Geomean"]?.mean > 0) {
+                    assert(metrics["Wasm-Geomean"].values.length === 1);
+                    assert(metrics["Wasm-Score"].values.length === 1);
+                }
+                if (metrics["WebGPU-Geomean"]?.mean > 0) {
+                    assert(metrics["WebGPU-Geomean"].values.length === 1);
+                    assert(metrics["WebGPU-Score"].values.length === 1);
+                }
+            })
+        )
+    );
 }
 
 async function testDeveloperMode() {
     const params = ["developerMode", "iterationCount=1", "warmupBeforeSync=2", "waitBeforeSync=2", "shuffleSeed=123", "suites=Image-Classification-LiteRT.js-wasm"];
-    const metrics = await testPage(`index.html?${params.join("&")}`);
+    const metrics = await withDriver((targetDriver) => testPage(targetDriver, `index.html?${params.join("&")}`));
     suites.forEach((suite) => {
         if (suite.name === "Image-Classification-LiteRT.js-wasm") {
             const metric = metrics[suite.name];
@@ -177,16 +231,18 @@ async function test() {
             }
         });
         await driver.manage().setTimeouts({ script: timeout });
-        await testIterations();
-        await testSubIterations();
-        await testAll();
-        await testDeveloperMode();
+        await Promise.all([
+            testIterations(),
+            testSubIterations(),
+            testAll(),
+            testDeveloperMode(),
+        ]);
         console.log("\nTests complete!");
     } catch (e) {
         console.error("\nTests failed!");
         throw e;
     } finally {
-        stop();
+        await stop();
     }
 }
 
