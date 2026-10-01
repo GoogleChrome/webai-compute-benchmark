@@ -1,19 +1,19 @@
-import fs from 'fs';
-import path from 'path';
+import fs from "fs";
+import path from "path";
 
 export default class DownloadCache {
     cached = {};
 
     constructor(filename, version, force, excludes = []) {
         this.filename = filename;
-        if (force) {
+        if (force)
             return;
-        }
+
         if (fs.existsSync(filename)) {
             try {
-                const cacheData = JSON.parse(fs.readFileSync(filename, 'utf8'));
+                const cacheData = JSON.parse(fs.readFileSync(filename, "utf8"));
                 if (cacheData.version !== version) {
-                    console.log(`Cache version mismatch (found: ${cacheData.version}, expected: ${version}). Wiping models directory (excluding: ${excludes.join(', ')})...`);
+                    console.log(`Cache version mismatch (found: ${cacheData.version}, expected: ${version}). Wiping models directory (excluding: ${excludes.join(", ")})...`);
                     const dir = path.dirname(filename);
                     if (excludes.length === 0) {
                         fs.rmSync(dir, { recursive: true, force: true });
@@ -21,9 +21,9 @@ export default class DownloadCache {
                     } else {
                         const files = fs.readdirSync(dir);
                         for (const file of files) {
-                            if (excludes.includes(file) || file === path.basename(filename)) {
+                            if (excludes.includes(file) || file === path.basename(filename))
                                 continue;
-                            }
+
                             fs.rmSync(path.join(dir, file), { recursive: true, force: true });
                         }
                     }

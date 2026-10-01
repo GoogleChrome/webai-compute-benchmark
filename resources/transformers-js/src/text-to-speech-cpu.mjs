@@ -1,3 +1,3 @@
-import { initializeBenchmark } from './index.mjs';
+import { initializeBenchmark } from "./index.mjs";
 
-initializeBenchmark('text-to-speech-cpu');
+initializeBenchmark("text-to-speech-cpu");
