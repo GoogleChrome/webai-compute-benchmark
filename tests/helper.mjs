@@ -3,7 +3,7 @@ import commandLineArgs from "command-line-args";
 import serve from "./server.mjs";
 
 import { Builder, logging } from "selenium-webdriver";
-import { Options as ChromeOptions, ServiceBuilder } from "selenium-webdriver/chrome.js";
+import { Options as ChromeOptions } from "selenium-webdriver/chrome.js";
 import { Options as FirefoxOptions } from "selenium-webdriver/firefox.js";
 import { Options as EdgeOptions } from "selenium-webdriver/edge.js";
 import { Options as SafariOptions } from "selenium-webdriver/safari.js";

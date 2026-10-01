@@ -1,3 +1,3 @@
-import { initializeBenchmark } from './index.mjs';
+import { initializeBenchmark } from "./index.mjs";
 
-initializeBenchmark('speech-recognition-gpu');
+initializeBenchmark("speech-recognition-gpu");

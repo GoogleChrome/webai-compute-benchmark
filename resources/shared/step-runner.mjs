@@ -1,7 +1,6 @@
 import { STEP_INVOKER_LOOKUP } from "./step-invoker.mjs";
 
 export class StepRunner {
-    #frame;
     #page;
     #params;
     #suite;
@@ -15,7 +14,6 @@ export class StepRunner {
         this.#params = params;
         this.#callback = callback;
         this.#page = page;
-        this.#frame = frame;
         this.#type = type;
     }
 
@@ -93,9 +91,11 @@ export class StepRunner {
     }
 
     get invokerType() {
-        if (this.#suite.type === "async") return "async";
-        if (this.#params.useAsyncSteps) return "async";
-        return this.#params.measurementMethod
+        if (this.#suite.type === "async")
+            return "async";
+        if (this.#params.useAsyncSteps)
+            return "async";
+        return this.#params.measurementMethod;
     }
 }
 
@@ -109,9 +109,7 @@ export class AsyncStepRunner extends StepRunner {
     }
 }
 
-export class RemoteStepRunner extends StepRunner {
-}
-
+export class RemoteStepRunner extends StepRunner {}
 
 export const STEP_RUNNER_LOOKUP = Object.freeze({
     __proto__: null,

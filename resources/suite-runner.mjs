@@ -111,25 +111,28 @@ export class SuiteRunner {
                 const contentWindow = frame.contentWindow;
                 if (contentWindow) {
                     contentWindow.addEventListener("error", (e) => {
-                        window.dispatchEvent(new ErrorEvent("error", {
-                            message: e.message,
-                            filename: e.filename,
-                            lineno: e.lineno,
-                            colno: e.colno,
-                            error: e.error
-                        }));
+                        window.dispatchEvent(
+                            new ErrorEvent("error", {
+                                message: e.message,
+                                filename: e.filename,
+                                lineno: e.lineno,
+                                colno: e.colno,
+                                error: e.error,
+                            })
+                        );
                     });
                     contentWindow.addEventListener("unhandledrejection", (e) => {
-                        window.dispatchEvent(new PromiseRejectionEvent("unhandledrejection", {
-                            promise: e.promise,
-                            reason: e.reason
-                        }));
+                        window.dispatchEvent(
+                            new PromiseRejectionEvent("unhandledrejection", {
+                                promise: e.promise,
+                                reason: e.reason,
+                            })
+                        );
                     });
                 }
                 resolve();
             };
             frame.onerror = () => reject();
-            let suiteParams = '';
             frame.src = `${this.#suite.url}?${this.#params.toSearchParams()}`;
         });
     }

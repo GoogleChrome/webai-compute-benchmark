@@ -426,7 +426,7 @@ export class BenchmarkRunner {
                         };
                         window.addEventListener("error", errorHandler, { once: true });
                         window.addEventListener("unhandledrejection", errorHandler, { once: true });
-                        
+
                         cleanupErrorListeners = () => {
                             window.removeEventListener("error", errorHandler);
                             window.removeEventListener("unhandledrejection", errorHandler);
@@ -436,7 +436,8 @@ export class BenchmarkRunner {
                     try {
                         await Promise.race([this.runSuite(suite), errorPromise]);
                     } finally {
-                        if (cleanupErrorListeners) cleanupErrorListeners();
+                        if (cleanupErrorListeners)
+                            cleanupErrorListeners();
                     }
                 } catch (error) {
                     console.error(`Workload ${suite.name} failed:`, error);
@@ -477,15 +478,14 @@ export class BenchmarkRunner {
             const iterationWasmMetric = this._metrics[`Iteration-${iteration}-Wasm-Total`];
             const iterationWebgpuMetric = this._metrics[`Iteration-${iteration}-WebGPU-Total`];
 
-            const hasWasm = this._suites.some(s => s.enabled && s.tags?.includes("wasm"));
-            const hasWebgpu = this._suites.some(s => s.enabled && s.tags?.includes("webgpu"));
+            const hasWasm = this._suites.some((s) => s.enabled && s.tags?.includes("wasm"));
+            const hasWebgpu = this._suites.some((s) => s.enabled && s.tags?.includes("webgpu"));
 
-            if (hasWasm && isNaN(iterationWasmMetric?.geomean)) {
+            if (hasWasm && isNaN(iterationWasmMetric?.geomean))
                 throw new Error(`Iteration ${iteration}: Wasm was enabled but produced NaN geomean.`);
-            }
-            if (hasWebgpu && isNaN(iterationWebgpuMetric?.geomean)) {
+
+            if (hasWebgpu && isNaN(iterationWebgpuMetric?.geomean))
                 throw new Error(`Iteration ${iteration}: WebGPU was enabled but produced NaN geomean.`);
-            }
 
             const wasmGeomean = hasWasm ? iterationWasmMetric.geomean : 0;
             const webgpuGeomean = hasWebgpu ? iterationWebgpuMetric.geomean : 0;
@@ -547,14 +547,13 @@ export class BenchmarkRunner {
 
         for (const [suiteName, results] of Object.entries(iterationResults)) {
             if (results.total > 0) {
-                const suite = this._suites.find(s => s.name === suiteName);
-                if (suite?.tags?.includes("wasm")) {
+                const suite = this._suites.find((s) => s.name === suiteName);
+                if (suite?.tags?.includes("wasm"))
                     iterationWasmTotal.add(results.total);
-                } else if (suite?.tags?.includes("webgpu")) {
+                else if (suite?.tags?.includes("webgpu"))
                     iterationWebgpuTotal.add(results.total);
-                } else {
+                else
                     throw new Error(`Suite ${suiteName} has neither "wasm" nor "webgpu" tag.`);
-                }
             }
         }
 

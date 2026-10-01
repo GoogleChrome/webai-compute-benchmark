@@ -220,7 +220,7 @@ class MainBenchmarkClient {
             return number.toPrecision(Math.max(nonDecimalDigitCount, Math.min(6, sigFig)));
         }
 
-        const values = measuredValuesList.map(v => v[valueKey]);
+        const values = measuredValuesList.map((v) => v[valueKey]);
         const sum = values.reduce((a, b) => a + b, 0);
         const arithmeticMean = sum / values.length;
         let meanSigFig = 4;
@@ -264,14 +264,15 @@ class MainBenchmarkClient {
 
         const details = document.getElementById("details");
         const existingWarning = document.getElementById("results-warning");
-        if (existingWarning) existingWarning.remove();
+        if (existingWarning)
+            existingWarning.remove();
 
         if (this._failedSuites.size > 0) {
             const warning = document.createElement("div");
             warning.id = "results-warning";
-            warning.innerHTML = `<strong>Not all workloads finished successfully, please see the console for details. Affected workloads:</strong>`;
+            warning.innerHTML = "<strong>Not all workloads finished successfully, please see the console for details. Affected workloads:</strong>";
             const ul = document.createElement("ul");
-            this._failedSuites.forEach(name => {
+            this._failedSuites.forEach((name) => {
                 const li = document.createElement("li");
                 li.textContent = name;
                 ul.appendChild(li);
