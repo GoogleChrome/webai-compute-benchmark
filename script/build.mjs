@@ -16,6 +16,8 @@ for (const suite of defaultSuites) {
   workloadDirs.add(workloadDir);
 }
 
+await logGroup("CHECKING GIT LFS FILES", ensureGitLfsFiles);
+
 logInfo(`BUILDING ${workloadDirs.size} WORKLOADS`);
 for (const workloadDir of workloadDirs) {
   logInfo(`  - ${workloadDir}`);
@@ -29,6 +31,58 @@ for (const workloadDir of workloadDirs) {
 await logGroup("UPDATING VERSION INFO", updateVersionInfo);
 await logGroup("UPDATING LIBRARY VERSION INFO", updateLibraryVersionInfo);
 await logGroup("UPDATING MODEL INFO TABLE", updateModelInfoTable);
+
+function isLfsPointerOrMissing(filePath) {
+  const LFS_POINTER_PREFIX = "version https://git-lfs.github.com/spec/v1";
+  // Per the Git LFS v1 specification (https://github.com/git-lfs/git-lfs/blob/main/docs/spec.md),
+  // pointer files must be smaller than 1024 bytes. Checking file size via stat first avoids
+  // opening multi-hundred-megabyte model files on every build.
+  const LFS_POINTER_MAX_BYTES = 1024;
+
+  const stat = fs.statSync(filePath, {throwIfNoEntry: false});
+  if (!stat || stat.size === 0) {
+    return true;
+  }
+  if (stat.size >= LFS_POINTER_MAX_BYTES) {
+    return false;
+  }
+  return fs.readFileSync(filePath, "utf8").startsWith(LFS_POINTER_PREFIX);
+}
+
+async function ensureGitLfsFiles() {
+  const lfsFilesOutput = (await sh(["git", "ls-files", ":(attr:filter=lfs)"])).stdoutString.trim();
+  const lfsFiles = lfsFilesOutput ? lfsFilesOutput.split("\n").map(f => f.trim()).filter(Boolean) : [];
+  if (lfsFiles.length === 0) {
+    return;
+  }
+
+  const pendingFiles = lfsFiles.filter(isLfsPointerOrMissing);
+  if (pendingFiles.length === 0) {
+    logInfo("All Git LFS files are present.");
+    return;
+  }
+
+  logInfo(`Found ${pendingFiles.length} un-fetched Git LFS file(s): ${pendingFiles.join(", ")}`);
+  try {
+    await sh(["git", "lfs", "version"]);
+  } catch (e) {
+    throw new Error(
+      `Git LFS is required to fetch model files (${pendingFiles.join(", ")}), ` +
+      `but 'git lfs' is not installed. Please install git-lfs (https://git-lfs.com) and re-run the build.`
+    );
+  }
+
+  await sh(["git", "lfs", "install", "--local"]);
+  await sh(["git", "lfs", "pull", "--include", pendingFiles.join(",")]);
+
+  const remainingFiles = pendingFiles.filter(isLfsPointerOrMissing);
+  if (remainingFiles.length > 0) {
+    throw new Error(
+      `Git LFS pull completed, but the following files are still missing or LFS pointers: ${remainingFiles.join(", ")}`
+    );
+  }
+  logInfo("Successfully fetched all Git LFS files.");
+}
 
 async function buildWorkload(workloadDir) {
   await sh(["npm", "ci"], {cwd: workloadDir});
