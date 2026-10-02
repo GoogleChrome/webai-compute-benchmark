@@ -1,4 +1,5 @@
 import { STEP_RUNNER_LOOKUP } from "./shared/step-runner.mjs";
+import { isValidUrl } from "./shared/params.mjs";
 import { WarmupSuite } from "./benchmark-runner.mjs";
 
 export class SuiteRunner {
@@ -129,8 +130,12 @@ export class SuiteRunner {
                 resolve();
             };
             frame.onerror = () => reject();
-            let suiteParams = '';
-            frame.src = `${this.#suite.url}?${this.#params.toSearchParams()}`;
+            const targetUrl = `${this.#suite.url}?${this.#params.toSearchParams()}`;
+            if (!isValidUrl(targetUrl)) {
+                reject(new Error(`Invalid suite URL: ${targetUrl}`));
+                return;
+            }
+            frame.src = targetUrl;
         });
     }
 

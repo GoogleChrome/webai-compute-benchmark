@@ -169,7 +169,7 @@ export class Params {
     _parseConfig(searchParams) {
         const config = searchParams.get("config") ?? "";
         searchParams.delete("config");
-        if (config && !isValidJsonUrl(config))
+        if (config && !isValidUrl(config))
             throw new Error("Invalid config url passed in.");
 
         return config;
@@ -211,16 +211,11 @@ export class Params {
     }
 }
 
-function isValidJsonUrl(url) {
+export function isValidUrl(url) {
     if (typeof url !== "string" || url.length === 0)
         return false;
-
-    try {
-        new URL(url, "http://www.example.com");
-        return true;
-    } catch (error) {
-        return false;
-    }
+    const protocol = URL.parse(url, "http://www.example.com")?.protocol;
+    return protocol === "http:" || protocol === "https:";
 }
 
 export const defaultParams = new Params();
