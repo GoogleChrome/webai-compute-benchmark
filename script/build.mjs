@@ -32,13 +32,13 @@ await logGroup("UPDATING VERSION INFO", updateVersionInfo);
 await logGroup("UPDATING LIBRARY VERSION INFO", updateLibraryVersionInfo);
 await logGroup("UPDATING MODEL INFO TABLE", updateModelInfoTable);
 
-const LFS_POINTER_PREFIX = "version https://git-lfs.github.com/spec/v1";
-// Per the Git LFS v1 specification (https://github.com/git-lfs/git-lfs/blob/main/docs/spec.md),
-// pointer files must be smaller than 1024 bytes. Checking file size via stat first avoids
-// opening multi-hundred-megabyte model files on every build.
-const LFS_POINTER_MAX_BYTES = 1024;
-
 function isLfsPointerOrMissing(filePath) {
+  const LFS_POINTER_PREFIX = "version https://git-lfs.github.com/spec/v1";
+  // Per the Git LFS v1 specification (https://github.com/git-lfs/git-lfs/blob/main/docs/spec.md),
+  // pointer files must be smaller than 1024 bytes. Checking file size via stat first avoids
+  // opening multi-hundred-megabyte model files on every build.
+  const LFS_POINTER_MAX_BYTES = 1024;
+
   const stat = fs.statSync(filePath, {throwIfNoEntry: false});
   if (!stat || stat.size === 0) {
     return true;
