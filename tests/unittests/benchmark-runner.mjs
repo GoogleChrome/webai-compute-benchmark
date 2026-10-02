@@ -28,8 +28,10 @@ const SUITES_FIXTURE = [
 ];
 
 const CLIENT_FIXTURE = {
+    willStartSuite: sinon.stub(),
     willRunTest: sinon.stub(),
     didFinishSuite: sinon.stub(),
+    didFailSuite: sinon.stub(),
     didRunSuites: sinon.stub(),
 };
 
@@ -115,7 +117,7 @@ describe("BenchmarkRunner", () => {
                     spy(suite, "prepare");
                 }
                 expect(runner._suites).not.to.have.length(0);
-                await runner.runAllSuites();
+                await runner.runAllSuites(0);
             });
 
             it("should call prepare on all suites", () => {
@@ -125,6 +127,12 @@ describe("BenchmarkRunner", () => {
                     assert.calledOnce(suite.prepare);
                 }
                 expect(suitesPrepareCount).equal(SUITES_FIXTURE.length);
+            });
+
+            it("should notify client before starting each suite", () => {
+                assert.calledTwice(runner._client.willStartSuite);
+                assert.calledWith(runner._client.willStartSuite, SUITES_FIXTURE[0], 0);
+                assert.calledWith(runner._client.willStartSuite, SUITES_FIXTURE[1], 0);
             });
 
             it("should run all test suites", async () => {
@@ -139,6 +147,25 @@ describe("BenchmarkRunner", () => {
 
             it("should fire the function responsible for finalizing results", () => {
                 assert.calledOnce(_finalizeStub);
+            });
+
+            it("should handle a failing suite and continue running remaining suites", async () => {
+                const failure = new Error("Suite failed");
+                const runSuiteStub = stub(runner, "runSuite").onFirstCall().rejects(failure).onSecondCall().resolves();
+                stub(runner, "_finalize").callsFake(async () => null);
+                stub(runner, "_appendFrame").callsFake(async () => null);
+                const removeFrameStub = stub(runner, "_removeFrame").callsFake(() => null);
+                stub(console, "error");
+
+                await runner.runAllSuites(0);
+
+                assert.calledOnce(runner._client.didFailSuite);
+                assert.calledWith(runner._client.didFailSuite, SUITES_FIXTURE[0], failure);
+                expect(runner._measuredValues.steps[SUITES_FIXTURE[0].name]).to.eql({ total: 0 });
+                assert.calledTwice(runSuiteStub);
+                assert.calledTwice(removeFrameStub);
+
+                runner._resetMeasuredValues();
             });
         });
 

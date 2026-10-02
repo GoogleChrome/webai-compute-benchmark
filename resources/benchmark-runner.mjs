@@ -441,6 +441,7 @@ export class BenchmarkRunner {
                     continue;
                 }
                 try {
+                    await this._client?.willStartSuite?.(suite, iteration);
                     await this._appendFrame();
                     this._page = new Page(this._frame);
                     let cleanupErrorListeners;
@@ -467,7 +468,7 @@ export class BenchmarkRunner {
                 } catch (error) {
                     console.error(`Workload ${suite.name} failed:`, error);
                     this._measuredValues.steps[suite.name] = { total: 0 };
-                    this._client?.didFailSuite?.(suite, error);
+                    await this._client?.didFailSuite?.(suite, error);
                 } finally {
                     this._removeFrame();
                 }
