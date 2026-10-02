@@ -8,7 +8,7 @@ See the Speedometer repo for a more detailed explanation, e.g., in which phases 
 
 ## Setup Instructions, How to Run Workloads
 
-- Prerequisites: Node.js and NPM (see [`.nvmrc`](.nvmrc) for the recommended version, or run `nvm use`), and *Git LFS* (only needed to download the experimental Gemma and LiteRT-LM models; LiteRT-LM also requires a browser with WebGPU support). Run `npm install` to install the dependencies of the runner.
+- Prerequisites: Node.js, NPM (see [`.nvmrc`](.nvmrc) for the recommended version, or run `nvm use`), and Git LFS. Run `npm install` to install the dependencies of the runner.
 - Building the individual workloads: Run `npm run build` in the root directory. This will install dependencies and build all workloads in `resources/`. Alternatively, you can also manually run `npm install` and `npm run build` inside each `resources/<workload-group>/` sub-directory to produce output in `resources/<workload-group>/dist/`.
 - Starting the web server: `npm run dev` in the root directory.
 - Most important files:

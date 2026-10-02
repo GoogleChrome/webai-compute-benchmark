@@ -32,19 +32,21 @@ await logGroup("UPDATING VERSION INFO", updateVersionInfo);
 await logGroup("UPDATING LIBRARY VERSION INFO", updateLibraryVersionInfo);
 await logGroup("UPDATING MODEL INFO TABLE", updateModelInfoTable);
 
+const LFS_POINTER_PREFIX = "version https://git-lfs.github.com/spec/v1";
+// Per the Git LFS v1 specification (https://github.com/git-lfs/git-lfs/blob/main/docs/spec.md),
+// pointer files must be smaller than 1024 bytes. Checking file size via stat first avoids
+// opening multi-hundred-megabyte model files on every build.
+const LFS_POINTER_MAX_BYTES = 1024;
+
 function isLfsPointerOrMissing(filePath) {
-  const lfsPointerPrefix = "version https://git-lfs.github.com/spec/v1";
-  if (!fs.existsSync(filePath)) {
+  const stat = fs.statSync(filePath, {throwIfNoEntry: false});
+  if (!stat || stat.size === 0) {
     return true;
   }
-  const fd = fs.openSync(filePath, "r");
-  try {
-    const buffer = Buffer.alloc(lfsPointerPrefix.length);
-    const bytesRead = fs.readSync(fd, buffer, 0, buffer.length, 0);
-    return buffer.subarray(0, bytesRead).toString("utf8") === lfsPointerPrefix;
-  } finally {
-    fs.closeSync(fd);
+  if (stat.size >= LFS_POINTER_MAX_BYTES) {
+    return false;
   }
+  return fs.readFileSync(filePath, "utf8").startsWith(LFS_POINTER_PREFIX);
 }
 
 async function ensureGitLfsFiles() {
@@ -70,10 +72,10 @@ async function ensureGitLfsFiles() {
     );
   }
 
-  await sh(["git", "lfs", "install", "--local", "--force"]);
-  await sh(["git", "lfs", "pull"], {env: {...process.env, GIT_LFS_SKIP_SMUDGE: "0"}});
+  await sh(["git", "lfs", "install", "--local"]);
+  await sh(["git", "lfs", "pull", "--include", pendingFiles.join(",")]);
 
-  const remainingFiles = lfsFiles.filter(isLfsPointerOrMissing);
+  const remainingFiles = pendingFiles.filter(isLfsPointerOrMissing);
   if (remainingFiles.length > 0) {
     throw new Error(
       `Git LFS pull completed, but the following files are still missing or LFS pointers: ${remainingFiles.join(", ")}`
