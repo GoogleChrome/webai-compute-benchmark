@@ -16,5 +16,7 @@
 /resources/experimental/dist/
 /resources/experimental/models/
 
+/resources/build-info.mjs
+
 .vscode
 .angular

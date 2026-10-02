@@ -6,6 +6,7 @@
         <title>About</title>
         <link rel="stylesheet" href="resources/main.css" />
         <link rel="icon" href="resources/favicon.png" />
+        <script src="resources/build-info.mjs" type="module"></script>
     </head>
     <body>
         <main>
@@ -18,16 +19,12 @@
                     <div class="section-content">
                         <h2>Benchmark Version</h2>
                         <ul>
-                            <li>Version: <!-- package-version -->0.3.0 (2026-07-20)<!-- /package-version --></li>
-                            <li>Git commit: <!-- git-commit-link --><a href="https://github.com/GoogleChrome/webai-compute-benchmark/commit/8dbb93528d750d4bc10b58ee7b058fd1e8ff0afb" target="_blank">8dbb935</a><!-- /git-commit-link --></li>
+                            <li>Version: <span class="package-version">unbuilt</span></li>
+                            <li>Git commit: <span class="git-commit-link">unbuilt</span></li>
                         </ul>
                         <h2>Library Versions</h2>
-                        <ul>
-                            <!-- library-versions -->
-                            <li>Transformers.js: 4.0.1</li>
-                            <li>ONNX Runtime: 1.25.0-dev.20260327-722743c0e2</li>
-                            <li>LiteRT.js: 2.4.0</li>
-                            <!-- /library-versions -->
+                        <ul id="library-versions">
+                            <li>unbuilt</li>
                         </ul>
                         <h2>Model Versions</h2>
                         <table>
@@ -37,105 +34,10 @@
                                     <th>Model</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                <!-- model-versions -->
+                            <tbody id="model-versions">
                                 <tr>
-                                    <td>Feature-Extraction-wasm</td>
-                                    <td><a href="https://huggingface.co/Xenova/UAE-Large-V1" target="_blank">Xenova/UAE-Large-V1</a></td>
+                                    <td colspan="2">unbuilt</td>
                                 </tr>
-                                <tr>
-                                    <td>Feature-Extraction-webgpu</td>
-                                    <td><a href="https://huggingface.co/Xenova/UAE-Large-V1" target="_blank">Xenova/UAE-Large-V1</a></td>
-                                </tr>
-                                <tr>
-                                    <td>Sentence-Similarity-wasm</td>
-                                    <td><a href="https://huggingface.co/Alibaba-NLP/gte-base-en-v1.5" target="_blank">Alibaba-NLP/gte-base-en-v1.5</a></td>
-                                </tr>
-                                <tr>
-                                    <td>Sentence-Similarity-webgpu</td>
-                                    <td><a href="https://huggingface.co/Alibaba-NLP/gte-base-en-v1.5" target="_blank">Alibaba-NLP/gte-base-en-v1.5</a></td>
-                                </tr>
-                                <tr>
-                                    <td>Speech-Recognition-wasm</td>
-                                    <td><a href="https://huggingface.co/Xenova/whisper-small" target="_blank">Xenova/whisper-small</a></td>
-                                </tr>
-                                <tr>
-                                    <td>Speech-Recognition-webgpu</td>
-                                    <td><a href="https://huggingface.co/Xenova/whisper-small" target="_blank">Xenova/whisper-small</a></td>
-                                </tr>
-                                <tr>
-                                    <td>Background-Removal-wasm</td>
-                                    <td><a href="https://huggingface.co/Xenova/modnet" target="_blank">Xenova/modnet</a></td>
-                                </tr>
-                                <tr>
-                                    <td>Background-Removal-webgpu</td>
-                                    <td><a href="https://huggingface.co/Xenova/modnet" target="_blank">Xenova/modnet</a></td>
-                                </tr>
-                                <tr>
-                                    <td>Text-Reranking-wasm</td>
-                                    <td><a href="https://huggingface.co/mixedbread-ai/mxbai-rerank-base-v1" target="_blank">mixedbread-ai/mxbai-rerank-base-v1</a></td>
-                                </tr>
-                                <tr>
-                                    <td>Text-Reranking-webgpu</td>
-                                    <td><a href="https://huggingface.co/mixedbread-ai/mxbai-rerank-base-v1" target="_blank">mixedbread-ai/mxbai-rerank-base-v1</a></td>
-                                </tr>
-                                <tr>
-                                    <td>SFW-Image-Classification-wasm</td>
-                                    <td><a href="https://huggingface.co/AdamCodd/vit-base-nsfw-detector" target="_blank">AdamCodd/vit-base-nsfw-detector</a></td>
-                                </tr>
-                                <tr>
-                                    <td>SFW-Image-Classification-webgpu</td>
-                                    <td><a href="https://huggingface.co/AdamCodd/vit-base-nsfw-detector" target="_blank">AdamCodd/vit-base-nsfw-detector</a></td>
-                                </tr>
-                                <tr>
-                                    <td>Zero-shot-Image-Classification-wasm</td>
-                                    <td><a href="https://huggingface.co/Xenova/mobileclip_s0" target="_blank">Xenova/mobileclip_s0</a></td>
-                                </tr>
-                                <tr>
-                                    <td>Zero-shot-Image-Classification-webgpu</td>
-                                    <td><a href="https://huggingface.co/Xenova/mobileclip_s0" target="_blank">Xenova/mobileclip_s0</a></td>
-                                </tr>
-                                <tr>
-                                    <td>Text-to-Speech-wasm</td>
-                                    <td><a href="https://huggingface.co/onnx-community/Kokoro-82M-v1.0-ONNX" target="_blank">onnx-community/Kokoro-82M-v1.0-ONNX</a></td>
-                                </tr>
-                                <tr>
-                                    <td>Text-to-Speech-webgpu</td>
-                                    <td><a href="https://huggingface.co/onnx-community/Kokoro-82M-v1.0-ONNX" target="_blank">onnx-community/Kokoro-82M-v1.0-ONNX</a></td>
-                                </tr>
-                                <tr>
-                                    <td>Mask-Generation-wasm</td>
-                                    <td><a href="https://huggingface.co/Xenova/sam-vit-base" target="_blank">Xenova/sam-vit-base</a></td>
-                                </tr>
-                                <tr>
-                                    <td>Mask-Generation-webgpu</td>
-                                    <td><a href="https://huggingface.co/Xenova/sam-vit-base" target="_blank">Xenova/sam-vit-base</a></td>
-                                </tr>
-                                <tr>
-                                    <td>Image-Segmentation-LiteRT.js-wasm</td>
-                                    <td><a href="https://huggingface.co/qualcomm/MediaPipe-Selfie-Segmentation" target="_blank">qualcomm/MediaPipe-Selfie-Segmentation</a></td>
-                                </tr>
-                                <tr>
-                                    <td>Image-Segmentation-LiteRT.js-webgpu</td>
-                                    <td><a href="https://huggingface.co/qualcomm/MediaPipe-Selfie-Segmentation" target="_blank">qualcomm/MediaPipe-Selfie-Segmentation</a></td>
-                                </tr>
-                                <tr>
-                                    <td>Image-Classification-LiteRT.js-wasm</td>
-                                    <td><a href="https://huggingface.co/qualcomm/MobileNet-v3-Small" target="_blank">qualcomm/MobileNet-v3-Small</a></td>
-                                </tr>
-                                <tr>
-                                    <td>Image-Classification-LiteRT.js-webgpu</td>
-                                    <td><a href="https://huggingface.co/qualcomm/MobileNet-v3-Small" target="_blank">qualcomm/MobileNet-v3-Small</a></td>
-                                </tr>
-                                <tr>
-                                    <td>Hand-Detection-LiteRT.js-wasm</td>
-                                    <td><a href="https://huggingface.co/qualcomm/MediaPipe-Hand-Detection" target="_blank">qualcomm/MediaPipe-Hand-Detection</a></td>
-                                </tr>
-                                <tr>
-                                    <td>Hand-Detection-LiteRT.js-webgpu</td>
-                                    <td><a href="https://huggingface.co/qualcomm/MediaPipe-Hand-Detection" target="_blank">qualcomm/MediaPipe-Hand-Detection</a></td>
-                                </tr>
-                                <!-- /model-versions -->
                             </tbody>
                         </table>
                     </div>
