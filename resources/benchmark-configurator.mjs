@@ -2,6 +2,7 @@
 // http://localhost:8080/?developerMode=true&config=http://localhost:8080/resources/config.json
 // since the json doesn't contain a default suite, dismiss warning popups and select from the developerMenu
 import { defaultSuites } from "./default-tests.mjs";
+import { isValidIdentifier } from "./shared/helpers.mjs";
 import { params, isValidUrl } from "./shared/params.mjs";
 
 const DEFAULT_TAGS = ["all", "default", "experimental"];
@@ -70,13 +71,14 @@ export class BenchmarkConfigurator {
                 if (!config || !Array.isArray(config.suites))
                     throw new Error("Could not find a valid config structure!");
 
-                config.suites.flatMap((suite) => suite.tags || []).forEach((tag) => this.#tags.add(tag));
                 config.suites.forEach((suite) => {
-                    if (suite && suite.url && isValidUrl(suite.url))
+                    const validTags = !suite?.tags || (Array.isArray(suite.tags) && suite.tags.every(isValidIdentifier));
+                    if (suite && isValidIdentifier(suite.name) && validTags && suite.url && isValidUrl(suite.url))
                         this.#suites.push(suite);
                     else
                         throw new Error("Invalid suite data");
                 });
+                this.#suites.flatMap((suite) => suite.tags || []).forEach((tag) => this.#tags.add(tag));
             } catch (error) {
                 console.warn(`Error loading custom configuration: ${error.message}. Loading default suites.`);
                 this._loadDefaultSuites();
@@ -90,6 +92,7 @@ export class BenchmarkConfigurator {
     }
 
     _loadDefaultSuites() {
+        this.#suites = [];
         defaultSuites.flatMap((suite) => suite.tags).forEach((tag) => this.#tags.add(tag));
         defaultSuites.forEach((suite) => this.#suites.push(suite));
     }

@@ -1,12 +1,14 @@
 import { Metric } from "./metric.mjs";
 import { params } from "./shared/params.mjs";
-import { forceLayout } from "./shared/helpers.mjs";
+import { forceLayout, isValidIdentifier } from "./shared/helpers.mjs";
 import { SUITE_RUNNER_LOOKUP } from "./suite-runner.mjs";
 
 const performance = globalThis.performance;
 
 export class BenchmarkTestStep {
     constructor(testName, testFunction) {
+        if (!isValidIdentifier(testName))
+            throw new Error(`Invalid testName=${testName}, expected valid identifier.`);
         this.name = testName;
         this.run = testFunction;
     }
@@ -306,6 +308,8 @@ class WakeLock {
 
 export class BenchmarkRunner {
     constructor(suites, client) {
+        if (!Array.isArray(suites) || !suites.every((suite) => isValidIdentifier(suite?.name)))
+            throw new Error("Invalid suites");
         this._suites = suites;
         if (params.useWarmupSuite)
             this._suites = [WarmupSuite, ...suites];

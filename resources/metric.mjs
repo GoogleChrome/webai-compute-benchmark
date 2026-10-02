@@ -1,13 +1,20 @@
 import * as Statistics from "./statistics.mjs";
+import { isValidIdentifier } from "./shared/helpers.mjs";
 
 export const MILLISECONDS_PER_MINUTE = 60 * 1000;
 
 export class Metric {
     static separator = "/";
 
+    static isValidName(name) {
+        return typeof name === "string" && name.split(Metric.separator).every(isValidIdentifier);
+    }
+
     constructor(name, unit = "ms") {
-        if (typeof name !== "string")
-            throw new Error(`Invalid metric.name=${name}, expected string.`);
+        if (!Metric.isValidName(name))
+            throw new Error(`Invalid metric.name=${name}, expected valid identifier.`);
+        if (!isValidIdentifier(unit))
+            throw new Error(`Invalid metric.unit=${unit}, expected valid identifier.`);
         this.name = name;
         this.unit = unit;
         this.description = "";
