@@ -307,10 +307,6 @@ button,
     border-radius: 100vh;
 }
 
-.developer-mode .step-button {
-    color: white;
-    background: rgba(255, 255, 255, 0.1);
-}
 .developer-mode hr {
     width: initial;
     margin: 10px 0;

@@ -23,14 +23,6 @@
  * THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-export function max(values) {
-    return Math.max.apply(Math, values);
-}
-
-export function min(values) {
-    return Math.min.apply(Math, values);
-}
-
 export function sum(values) {
     return values.reduce((a, b) => a + b, 0);
 }
@@ -76,13 +68,6 @@ export function confidenceIntervalDelta(confidenceLevel, numberOfSamples, sum, s
     // tDistributionQuantile(degreesOfFreedom, confidenceLevel) * sampleStandardDeviation / sqrt(numberOfSamples) * S/sqrt(numberOfSamples)
     const quantile = cdfForProbability[degreesOfFreedom - 1]; // The first entry is for the one degree of freedom.
     return (quantile * sampleStandardDeviation(numberOfSamples, sum, squareSum)) / Math.sqrt(numberOfSamples);
-}
-
-export function confidenceInterval(values, probability) {
-    const sumValue = sum(values);
-    const mean = sumValue / values.length;
-    const delta = confidenceIntervalDelta(probability || 0.95, values.length, sumValue, squareSum(values));
-    return [mean - delta, mean + delta];
 }
 
 // See http://en.wikipedia.org/wiki/Student's_t-distribution#Table_of_selected_values
