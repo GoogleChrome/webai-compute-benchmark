@@ -1,6 +1,5 @@
 import { STEP_RUNNER_LOOKUP } from "./shared/step-runner.mjs";
 import { isValidUrl } from "./shared/params.mjs";
-import { WarmupSuite } from "./benchmark-runner.mjs";
 import { isValidIdentifier } from "./shared/helpers.mjs";
 
 export class SuiteRunner {
@@ -55,7 +54,7 @@ export class SuiteRunner {
     }
 
     get stepRunnerType() {
-        return (this.#suite.type ?? this.params.useAsyncSteps) ? "async" : "default";
+        return this.#suite.type ? "async" : "default";
     }
 
     async run() {
@@ -145,10 +144,6 @@ export class SuiteRunner {
     }
 
     _recordStepResults = async (step, syncTime, asyncTime) => {
-        // Skip reporting updates for the warmup suite.
-        if (this.#suite === WarmupSuite)
-            return;
-
         let total = syncTime + asyncTime;
         this.#suiteResults.steps[step.name] = {
             tests: { Sync: syncTime, Async: asyncTime },
