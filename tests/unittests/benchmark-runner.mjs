@@ -1,5 +1,5 @@
 import { BenchmarkRunner, geomeanToScore } from "../../resources/benchmark-runner.mjs";
-import { SuiteRunner } from "../../resources/suite-runner.mjs";
+import { SuiteRunner, RemoteSuiteRunner } from "../../resources/suite-runner.mjs";
 import { StepRunner } from "../../resources/shared/step-runner.mjs";
 import { defaultParams } from "../../resources/shared/params.mjs";
 
@@ -261,6 +261,44 @@ describe("BenchmarkRunner", () => {
 
                     assert.calledWith(runner._client.didRunSuites, runner._measuredValues);
                 });
+            });
+        });
+
+        describe("RemoteSuiteRunner", () => {
+            let frame, remoteRunner;
+
+            beforeEach(async () => {
+                frame = await runner._appendFrame();
+                const suite = { name: "Remote Suite", url: "resources/warmup/index.html", type: "remote" };
+                remoteRunner = new RemoteSuiteRunner(frame, runner._page, defaultParams, suite, runner._client, { steps: {} });
+                remoteRunner.postMessageCallbacks = new Map();
+            });
+
+            afterEach(() => {
+                runner._removeFrame();
+            });
+
+            it("should only accept postMessage events from the suite iframe and same origin", () => {
+                const callback = sinon.spy();
+                remoteRunner._startSubscription("app-ready", callback);
+                const data = { type: "app-ready", appId: "app-1" };
+
+                remoteRunner._handlePostMessage(new MessageEvent("message", { origin: "https://evil.example", source: frame.contentWindow, data }));
+                remoteRunner._handlePostMessage(new MessageEvent("message", { origin: window.location.origin, source: window, data }));
+                remoteRunner._handlePostMessage(new MessageEvent("message", { origin: window.location.origin, source: null, data }));
+                expect(callback.called).to.be(false);
+
+                remoteRunner._handlePostMessage(new MessageEvent("message", { origin: window.location.origin, source: frame.contentWindow, data }));
+                expect(callback.calledOnce).to.be(true);
+            });
+
+            it("should reject non-positive or non-finite totals in _validateSuiteResults", () => {
+                for (const invalidTotal of [0, -10, NaN, Infinity, "100", undefined]) {
+                    remoteRunner.suiteResults.total = invalidTotal;
+                    expect(() => remoteRunner._validateSuiteResults()).to.throwError();
+                }
+                remoteRunner.suiteResults.total = 10;
+                expect(() => remoteRunner._validateSuiteResults()).to.not.throwError();
             });
         });
     });

@@ -98,10 +98,10 @@ export class SuiteRunner {
         // When the test is fast and the precision is low (for example with Firefox'
         // privacy.resistFingerprinting preference), it's possible that the measured
         // total duration for an entire is 0.
-        const { suiteTotal, suitePrepare } = this.#suiteResults.total;
-        if (suiteTotal === 0)
+        const { total: suiteTotal, prepare: suitePrepare } = this.#suiteResults;
+        if (!Number.isFinite(suiteTotal) || suiteTotal <= 0)
             throw new Error(`Got invalid 0-time total for suite ${this.#suite.name}: ${suiteTotal}`);
-        if (this.#params.measurePrepare && suitePrepare === 0)
+        if (this.#params.measurePrepare && (!Number.isFinite(suitePrepare) || suitePrepare <= 0))
             throw new Error(`Got invalid 0-time prepare time for suite ${this.#suite.name}: ${suitePrepare}`);
     }
 
@@ -225,7 +225,11 @@ export class RemoteSuiteRunner extends SuiteRunner {
     }
 
     _handlePostMessage(event) {
-        const callback = this.postMessageCallbacks.get(event.data.type);
+        // Ignore messages not originating from the active same-origin workload iframe
+        // to prevent cross-window result spoofing.
+        if (event.origin !== window.location.origin || !this.frame?.contentWindow || event.source !== this.frame.contentWindow)
+            return;
+        const callback = this.postMessageCallbacks.get(event.data?.type);
         if (callback)
             callback(event);
     }
