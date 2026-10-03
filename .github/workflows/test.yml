@@ -61,3 +61,18 @@ jobs:
               run: |
                   echo "Running in $BROWSER"
                   npm run test-e2e:${{ matrix.browser }}
+
+            - name: Upload UI Screenshots
+              id: upload-screenshots
+              if: always()
+              uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+              with:
+                  path: tests/screenshot-canvas-ci.png
+                  archive: false
+
+            - name: Link Screenshots in Job Summary
+              if: always() && steps.upload-screenshots.outputs.artifact-url != ''
+              env:
+                  ARTIFACT_URL: ${{ steps.upload-screenshots.outputs.artifact-url }}
+              run: |
+                  echo "### [View UI Screenshots]($ARTIFACT_URL)" >> "$GITHUB_STEP_SUMMARY"
