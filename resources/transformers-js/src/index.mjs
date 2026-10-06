@@ -1,7 +1,7 @@
 import { BenchmarkConnector } from "speedometer-utils/benchmark.mjs";
 import { createSubIteratedSuite, getVisualOutputCanvas } from "speedometer-utils/helpers.mjs";
 import { params } from "speedometer-utils/params.mjs";
-import { pipeline, env, dot, read_audio, AutoTokenizer, AutoModelForSequenceClassification, AutoProcessor, RawImage, CLIPTextModelWithProjection, CLIPVisionModelWithProjection, softmax, SamModel, SamProcessor } from '@huggingface/transformers';
+import { pipeline, env, dot, read_audio, AutoTokenizer, AutoModelForSequenceClassification, AutoModelForImageClassification, AutoProcessor, ImageClassificationPipeline, RawImage, CLIPTextModelWithProjection, CLIPVisionModelWithProjection, softmax, SamModel, SamProcessor } from '@huggingface/transformers';
 import { KokoroTTS } from "kokoro-js";
 import jfkAudio from '../../media/jfk_1962_0912_spaceeffort.wav';
 import imageWithBackground from '../../media/image.jpg';
@@ -208,7 +208,16 @@ class ImageClassification {
     document.getElementById('workload').textContent = "image classification";
     document.getElementById('input').textContent = `Image classification of a local image.`;
 
-    this.model = await pipeline('image-classification', "AdamCodd/vit-base-nsfw-detector", { device: this.device, dtype: "q4" },);
+    const model_id = "AdamCodd/vit-base-nsfw-detector";
+    const [processor, model] = await Promise.all([
+      AutoProcessor.from_pretrained(model_id),
+      AutoModelForImageClassification.from_pretrained(model_id, { device: this.device, dtype: "q4" }),
+    ]);
+    this.model = new ImageClassificationPipeline({
+      task: "image-classification",
+      model,
+      processor,
+    });
   }
 
   async run() {
@@ -446,6 +455,7 @@ export async function initializeBenchmark(modelType) {
     await benchmark.init();
   } catch (error) {
     console.error(error);
+    throw error;
   }
   
 
