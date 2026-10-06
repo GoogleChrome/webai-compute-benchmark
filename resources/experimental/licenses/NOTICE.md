@@ -1,5 +1,6 @@
 * [huggingface/transformers.js](https://github.com/huggingface/transformers.js): licensed under the Apache License, Version 2.0. The full text is available in [LICENSE.apache2](LICENSE.apache2).
 * [LiteRT-LM](https://github.com/google-ai-edge/LiteRT-LM): licensed under the Apache License, Version 2.0. The full text is available in [LICENSE.apache2](LICENSE.apache2).
+* [Eigen](https://gitlab.com/libeigen/eigen): licensed under the Mozilla Public License Version 2.0. The full text is available in [LICENSE.eigen](LICENSE.eigen).
 * The Transformers.js model licenses are specified in the metadata header of their respective `README.md` files.
 * Models:
     * [Xenova/flan-t5-small](https://huggingface.co/Xenova/flan-t5-small): licensed under the Apache License, Version 2.0. The full text is available in [LICENSE.apache2](LICENSE.apache2).

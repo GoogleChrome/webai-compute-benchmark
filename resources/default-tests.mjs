@@ -193,4 +193,10 @@ export const defaultSuites = [
         tags: ["experimental", "gemma", "litert-lm", "webgpu"],
         type: "remote",
     },
+    {
+        name: "Experimental-Eigen-wasm",
+        url: "resources/experimental/dist/eigen.html",
+        tags: ["experimental", "eigen", "wasm"],
+        type: "remote",
+    },
 ];
