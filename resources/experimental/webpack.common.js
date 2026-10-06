@@ -12,6 +12,7 @@ module.exports = {
         'text2text-generation-gpu': './src/text2text-generation-gpu.mjs',
         'gemma': './src/gemma/benchmark.mjs',
         'litert-lm': './src/litert-lm/benchmark.mjs',
+        'meshoptimizer': './src/meshoptimizer/benchmark.mjs',
     },
     plugins: [
         new HtmlWebpackPlugin({
@@ -38,6 +39,12 @@ module.exports = {
             filename: 'litert-lm.html',
             chunks: ['litert-lm'],
         }),
+        new HtmlWebpackPlugin({
+            title: "Experimental Meshoptimizer Runner",
+            template: path.resolve(__dirname, "src", "console-runner.html"),
+            filename: 'meshoptimizer.html',
+            chunks: ['meshoptimizer'],
+        }),
         {
             apply(compiler) {
                 compiler.hooks.afterEmit.tap("CopyWasmPlugin", () => {
@@ -53,7 +60,9 @@ module.exports = {
     output: {
         filename: "[name].bundle.js",
         path: path.resolve(__dirname, "dist"),
-        clean: true,
+        clean: {
+            keep: /^(meshoptimizer)\//,
+        },
     },
     module: {
         rules: [
