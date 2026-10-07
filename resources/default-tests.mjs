@@ -193,4 +193,10 @@ export const defaultSuites = [
         tags: ["experimental", "gemma", "litert-lm", "webgpu"],
         type: "remote",
     },
+    {
+        name: "Experimental-Tract-wasm",
+        url: "resources/experimental/dist/tract.html",
+        tags: ["experimental", "tract", "wasm"],
+        type: "remote",
+    },
 ];
