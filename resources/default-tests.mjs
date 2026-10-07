@@ -193,4 +193,10 @@ export const defaultSuites = [
         tags: ["experimental", "gemma", "litert-lm", "webgpu"],
         type: "remote",
     },
+    {
+        name: "Experimental-Meshoptimizer-wasm",
+        url: "resources/experimental/dist/meshoptimizer.html",
+        tags: ["experimental", "meshoptimizer", "wasm"],
+        type: "remote",
+    },
 ];

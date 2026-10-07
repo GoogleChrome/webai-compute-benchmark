@@ -18,5 +18,7 @@
 
 /resources/build-info.mjs
 
+/resources/experimental/src/meshoptimizer/src/
+
 .vscode
 .angular
