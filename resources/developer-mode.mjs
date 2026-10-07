@@ -1,4 +1,4 @@
-import { params, LAYOUT_MODES } from "./shared/params.mjs";
+import { params } from "./shared/params.mjs";
 import { benchmarkConfigurator } from "./benchmark-configurator.mjs";
 
 const { suites, tags } = benchmarkConfigurator;
@@ -19,11 +19,8 @@ export function createDeveloperModeContainer() {
     settings.append(createUIForIterationCount());
     settings.append(createUIForSubIterationCount());
     settings.append(createUIForMeasurePrepare());
-    settings.append(createUIForWarmupSuite());
     settings.append(createUIForWarmupBeforeSync());
     settings.append(createUIForSyncStepDelay());
-    settings.append(createUIForAsyncSteps());
-    settings.append(createUIForLayoutMode());
 
     content.append(document.createElement("hr"));
     content.append(settings);
@@ -41,21 +38,9 @@ function span(text) {
     return span;
 }
 
-function createUIForWarmupSuite() {
-    return createCheckboxUI("Use Warmup Suite", params.useWarmupSuite, (isChecked) => {
-        params.useWarmupSuite = isChecked;
-    });
-}
-
 function createUIForMeasurePrepare() {
     return createCheckboxUI("Measure Prepare", params.measurePrepare, (isChecked) => {
         params.measurePrepare = isChecked;
-    });
-}
-
-function createUIForAsyncSteps() {
-    return createCheckboxUI("Use Async Steps", params.useAsyncSteps, (isChecked) => {
-        params.useAsyncSteps = isChecked;
     });
 }
 
@@ -114,31 +99,6 @@ function createTimeRangeUI(labelText, paramKey, unit = "ms", min = 0, max = 1000
         params[paramKey] = parseInt(range.value);
         updateURL();
     };
-
-    return label;
-}
-
-function createUIForLayoutMode() {
-    return createSelectUI("Force layout mode", params.layoutMode, LAYOUT_MODES, (value) => {
-        params.layoutMode = value;
-    });
-}
-
-function createSelectUI(labelValue, initialValue, choices, paramsUpdateCallback) {
-    const select = document.createElement("select");
-    select.onchange = () => {
-        paramsUpdateCallback(select.value);
-        updateURL();
-    };
-
-    choices.forEach((choice) => {
-        const option = new Option(choice, choice);
-        select.add(option);
-    });
-    select.value = initialValue;
-
-    const label = document.createElement("label");
-    label.append(span(labelValue), select);
 
     return label;
 }
@@ -254,12 +214,6 @@ function createSuitesTagsButton(setSuiteEnabled) {
 }
 
 function createUIForRun() {
-    const stepTestButton = document.createElement("button");
-    stepTestButton.className = "step-button";
-    stepTestButton.innerHTML = "Step Test<span>\u23EF</span>";
-    stepTestButton.onclick = (event) => {
-        globalThis.benchmarkClient.step();
-    };
     const startTestButton = document.createElement("button");
     startTestButton.innerHTML = "Start Test<span>\u23F5</span>";
     startTestButton.onclick = (event) => {
@@ -267,7 +221,6 @@ function createUIForRun() {
     };
     const buttons = document.createElement("div");
     buttons.className = "button-bar";
-    buttons.appendChild(stepTestButton);
     buttons.appendChild(startTestButton);
     return buttons;
 }

@@ -1,5 +1,3 @@
-export const LAYOUT_MODES = Object.freeze(["getBoundingClientRect", "getBoundingRectAndElementFromPoint"]);
-
 export class Params {
     viewport = {
         width: 800,
@@ -13,10 +11,6 @@ export class Params {
     suites = [];
     // A list of tags to filter suites
     tags = ["default"];
-    // Toggle running a dummy suite once before the normal test suites.
-    useWarmupSuite = false;
-    // toggle async type vs default raf type.
-    useAsyncSteps = false;
     // Change how a test measurement is triggered and async time is measured:
     // "timer": The classic (as in Speedometer 2.x) way using setTimeout
     // "raf":   Using rAF callbacks, both for triggering the sync part and for measuring async time.
@@ -30,8 +24,6 @@ export class Params {
     // "generate": generate a random seed
     // <integer>: use the provided integer as a seed
     shuffleSeed = "off";
-    // Choices: "getBoundingClientRect" or "getBoundingRectAndElementFromPoint"
-    layoutMode = LAYOUT_MODES[0];
     // Measure more workload prepare time.
     measurePrepare = false;
     // External config url to override internal tests.
@@ -61,13 +53,10 @@ export class Params {
         this.suites = this._parseSuites(searchParams);
         this.tags = this._parseTags(searchParams);
         this.developerMode = this._parseBooleanParam(searchParams, "developerMode", "dev");
-        this.useWarmupSuite = this._parseBooleanParam(searchParams, "useWarmupSuite");
-        this.useAsyncSteps = this._parseBooleanParam(searchParams, "useAsyncSteps");
         this.waitBeforeSync = this._parseIntParam(searchParams, "waitBeforeSync", 0);
         this.warmupBeforeSync = this._parseIntParam(searchParams, "warmupBeforeSync", 0);
         this.measurementMethod = this._parseEnumParam(searchParams, "measurementMethod", ["raf"]);
         this.shuffleSeed = this._parseShuffleSeed(searchParams);
-        this.layoutMode = this._parseEnumParam(searchParams, "layoutMode", LAYOUT_MODES);
         this.measurePrepare = this._parseBooleanParam(searchParams, "measurePrepare");
         this.config = this._parseConfig(searchParams);
 

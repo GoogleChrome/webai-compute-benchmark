@@ -56,7 +56,7 @@ export class BenchmarkSuite {
         return results;
     }
 
-    async runAndRecord(params, onProgress) {
+    async runAndRecord(params) {
         const measuredValues = {
             steps: {},
             prepare: 0,
@@ -71,7 +71,6 @@ export class BenchmarkSuite {
             const result = await step.runAndRecord(params, this, this.record);
             measuredValues.steps[step.name] = result;
             measuredValues.total += result.total;
-            onProgress?.(step.name);
         }
 
         performance.mark(suiteEndLabel);
@@ -126,7 +125,7 @@ export class BenchmarkConnector {
                 const suite = this.suites[event.data.name];
                 if (!suite)
                     console.error(`Suite with the name of "${event.data.name}" not found!`);
-                const { result } = await suite.runAndRecord(params, (test) => this.sendMessage({ type: "step-complete", status: "success", appId: this.appId, name: this.name, test }));
+                const { result } = await suite.runAndRecord(params);
                 this.sendMessage({ type: "suite-complete", status: "success", appId: this.appId, result });
                 this.disconnect();
                 break;
