@@ -103,9 +103,9 @@ export CARGO_TARGET_DIR="$TARGET_DIR"
 echo "Compiling Tract example binaries to Wasm with Emscripten..."
 cargo build --target wasm32-unknown-emscripten --release \
   --manifest-path="$TRACT_SRC/Cargo.toml" \
-  --bin example-onnx-mobilenet-v2 \
-  --bin example-tflite-mobilenet-v3 \
-  --bin example-pytorch-resnet
+  -p example-onnx-mobilenet-v2 --bin example-onnx-mobilenet-v2 \
+  -p example-tflite-mobilenet-v3 --bin example-tflite-mobilenet-v3 \
+  -p example-pytorch-resnet --bin example-pytorch-resnet
 
 mkdir -p "$OUT_DIR" "$DATA_CACHE_DIR" "$OUT_DATA_DIR"
 
