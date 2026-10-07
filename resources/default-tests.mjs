@@ -193,4 +193,10 @@ export const defaultSuites = [
         tags: ["experimental", "gemma", "litert-lm", "webgpu"],
         type: "remote",
     },
+    {
+        name: "Experimental-GGML-wasm",
+        url: "resources/experimental/dist/ggml.html",
+        tags: ["experimental", "ggml", "wasm"],
+        type: "remote",
+    },
 ];
