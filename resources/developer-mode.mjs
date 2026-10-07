@@ -173,10 +173,11 @@ function createUIForSuites() {
         label.onclick = (event) => {
             if (event?.ctrlKey || event?.metaKey) {
                 for (let suiteIndex = 0; suiteIndex < suites.length; suiteIndex++) {
-                    if (suites[suiteIndex] !== suite)
+                    if (suites[suiteIndex] !== suite) {
                         setSuiteEnabled(suiteIndex, false);
-                    else
+                    } else {
                         setSuiteEnabled(suiteIndex, true);
+                    }
                 }
             }
         };
@@ -196,8 +197,9 @@ function createSuitesGlobalSelectButtons(setSuiteEnabled) {
     button.className = "select-all";
     button.textContent = "Select all";
     button.onclick = () => {
-        for (let suiteIndex = 0; suiteIndex < suites.length; suiteIndex++)
+        for (let suiteIndex = 0; suiteIndex < suites.length; suiteIndex++) {
             setSuiteEnabled(suiteIndex, true);
+        }
 
         updateURL();
     };
@@ -207,8 +209,9 @@ function createSuitesGlobalSelectButtons(setSuiteEnabled) {
     button.textContent = "Unselect all";
     button.className = "unselect-all";
     button.onclick = () => {
-        for (let suiteIndex = 0; suiteIndex < suites.length; suiteIndex++)
+        for (let suiteIndex = 0; suiteIndex < suites.length; suiteIndex++) {
             setSuiteEnabled(suiteIndex, false);
+        }
 
         updateURL();
     };
@@ -223,8 +226,9 @@ function createSuitesTagsButton(setSuiteEnabled) {
     let i = 0;
     const kTagsPerLine = 3;
     for (const tag of tags) {
-        if (tag === "all")
+        if (tag === "all") {
             continue;
+        }
         if (!(i % kTagsPerLine)) {
             buttons = container.appendChild(document.createElement("div"));
             buttons.className = "button-bar";
@@ -240,10 +244,12 @@ function createSuitesTagsButton(setSuiteEnabled) {
             const selectedTag = event.target.dataTag;
             for (let suiteIndex = 0; suiteIndex < suites.length; suiteIndex++) {
                 let enabled = suites[suiteIndex].tags.includes(selectedTag);
-                if (invertSelection)
+                if (invertSelection) {
                     enabled = !enabled;
-                if (extendSelection && !enabled)
+                }
+                if (extendSelection && !enabled) {
                     continue;
+                }
                 setSuiteEnabled(suiteIndex, enabled);
             }
             updateURL();
@@ -279,21 +285,24 @@ function updateParamsSuitesAndTags() {
     // If less than all suites are selected then change the URL "Suites" GET parameter
     // to comma separate only the selected
     const selectedSuites = suites.filter((suite) => suite.enabled);
-    if (!selectedSuites.length)
+    if (!selectedSuites.length) {
         return;
+    }
 
     // Try finding common tags that would result in the current suite selection.
     let commonTags = new Set(selectedSuites[0].tags);
     for (const suite of suites) {
-        if (suite.enabled)
+        if (suite.enabled) {
             commonTags = new Set(suite.tags.filter((tag) => commonTags.has(tag)));
-        else
+        } else {
             suite.tags.forEach((tag) => commonTags.delete(tag));
+        }
     }
-    if (selectedSuites.length > 1 && commonTags.size)
+    if (selectedSuites.length > 1 && commonTags.size) {
         params.tags = [...commonTags];
-    else
+    } else {
         params.suites = selectedSuites.map((suite) => suite.name);
+    }
 }
 
 function updateURL() {
@@ -302,6 +311,7 @@ function updateURL() {
     const url = new URL(window.location.href);
     url.search = params.toSearchParams();
     // Only push state if changed
-    if (url.href !== window.location.href)
+    if (url.href !== window.location.href) {
         window.history.pushState({}, "", url);
+    }
 }

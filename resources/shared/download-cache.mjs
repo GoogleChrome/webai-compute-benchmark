@@ -1,5 +1,5 @@
-import fs from 'fs';
-import path from 'path';
+import fs from "fs";
+import path from "path";
 
 export default class DownloadCache {
     cached = {};
@@ -11,9 +11,9 @@ export default class DownloadCache {
         }
         if (fs.existsSync(filename)) {
             try {
-                const cacheData = JSON.parse(fs.readFileSync(filename, 'utf8'));
+                const cacheData = JSON.parse(fs.readFileSync(filename, "utf8"));
                 if (cacheData.version !== version) {
-                    console.log(`Cache version mismatch (found: ${cacheData.version}, expected: ${version}). Wiping models directory (excluding: ${excludes.join(', ')})...`);
+                    console.log(`Cache version mismatch (found: ${cacheData.version}, expected: ${version}). Wiping models directory (excluding: ${excludes.join(", ")})...`);
                     const dir = path.dirname(filename);
                     if (excludes.length === 0) {
                         fs.rmSync(dir, { recursive: true, force: true });

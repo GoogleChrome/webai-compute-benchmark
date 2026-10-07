@@ -1,3 +1,3 @@
-import { initializeBenchmark } from './index.mjs';
+import { initializeBenchmark } from "./index.mjs";
 
-initializeBenchmark('mask-generation-gpu');
+initializeBenchmark("mask-generation-gpu");

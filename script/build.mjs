@@ -4,148 +4,146 @@
 // license that can be found in the LICENSE file or at
 // https://developers.google.com/open-source/licenses/bsd
 
-import {defaultSuites} from "../resources/default-tests.mjs"
-import {logGroup, logInfo, sh} from "./helper.mjs"
+import { defaultSuites } from "../resources/default-tests.mjs";
+import { logGroup, logInfo, sh } from "./helper.mjs";
 import fs from "node:fs";
 
 const workloadDirs = new Set();
 
 for (const suite of defaultSuites) {
-  const parts = suite.url.split("/");
-  const workloadDir = parts.slice(0, parts.indexOf("dist")).join("/");
-  workloadDirs.add(workloadDir);
+    const parts = suite.url.split("/");
+    const workloadDir = parts.slice(0, parts.indexOf("dist")).join("/");
+    workloadDirs.add(workloadDir);
 }
 
 await logGroup("CHECKING GIT LFS FILES", ensureGitLfsFiles);
 
 logInfo(`BUILDING ${workloadDirs.size} WORKLOADS`);
 for (const workloadDir of workloadDirs) {
-  logInfo(`  - ${workloadDir}`);
+    logInfo(`  - ${workloadDir}`);
 }
 logInfo("");
 
 for (const workloadDir of workloadDirs) {
-  await logGroup(`BUILDING: ${workloadDir}`, () => buildWorkload(workloadDir));
+    await logGroup(`BUILDING: ${workloadDir}`, () => buildWorkload(workloadDir));
 }
 
 await logGroup("WRITING BUILD INFO", writeBuildInfo);
 
 function isLfsPointerOrMissing(filePath) {
-  const LFS_POINTER_PREFIX = "version https://git-lfs.github.com/spec/v1";
-  // Per the Git LFS v1 specification (https://github.com/git-lfs/git-lfs/blob/main/docs/spec.md),
-  // pointer files must be smaller than 1024 bytes. Checking file size via stat first avoids
-  // opening multi-hundred-megabyte model files on every build.
-  const LFS_POINTER_MAX_BYTES = 1024;
+    const LFS_POINTER_PREFIX = "version https://git-lfs.github.com/spec/v1";
+    // Per the Git LFS v1 specification (https://github.com/git-lfs/git-lfs/blob/main/docs/spec.md),
+    // pointer files must be smaller than 1024 bytes. Checking file size via stat first avoids
+    // opening multi-hundred-megabyte model files on every build.
+    const LFS_POINTER_MAX_BYTES = 1024;
 
-  const stat = fs.statSync(filePath, {throwIfNoEntry: false});
-  if (!stat || stat.size === 0) {
-    return true;
-  }
-  if (stat.size >= LFS_POINTER_MAX_BYTES) {
-    return false;
-  }
-  return fs.readFileSync(filePath, "utf8").startsWith(LFS_POINTER_PREFIX);
+    const stat = fs.statSync(filePath, { throwIfNoEntry: false });
+    if (!stat || stat.size === 0) {
+        return true;
+    }
+    if (stat.size >= LFS_POINTER_MAX_BYTES) {
+        return false;
+    }
+    return fs.readFileSync(filePath, "utf8").startsWith(LFS_POINTER_PREFIX);
 }
 
 async function ensureGitLfsFiles() {
-  const lfsFilesOutput = (await sh(["git", "ls-files", ":(attr:filter=lfs)"])).stdoutString.trim();
-  const lfsFiles = lfsFilesOutput ? lfsFilesOutput.split("\n").map(f => f.trim()).filter(Boolean) : [];
-  if (lfsFiles.length === 0) {
-    return;
-  }
+    const lfsFilesOutput = (await sh(["git", "ls-files", ":(attr:filter=lfs)"])).stdoutString.trim();
+    const lfsFiles = lfsFilesOutput
+        ? lfsFilesOutput
+              .split("\n")
+              .map((f) => f.trim())
+              .filter(Boolean)
+        : [];
+    if (lfsFiles.length === 0) {
+        return;
+    }
 
-  const pendingFiles = lfsFiles.filter(isLfsPointerOrMissing);
-  if (pendingFiles.length === 0) {
-    logInfo("All Git LFS files are present.");
-    return;
-  }
+    const pendingFiles = lfsFiles.filter(isLfsPointerOrMissing);
+    if (pendingFiles.length === 0) {
+        logInfo("All Git LFS files are present.");
+        return;
+    }
 
-  logInfo(`Found ${pendingFiles.length} un-fetched Git LFS file(s): ${pendingFiles.join(", ")}`);
-  try {
-    await sh(["git", "lfs", "version"]);
-  } catch (e) {
-    throw new Error(
-      `Git LFS is required to fetch model files (${pendingFiles.join(", ")}), ` +
-      `but 'git lfs' is not installed. Please install git-lfs (https://git-lfs.com) and re-run the build.`
-    );
-  }
+    logInfo(`Found ${pendingFiles.length} un-fetched Git LFS file(s): ${pendingFiles.join(", ")}`);
+    try {
+        await sh(["git", "lfs", "version"]);
+    } catch (e) {
+        throw new Error(`Git LFS is required to fetch model files (${pendingFiles.join(", ")}), ` + `but 'git lfs' is not installed. Please install git-lfs (https://git-lfs.com) and re-run the build.`);
+    }
 
-  await sh(["git", "lfs", "install", "--local"]);
-  await sh(["git", "lfs", "pull", "--include", pendingFiles.join(",")]);
+    await sh(["git", "lfs", "install", "--local"]);
+    await sh(["git", "lfs", "pull", "--include", pendingFiles.join(",")]);
 
-  const remainingFiles = pendingFiles.filter(isLfsPointerOrMissing);
-  if (remainingFiles.length > 0) {
-    throw new Error(
-      `Git LFS pull completed, but the following files are still missing or LFS pointers: ${remainingFiles.join(", ")}`
-    );
-  }
-  logInfo("Successfully fetched all Git LFS files.");
+    const remainingFiles = pendingFiles.filter(isLfsPointerOrMissing);
+    if (remainingFiles.length > 0) {
+        throw new Error(`Git LFS pull completed, but the following files are still missing or LFS pointers: ${remainingFiles.join(", ")}`);
+    }
+    logInfo("Successfully fetched all Git LFS files.");
 }
 
 async function buildWorkload(workloadDir) {
-  await sh(["npm", "ci"], {cwd: workloadDir});
-  await sh(["npm", "run", "build"], {cwd: workloadDir});
+    await sh(["npm", "ci"], { cwd: workloadDir });
+    await sh(["npm", "run", "build"], { cwd: workloadDir });
 }
 
 function getPackageVersion(lockfile, packageName) {
-  const matchingPaths = Object.keys(lockfile.packages).filter(path =>
-    path === `node_modules/${packageName}` || path.endsWith(`/node_modules/${packageName}`)
-  );
+    const matchingPaths = Object.keys(lockfile.packages).filter((path) => path === `node_modules/${packageName}` || path.endsWith(`/node_modules/${packageName}`));
 
-  if (matchingPaths.length === 0) {
-    throw new Error(`Could not find package "${packageName}" in lockfile.`);
-  } else if (matchingPaths.length > 1) {
-    throw new Error(`Found multiple occurrences of package "${packageName}" in lockfile: ${matchingPaths.join(", ")}. Please specify which one to use.`);
-  }
+    if (matchingPaths.length === 0) {
+        throw new Error(`Could not find package "${packageName}" in lockfile.`);
+    } else if (matchingPaths.length > 1) {
+        throw new Error(`Found multiple occurrences of package "${packageName}" in lockfile: ${matchingPaths.join(", ")}. Please specify which one to use.`);
+    }
 
-  return lockfile.packages[matchingPaths[0]].version;
+    return lockfile.packages[matchingPaths[0]].version;
 }
 
 async function writeBuildInfo() {
-  const packageJson = JSON.parse(fs.readFileSync("package.json", "utf8"));
-  const gitHash = (await sh(["git", "rev-parse", "HEAD"])).stdoutString.trim();
-  const shortGitHash = gitHash.substring(0, 7);
-  const gitDate = (await sh(["git", "log", "-1", "--format=%cs"])).stdoutString.trim();
-  const versionWithDate = `${packageJson.version} (${gitDate})`;
-  const commitUrl = `https://github.com/GoogleChrome/webai-compute-benchmark/commit/${gitHash}`;
+    const packageJson = JSON.parse(fs.readFileSync("package.json", "utf8"));
+    const gitHash = (await sh(["git", "rev-parse", "HEAD"])).stdoutString.trim();
+    const shortGitHash = gitHash.substring(0, 7);
+    const gitDate = (await sh(["git", "log", "-1", "--format=%cs"])).stdoutString.trim();
+    const versionWithDate = `${packageJson.version} (${gitDate})`;
+    const commitUrl = `https://github.com/GoogleChrome/webai-compute-benchmark/commit/${gitHash}`;
 
-  const transformersLock = JSON.parse(fs.readFileSync("resources/transformers-js/package-lock.json", "utf8"));
-  const litertLock = JSON.parse(fs.readFileSync("resources/litert-js/package-lock.json", "utf8"));
+    const transformersLock = JSON.parse(fs.readFileSync("resources/transformers-js/package-lock.json", "utf8"));
+    const litertLock = JSON.parse(fs.readFileSync("resources/litert-js/package-lock.json", "utf8"));
 
-  const libraries = [
-    { name: "Transformers.js", version: getPackageVersion(transformersLock, "@huggingface/transformers") },
-    { name: "ONNX Runtime", version: getPackageVersion(transformersLock, "onnxruntime-web") },
-    { name: "LiteRT.js", version: getPackageVersion(litertLock, "@litertjs/core") },
-  ];
+    const libraries = [
+        { name: "Transformers.js", version: getPackageVersion(transformersLock, "@huggingface/transformers") },
+        { name: "ONNX Runtime", version: getPackageVersion(transformersLock, "onnxruntime-web") },
+        { name: "LiteRT.js", version: getPackageVersion(litertLock, "@litertjs/core") },
+    ];
 
-  const models = [];
-  for (const suite of defaultSuites) {
-    if (!suite.tags || !suite.tags.includes("default")) {
-      continue;
+    const models = [];
+    for (const suite of defaultSuites) {
+        if (!suite.tags || !suite.tags.includes("default")) {
+            continue;
+        }
+        if (!suite.modelId) {
+            throw new Error(`No model ID found for benchmark suite: ${suite.name}`);
+        }
+        models.push({
+            suiteName: suite.name,
+            modelId: suite.modelId,
+            modelUrl: `https://huggingface.co/${suite.modelId}`,
+        });
     }
-    if (!suite.modelId) {
-      throw new Error(`No model ID found for benchmark suite: ${suite.name}`);
-    }
-    models.push({
-      suiteName: suite.name,
-      modelId: suite.modelId,
-      modelUrl: `https://huggingface.co/${suite.modelId}`,
-    });
-  }
 
-  const buildInfo = {
-    version: packageJson.version,
-    versionWithDate,
-    gitHash,
-    shortGitHash,
-    gitDate,
-    commitUrl,
-    libraries,
-    models,
-  };
+    const buildInfo = {
+        version: packageJson.version,
+        versionWithDate,
+        gitHash,
+        shortGitHash,
+        gitDate,
+        commitUrl,
+        libraries,
+        models,
+    };
 
-  const buildInfoPath = "resources/build-info.mjs";
-  const buildInfoSource = `// Copyright 2026 Google LLC
+    const buildInfoPath = "resources/build-info.mjs";
+    const buildInfoSource = `// Copyright 2026 Google LLC
 //
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file or at
@@ -198,6 +196,6 @@ if (modelTableBody) {
 }
 `;
 
-  fs.writeFileSync(buildInfoPath, buildInfoSource);
-  logInfo(`Wrote ${buildInfoPath} with version ${versionWithDate} (${shortGitHash})`);
+    fs.writeFileSync(buildInfoPath, buildInfoSource);
+    logInfo(`Wrote ${buildInfoPath} with version ${versionWithDate} (${shortGitHash})`);
 }

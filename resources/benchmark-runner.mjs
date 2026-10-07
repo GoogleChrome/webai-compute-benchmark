@@ -7,8 +7,9 @@ const performance = globalThis.performance;
 
 export class BenchmarkTestStep {
     constructor(testName, testFunction) {
-        if (!isValidIdentifier(testName))
+        if (!isValidIdentifier(testName)) {
             throw new Error(`Invalid testName=${testName}, expected valid identifier.`);
+        }
         this.name = testName;
         this.run = testFunction;
     }
@@ -43,8 +44,9 @@ class Page {
             const resolveIfReady = () => {
                 const element = this.querySelector(selector);
                 let callback = resolveIfReady;
-                if (element)
+                if (element) {
                     callback = () => resolve(element);
+                }
                 window.requestAnimationFrame(callback);
             };
             resolveIfReady();
@@ -70,8 +72,9 @@ class Page {
         const lookupStartNode = this._frame.contentDocument;
         const element = getParent(lookupStartNode, path).querySelector(selector);
 
-        if (element === null)
+        if (element === null) {
             return null;
+        }
         return this._wrapElement(element);
     }
 
@@ -93,15 +96,17 @@ class Page {
     querySelectorAll(selector, path = []) {
         const lookupStartNode = this._frame.contentDocument;
         const elements = Array.from(getParent(lookupStartNode, path).querySelectorAll(selector));
-        for (let i = 0; i < elements.length; i++)
+        for (let i = 0; i < elements.length; i++) {
             elements[i] = this._wrapElement(elements[i]);
+        }
         return elements;
     }
 
     getElementById(id) {
         const element = this._frame.contentDocument.getElementById(id);
-        if (element === null)
+        if (element === null) {
             return null;
+        }
         return this._wrapElement(element);
     }
 
@@ -154,11 +159,12 @@ class PageElement {
     }
 
     dispatchEvent(eventName, options = NATIVE_OPTIONS, eventType = Event) {
-        if (eventName === "submit")
-            // FIXME FireFox doesn't like `new Event('submit')
+        if (eventName === "submit") // FIXME FireFox doesn't like `new Event('submit')
+        {
             this._dispatchSubmitEvent();
-        else
+        } else {
             this.#node.dispatchEvent(new eventType(eventName, options));
+        }
     }
 
     _dispatchSubmitEvent() {
@@ -174,8 +180,9 @@ class PageElement {
 
     dispatchKeyEvent(type, keyCode, key, options) {
         let eventOptions = { bubbles: true, cancelable: true, keyCode, which: keyCode, key };
-        if (options !== undefined)
+        if (options !== undefined) {
             eventOptions = Object.assign(eventOptions, options);
+        }
         const event = new KeyboardEvent(type, eventOptions);
         this.#node.dispatchEvent(event);
     }
@@ -188,8 +195,9 @@ class PageElement {
         const screenX = clientX + contentWindow.screenX;
         const screenY = clientY + contentWindow.screenY;
         let eventOptions = { bubbles: true, cancelable: true, clientX, clientY, screenX, screenY };
-        if (options !== undefined)
+        if (options !== undefined) {
             eventOptions = Object.assign(eventOptions, options);
+        }
         const event = new contentWindow.MouseEvent(type, eventOptions);
         this.#node.dispatchEvent(event);
     }
@@ -206,16 +214,18 @@ class PageElement {
         const lookupStartNode = this.#node.shadowRoot ?? this.#node;
         const element = getParent(lookupStartNode, path).querySelector(selector);
 
-        if (element === null)
+        if (element === null) {
             return null;
+        }
         return new PageElement(element);
     }
 
     querySelector(selector) {
         const element = this.#node.querySelector(selector);
 
-        if (element === null)
+        if (element === null) {
             return null;
+        }
         return new PageElement(element);
     }
 }
@@ -274,7 +284,7 @@ export const WarmupSuite = {
 // https://stackoverflow.com/a/47593316
 function seededHashRandomNumberGenerator(a) {
     return function () {
-        var t = a += 0x6d2b79f5;
+        var t = (a += 0x6d2b79f5);
         t = Math.imul(t ^ (t >>> 15), t | 1);
         t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
         return (t ^ (t >>> 14)) >>> 0;
@@ -284,8 +294,9 @@ function seededHashRandomNumberGenerator(a) {
 class WakeLock {
     #wakeLockSentinel = undefined;
     async request() {
-        if (!navigator.wakeLock)
+        if (!navigator.wakeLock) {
             return;
+        }
         try {
             this.#wakeLockSentinel = await navigator.wakeLock.request("screen");
         } catch (err) {
@@ -294,8 +305,9 @@ class WakeLock {
     }
 
     async release() {
-        if (!this.#wakeLockSentinel)
+        if (!this.#wakeLockSentinel) {
             return;
+        }
         try {
             await this.#wakeLockSentinel.release();
         } catch (err) {
@@ -308,17 +320,20 @@ class WakeLock {
 
 export class BenchmarkRunner {
     constructor(suites, client) {
-        if (!Array.isArray(suites) || !suites.every((suite) => isValidIdentifier(suite?.name)))
+        if (!Array.isArray(suites) || !suites.every((suite) => isValidIdentifier(suite?.name))) {
             throw new Error("Invalid suites");
+        }
         this._suites = suites;
-        if (params.useWarmupSuite)
+        if (params.useWarmupSuite) {
             this._suites = [WarmupSuite, ...suites];
+        }
         this._client = client;
         this._page = null;
         this._metrics = null;
         this._iterationCount = params.iterationCount;
-        if (params.shuffleSeed !== "off")
+        if (params.shuffleSeed !== "off") {
             this._suiteOrderRandomNumberGenerator = seededHashRandomNumberGenerator(params.shuffleSeed);
+        }
         this._wakeLock = new WakeLock();
         this._resetMeasuredValues();
     }
@@ -329,8 +344,9 @@ export class BenchmarkRunner {
 
     async runMultipleIterations(iterationCount) {
         this._iterationCount = iterationCount;
-        if (this._client?.willStartFirstIteration)
+        if (this._client?.willStartFirstIteration) {
             await this._client.willStartFirstIteration(iterationCount);
+        }
 
         try {
             await this._runMultipleIterations();
@@ -342,8 +358,9 @@ export class BenchmarkRunner {
             }
         }
 
-        if (this._client?.didFinishLastIteration)
+        if (this._client?.didFinishLastIteration) {
             await this._client.didFinishLastIteration(this._metrics);
+        }
     }
 
     async _runMultipleIterations() {
@@ -377,8 +394,9 @@ export class BenchmarkRunner {
         style.top = "50%";
         style.transform = "translate(-50%, -50%)";
 
-        if (this._client?.willAddTestFrame)
+        if (this._client?.willAddTestFrame) {
             await this._client.willAddTestFrame(frame);
+        }
 
         document.body.insertBefore(frame, document.body.firstChild);
         this._frame = frame;
@@ -394,8 +412,9 @@ export class BenchmarkRunner {
 
         performance.mark(prepareStartLabel);
         let suites = [...this._suites];
-        if (this._suiteOrderRandomNumberGenerator)
+        if (this._suiteOrderRandomNumberGenerator) {
             this._shuffleSuites(suites);
+        }
 
         performance.mark(prepareEndLabel);
         performance.measure("runner-prepare", prepareStartLabel, prepareEndLabel);
@@ -418,8 +437,9 @@ export class BenchmarkRunner {
         const suites = await this._prepareAllSuites();
         try {
             for (const suite of suites) {
-                if (!suite.enabled)
+                if (!suite.enabled) {
                     continue;
+                }
                 try {
                     await this._appendFrame();
                     this._page = new Page(this._frame);
@@ -430,7 +450,7 @@ export class BenchmarkRunner {
                         };
                         window.addEventListener("error", errorHandler, { once: true });
                         window.addEventListener("unhandledrejection", errorHandler, { once: true });
-                        
+
                         cleanupErrorListeners = () => {
                             window.removeEventListener("error", errorHandler);
                             window.removeEventListener("unhandledrejection", errorHandler);
@@ -440,7 +460,9 @@ export class BenchmarkRunner {
                     try {
                         await Promise.race([this.runSuite(suite), errorPromise]);
                     } finally {
-                        if (cleanupErrorListeners) cleanupErrorListeners();
+                        if (cleanupErrorListeners) {
+                            cleanupErrorListeners();
+                        }
                     }
                 } catch (error) {
                     console.error(`Workload ${suite.name} failed:`, error);
@@ -481,8 +503,8 @@ export class BenchmarkRunner {
             const iterationWasmMetric = this._metrics[`Iteration-${iteration}-Wasm-Total`];
             const iterationWebgpuMetric = this._metrics[`Iteration-${iteration}-WebGPU-Total`];
 
-            const hasWasm = this._suites.some(s => s.enabled && s.tags?.includes("wasm"));
-            const hasWebgpu = this._suites.some(s => s.enabled && s.tags?.includes("webgpu"));
+            const hasWasm = this._suites.some((s) => s.enabled && s.tags?.includes("wasm"));
+            const hasWebgpu = this._suites.some((s) => s.enabled && s.tags?.includes("webgpu"));
 
             if (hasWasm && isNaN(iterationWasmMetric?.geomean)) {
                 throw new Error(`Iteration ${iteration}: Wasm was enabled but produced NaN geomean.`);
@@ -506,8 +528,9 @@ export class BenchmarkRunner {
     _appendIterationMetrics(iteration) {
         const getMetric = (name, unit = "ms") => this._metrics[name] || (this._metrics[name] = new Metric(name, unit));
         const iterationMetric = (i, name) => {
-            if (i >= params.iterationCount)
+            if (i >= params.iterationCount) {
                 throw new Error(`Requested iteration=${i} does not exist.`);
+            }
             return getMetric(`Iteration-${i}-${name}`);
         };
 
@@ -516,15 +539,18 @@ export class BenchmarkRunner {
                 const results = items[name];
                 const metric = getMetric(prefix + name);
                 metric.add(results.total ?? results);
-                if (metric.parent !== parent)
+                if (metric.parent !== parent) {
                     parent.addChild(metric);
-                if (results.steps)
+                }
+                if (results.steps) {
                     collectSubMetrics(`${metric.name}${Metric.separator}`, results.steps, metric);
+                }
             }
         };
         const initializeMetrics = this._metrics === null;
-        if (initializeMetrics)
+        if (initializeMetrics) {
             this._metrics = { __proto__: null };
+        }
 
         const iterationResults = this._measuredValues.steps;
         collectSubMetrics("", iterationResults);
@@ -540,8 +566,9 @@ export class BenchmarkRunner {
             getMetric("Wasm-Score", "score").description = "Scaled inverse of the Wasm Geomean";
             getMetric("WebGPU-Geomean", "ms").description = "Geomean of WebGPU test totals";
             getMetric("WebGPU-Score", "score").description = "Scaled inverse of the WebGPU Geomean";
-            if (params.measurePrepare)
+            if (params.measurePrepare) {
                 getMetric("Prepare", "ms").description = "Geomean of workload prepare times";
+            }
         }
 
         const wasmGeomean = getMetric("Wasm-Geomean");
@@ -551,7 +578,7 @@ export class BenchmarkRunner {
 
         for (const [suiteName, results] of Object.entries(iterationResults)) {
             if (results.total > 0) {
-                const suite = this._suites.find(s => s.name === suiteName);
+                const suite = this._suites.find((s) => s.name === suiteName);
                 if (suite?.tags?.includes("wasm")) {
                     iterationWasmTotal.add(results.total);
                 } else if (suite?.tags?.includes("webgpu")) {
@@ -576,15 +603,17 @@ export class BenchmarkRunner {
 
         if (params.measurePrepare) {
             const iterationPrepare = iterationMetric(iteration, "Prepare");
-            for (const results of Object.values(iterationResults))
+            for (const results of Object.values(iterationResults)) {
                 iterationPrepare.add(results.prepare);
+            }
             iterationPrepare.computeAggregatedMetrics();
             const prepare = getMetric("Prepare");
             prepare.add(iterationPrepare.geomean);
         }
 
-        for (const metric of Object.values(this._metrics))
+        for (const metric of Object.values(this._metrics)) {
             metric.computeAggregatedMetrics();
+        }
     }
 
     _initializeMetrics() {}

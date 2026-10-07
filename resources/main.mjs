@@ -33,10 +33,11 @@ class MainBenchmarkClient {
     }
 
     start() {
-        if (this._isStepping())
+        if (this._isStepping()) {
             this._clearStepping();
-        else if (this._startBenchmark())
+        } else if (this._startBenchmark()) {
             this._showSection("#running");
+        }
     }
 
     step() {
@@ -44,8 +45,9 @@ class MainBenchmarkClient {
         this._steppingPromise = new Promise((resolve) => {
             this._steppingResolver = resolve;
         });
-        if (this._isStepping())
+        if (this._isStepping()) {
             currentSteppingResolver();
+        }
         if (!this._isRunning) {
             this._startBenchmark();
             this._showSection("#running");
@@ -69,8 +71,9 @@ class MainBenchmarkClient {
     }
 
     async _startBenchmark() {
-        if (this._isRunning)
+        if (this._isRunning) {
             return false;
+        }
 
         const { benchmarkConfigurator } = await this._benchmarkConfiguratorPromise;
 
@@ -88,8 +91,9 @@ class MainBenchmarkClient {
             );
             return false;
         }
-        if (!this._isStepping())
+        if (!this._isStepping()) {
             this._developerModeContainer?.remove();
+        }
         this._progressCompleted = document.getElementById("progress-completed");
         if (params.iterationCount < 50) {
             const progressNode = document.getElementById("progress");
@@ -124,8 +128,9 @@ class MainBenchmarkClient {
     async willRunTest(suite, test) {
         document.getElementById("info-label").textContent = suite.name;
         document.getElementById("info-progress").textContent = `${this._finishedTestCount} / ${this.stepCount}`;
-        if (this._steppingPromise)
+        if (this._steppingPromise) {
             await this._awaitNextStep(suite, test);
+        }
     }
 
     didFinishSuite() {
@@ -160,10 +165,11 @@ class MainBenchmarkClient {
         const wasmScoreResults = this._computeResults(this._measuredValuesList, "wasmScore", "score");
         const webgpuScoreResults = this._computeResults(this._measuredValuesList, "webgpuScore", "score");
 
-        if (wasmScoreResults.isValid || webgpuScoreResults.isValid)
+        if (wasmScoreResults.isValid || webgpuScoreResults.isValid) {
             this._populateValidScores(wasmScoreResults, webgpuScoreResults);
-        else
+        } else {
             this._populateInvalidScore();
+        }
 
         this._populateDetailedResults(metrics);
         this.showResultsDetails();
@@ -185,8 +191,9 @@ class MainBenchmarkClient {
 
         if (wasmScoreResults.isValid) {
             document.getElementById("wasm-result-number").textContent = wasmScoreResults.formattedMean;
-            if (wasmScoreResults.formattedDelta)
+            if (wasmScoreResults.formattedDelta) {
                 document.getElementById("wasm-confidence-number").textContent = `\u00b1 ${wasmScoreResults.formattedDelta}`;
+            }
         } else {
             document.getElementById("wasm-result-number").textContent = "N/A";
             document.getElementById("wasm-confidence-number").textContent = "";
@@ -194,8 +201,9 @@ class MainBenchmarkClient {
 
         if (webgpuScoreResults.isValid) {
             document.getElementById("webgpu-result-number").textContent = webgpuScoreResults.formattedMean;
-            if (webgpuScoreResults.formattedDelta)
+            if (webgpuScoreResults.formattedDelta) {
                 document.getElementById("webgpu-confidence-number").textContent = `\u00b1 ${webgpuScoreResults.formattedDelta}`;
+            }
         } else {
             document.getElementById("webgpu-result-number").textContent = "N/A";
             document.getElementById("webgpu-confidence-number").textContent = "";
@@ -220,7 +228,7 @@ class MainBenchmarkClient {
             return number.toPrecision(Math.max(nonDecimalDigitCount, Math.min(6, sigFig)));
         }
 
-        const values = measuredValuesList.map(v => v[valueKey]);
+        const values = measuredValuesList.map((v) => v[valueKey]);
         const sum = values.reduce((a, b) => a + b, 0);
         const arithmeticMean = sum / values.length;
         let meanSigFig = 4;
@@ -264,14 +272,16 @@ class MainBenchmarkClient {
 
         const details = document.getElementById("details");
         const existingWarning = document.getElementById("results-warning");
-        if (existingWarning) existingWarning.remove();
+        if (existingWarning) {
+            existingWarning.remove();
+        }
 
         if (this._failedSuites.size > 0) {
             const warning = document.createElement("div");
             warning.id = "results-warning";
             warning.innerHTML = `<strong>Not all workloads finished successfully, please see the console for details. Affected workloads:</strong>`;
             const ul = document.createElement("ul");
-            this._failedSuites.forEach(name => {
+            this._failedSuites.forEach((name) => {
                 const li = document.createElement("li");
                 li.textContent = name;
                 ul.appendChild(li);
@@ -284,12 +294,15 @@ class MainBenchmarkClient {
         document.documentElement.style.setProperty("--metrics-line-height", `${trackHeight}px`);
         const plotWidth = (params.viewport.width - 120) / 2;
         const aggregateMetrics = [];
-        if (metrics["Wasm-Score"]?.values.length > 0)
+        if (metrics["Wasm-Score"]?.values.length > 0) {
             aggregateMetrics.push(metrics["Wasm-Score"]);
-        if (metrics["WebGPU-Score"]?.values.length > 0)
+        }
+        if (metrics["WebGPU-Score"]?.values.length > 0) {
             aggregateMetrics.push(metrics["WebGPU-Score"]);
-        if (params.measurePrepare && metrics.Prepare?.values.length > 0)
+        }
+        if (params.measurePrepare && metrics.Prepare?.values.length > 0) {
             aggregateMetrics.push(metrics.Prepare);
+        }
         document.getElementById("aggregate-chart").innerHTML = renderMetricView({
             metrics: aggregateMetrics,
             width: plotWidth,
@@ -335,20 +348,24 @@ class MainBenchmarkClient {
     }
 
     _populateNonStandardParams() {
-        if (params === defaultParams)
+        if (params === defaultParams) {
             return;
+        }
         const paramsDiff = [];
         const usedSearchparams = params.toSearchParamsObject();
         const defaultSearchParams = defaultParams.toCompleteSearchParamsObject(false);
         for (const [key, value] of usedSearchparams.entries()) {
-            if (key === "developerMode")
+            if (key === "developerMode") {
                 continue;
+            }
             const defaultValue = defaultSearchParams.get(key);
-            if (value !== defaultValue)
+            if (value !== defaultValue) {
                 paramsDiff.push({ key, value, defaultValue });
+            }
         }
-        if (paramsDiff.length === 0)
+        if (paramsDiff.length === 0) {
             return;
+        }
         const body = document.createElement("tbody");
         for (const { key, value, defaultValue } of paramsDiff) {
             const row = body.insertRow();
@@ -379,16 +396,18 @@ class MainBenchmarkClient {
     async evaluateParams() {
         const { benchmarkConfigurator } = await this._benchmarkConfiguratorPromise;
 
-        if (params.suites.length > 0 || params.tags.length > 0)
+        if (params.suites.length > 0 || params.tags.length > 0) {
             benchmarkConfigurator.enableSuites(params.suites, params.tags);
+        }
 
         if (params.developerMode) {
             this._developerModeContainer = createDeveloperModeContainer();
             document.body.append(this._developerModeContainer);
         }
 
-        if (params.startAutomatically)
+        if (params.startAutomatically) {
             this.start();
+        }
     }
 
     _hashChangeHandler() {
@@ -411,8 +430,9 @@ class MainBenchmarkClient {
 
     _logoClickHandler(event) {
         // Prevent any accidental UI changes during benchmark runs.
-        if (!this._isRunning)
+        if (!this._isRunning) {
             this._showSection("#home");
+        }
         event.preventDefault();
         return false;
     }
@@ -427,8 +447,9 @@ class MainBenchmarkClient {
 
     _formattedJSONResult({ modern = false }) {
         const indent = "    ";
-        if (modern)
+        if (modern) {
             return JSON.stringify(this._metrics, undefined, indent);
+        }
         return JSON.stringify(this._measuredValuesList, undefined, indent);
     }
 
@@ -441,8 +462,9 @@ class MainBenchmarkClient {
         // TodoMVC-JavaScript-ES5/Adding100Items,num,...,num
         // ...
         const labels = ["Name"];
-        for (let i = 0; i < params.iterationCount; i++)
+        for (let i = 0; i < params.iterationCount; i++) {
             labels.push(`#${i + 1}`);
+        }
         labels.push("Mean");
         const metrics = Array.from(Object.values(this._metrics)).filter((metric) => !metric.name.startsWith("Iteration-"));
         const metricsValues = metrics.map((metric) => [metric.name, ...metric.values, metric.mean].join(","));
@@ -478,8 +500,9 @@ class MainBenchmarkClient {
 
     _setLocationHash(hash) {
         if (hash === "#home" || hash === "") {
-            if (window.location.hash !== hash)
+            if (window.location.hash !== hash) {
                 window.location.hash = "#home";
+            }
             hash = "#home";
             this._removeLocationHash();
         } else {
@@ -514,7 +537,8 @@ function init() {
     globalThis.benchmarkClient = new MainBenchmarkClient();
 }
 
-if (document.readyState === "loading")
+if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", init);
-else
+} else {
     init();
+}

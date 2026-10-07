@@ -4,8 +4,9 @@ export const COLORS = Object.freeze(["blue", "blue-light", "green-light", "green
 
 export function renderMetricView(viewParams) {
     let { metrics, width = 500, trackHeight = 20, subMetricMargin = 35, title = "", colors = COLORS } = viewParams;
-    if (title && !Metric.isValidName(title))
+    if (title && !Metric.isValidName(title)) {
         throw new Error(`Invalid title=${title}, expected valid identifier.`);
+    }
     // Make sure subMetricMargin is set for use in renderSubMetrics.
     viewParams.subMetricMargin = subMetricMargin;
     const scatterPlotParams = { width, trackHeight, colors };
@@ -70,8 +71,9 @@ function renderSubMetrics(viewParams) {
                 ${renderMetricsTable(metrics)}
             </div>`;
     const hasChildMetric = metrics.length > 0 && metrics[0].children.length > 0;
-    if (!hasChildMetric || !renderChildren)
+    if (!hasChildMetric || !renderChildren) {
         return valuesTable;
+    }
 
     const subMetricWidth = width - subMetricMargin;
     const childColors = [...colors];
@@ -113,10 +115,10 @@ function renderMetricsTable(metrics, min, max) {
     for (const metric of metrics) {
         const prefixes = metric.name.split(Metric.separator);
         for (let i = commonPrefixes.length - 1; i >= 0; i--) {
-            if (commonPrefixes[i] !== prefixes[i])
+            if (commonPrefixes[i] !== prefixes[i]) {
                 commonPrefixes.pop();
+            }
         }
-
     }
     const commonPrefix = commonPrefixes.join(Metric.separator);
     let commonPrefixHeader = "";
@@ -138,8 +140,9 @@ function renderMetricsTable(metrics, min, max) {
         let columns = "";
         for (const metric of metrics) {
             const value = metric.values[row];
-            if (value === undefined)
+            if (value === undefined) {
                 continue;
+            }
             const delta = metric.max - metric.min;
             const percent = Math.max(Math.min((value - metric.min) / delta, 1), 0) * 100;
             const percentGradient = `background: linear-gradient(90deg, var(--foreground-alpha) ${percent}%, rgba(0,0,0,0) ${percent}%);`;
@@ -182,10 +185,11 @@ function prepareScatterPlotValues(metrics, normalize = true) {
         const metric = metrics[metricIndex];
         // If the mean is 0 we can't normalize values properly.
         const mean = metric.mean || 1;
-        if (!unit)
+        if (!unit) {
             unit = metric.unit;
-        else if (unit !== metric.unit)
+        } else if (unit !== metric.unit) {
             throw new Error("All metrics must have the same unit.");
+        }
         let width = metric.delta || 1;
         let center = mean;
         if (normalize) {
@@ -204,8 +208,9 @@ function prepareScatterPlotValues(metrics, normalize = true) {
             const value = values[i];
             let x = value;
             let normalized = (value / mean - 1) * toPercent;
-            if (normalize)
+            if (normalize) {
                 x = normalized;
+            }
             const sign = normalized < 0 ? "-" : "+";
             normalized = Math.abs(normalized);
             // Each value is mapped to a y-coordinate in the range of [metricIndex, metricIndex + 1]
@@ -220,8 +225,9 @@ function prepareScatterPlotValues(metrics, normalize = true) {
 }
 
 function renderScatterPlot({ values, width = 500, height, trackHeight, xAxisPositiveOnly = false, xAxisShowZero = false, xAxisLabel, unit = "", colors = COLORS }) {
-    if (!height && !trackHeight)
+    if (!height && !trackHeight) {
         throw new Error("Either height or trackHeight must be specified");
+    }
     let xMin = Infinity;
     let xMax = 0;
     let yMin = Infinity;
@@ -233,8 +239,9 @@ function renderScatterPlot({ values, width = 500, height, trackHeight, xAxisPosi
         yMin = Math.min(yMin, y);
         yMax = Math.max(yMax, y);
     }
-    if (xAxisPositiveOnly)
+    if (xAxisPositiveOnly) {
         xMin = Math.max(xMin, 0);
+    }
     // Max delta of values across each axis:
     const trackCount = Math.ceil(yMax - yMin) || 1;
     const spreadX = xMax - xMin;
@@ -245,13 +252,15 @@ function renderScatterPlot({ values, width = 500, height, trackHeight, xAxisPosi
     let markerSize = 5;
     // Auto-adjust markers to [2px, 5px] for high iteration counts:
     const iterationsLimit = 20;
-    if (values.length > iterationsLimit)
+    if (values.length > iterationsLimit) {
         markerSize = 2 + (3 / values.length) * iterationsLimit;
+    }
     // Recalculate height:
-    if (height)
+    if (height) {
         trackHeight = (height - axisHeight - axisMarginY) / trackCount;
-    else
+    } else {
         height = trackCount * trackHeight + axisHeight + axisMarginY;
+    }
 
     // Horizontal axis position:
     const axisY = height - axisHeight + axisMarginY;
