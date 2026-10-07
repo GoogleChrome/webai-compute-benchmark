@@ -10,10 +10,11 @@ class StepInvoker {
 class BaseRAFStepInvoker extends StepInvoker {
     start() {
         return new Promise((resolve) => {
-            if (this._params.waitBeforeSync)
+            if (this._params.waitBeforeSync) {
                 setTimeout(() => this._scheduleCallbacks(resolve), this._params.waitBeforeSync);
-            else
+            } else {
                 this._scheduleCallbacks(resolve);
+            }
         });
     }
 }
@@ -41,8 +42,9 @@ class AsyncRAFStepInvoker extends BaseRAFStepInvoker {
         let gotPromise = false;
 
         const tryTriggerAsyncCallback = () => {
-            if (!gotTimer || !gotMessage || !gotPromise)
+            if (!gotTimer || !gotMessage || !gotPromise) {
                 return;
+            }
 
             this._asyncCallback();
             setTimeout(async () => {

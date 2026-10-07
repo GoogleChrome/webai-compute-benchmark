@@ -3,7 +3,7 @@ import commandLineArgs from "command-line-args";
 import serve from "./server.mjs";
 
 import { Builder, logging } from "selenium-webdriver";
-import { Options as ChromeOptions, ServiceBuilder } from "selenium-webdriver/chrome.js";
+import { Options as ChromeOptions } from "selenium-webdriver/chrome.js";
 import { Options as FirefoxOptions } from "selenium-webdriver/firefox.js";
 import { Options as EdgeOptions } from "selenium-webdriver/edge.js";
 import { Options as SafariOptions } from "selenium-webdriver/safari.js";
@@ -36,12 +36,14 @@ function printHelp(message = "", exitStatus = 0) {
 export default async function testSetup(helpText) {
     const options = commandLineArgs(optionDefinitions);
 
-    if ("help" in options)
+    if ("help" in options) {
         printHelp(helpText);
+    }
 
     const BROWSER = options?.browser;
-    if (!BROWSER)
+    if (!BROWSER) {
         printHelp("No browser specified, use $BROWSER or --browser", 1);
+    }
 
     let browserOptions;
     switch (BROWSER) {
@@ -84,16 +86,18 @@ export default async function testSetup(helpText) {
     process.on("exit", () => stop());
 
     const browserArgs = options["browser-arg"];
-    if (browserArgs && browserArgs.length > 0)
+    if (browserArgs && browserArgs.length > 0) {
         browserOptions.addArguments(...browserArgs);
+    }
 
     driver = await new Builder().withCapabilities(browserOptions).build();
     driver.manage().window().setRect({ width: 1200, height: 1000 });
 
     function stop() {
         server.close();
-        if (driver)
+        if (driver) {
             driver.close();
+        }
     }
     return { driver, PORT, stop };
 }

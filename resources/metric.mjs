@@ -11,10 +11,12 @@ export class Metric {
     }
 
     constructor(name, unit = "ms") {
-        if (!Metric.isValidName(name))
+        if (!Metric.isValidName(name)) {
             throw new Error(`Invalid metric.name=${name}, expected valid identifier.`);
-        if (!isValidIdentifier(unit))
+        }
+        if (!isValidIdentifier(unit)) {
             throw new Error(`Invalid metric.unit=${unit}, expected valid identifier.`);
+        }
         this.name = name;
         this.unit = unit;
         this.description = "";
@@ -56,14 +58,16 @@ export class Metric {
 
     get valueString() {
         const mean = this.mean.toFixed(2);
-        if (!this.percentDelta || !this.delta)
+        if (!this.percentDelta || !this.delta) {
             return `${mean} ${this.unit}`;
+        }
         return `${mean} ± ${this.deltaString} ${this.unit}`;
     }
 
     get deltaString() {
-        if (!this.percentDelta || !this.delta)
+        if (!this.percentDelta || !this.delta) {
             return "";
+        }
         return `${this.delta.toFixed(2)} (${this.percentDelta.toFixed(1)}%)`;
     }
 
@@ -72,15 +76,17 @@ export class Metric {
     }
 
     addChild(metric) {
-        if (metric.parent)
+        if (metric.parent) {
             throw new Error("Cannot re-add sub metric");
+        }
         metric.parent = this;
         this.children.push(metric);
     }
 
     add(value) {
-        if (typeof value !== "number")
+        if (typeof value !== "number") {
             throw new Error(`Adding invalid value=${value} to metric=${this.name}`);
+        }
         this.values.push(value);
     }
 

@@ -33,8 +33,9 @@ export class BenchmarkConfigurator {
     _freezeSuites() {
         Object.freeze(this.#suites);
         this.#suites.forEach((suite) => {
-            if (!suite.tags)
+            if (!suite.tags) {
                 suite.tags = [];
+            }
             if (suite.url.includes("/experimental/")) {
                 suite.tags.unshift("all", "experimental");
             } else {
@@ -63,20 +64,23 @@ export class BenchmarkConfigurator {
 
                 const response = await fetch(params.config);
 
-                if (!response.ok)
+                if (!response.ok) {
                     throw new Error(`Could not fetch config: ${response.status}`);
+                }
 
                 const config = await response.json();
 
-                if (!config || !Array.isArray(config.suites))
+                if (!config || !Array.isArray(config.suites)) {
                     throw new Error("Could not find a valid config structure!");
+                }
 
                 config.suites.forEach((suite) => {
                     const validTags = !suite?.tags || (Array.isArray(suite.tags) && suite.tags.every(isValidIdentifier));
-                    if (suite && isValidIdentifier(suite.name) && validTags && suite.url && isValidUrl(suite.url))
+                    if (suite && isValidIdentifier(suite.name) && validTags && suite.url && isValidUrl(suite.url)) {
                         this.#suites.push(suite);
-                    else
+                    } else {
                         throw new Error("Invalid suite data");
+                    }
                 });
                 this.#suites.flatMap((suite) => suite.tags || []).forEach((tag) => this.#tags.add(tag));
             } catch (error) {
@@ -105,8 +109,9 @@ export class BenchmarkConfigurator {
             });
         } else if (tags?.length) {
             tags.forEach((tag) => {
-                if (!this.#tags.has(tag))
+                if (!this.#tags.has(tag)) {
                     console.error(`Unknown Suites tag: "${tag}"`);
+                }
             });
             const tagsSet = new Set(tags);
             this.#suites.forEach((suite) => {
@@ -118,8 +123,9 @@ export class BenchmarkConfigurator {
                 suite.enabled = suite.tags.includes("default");
             });
         }
-        if (this.#suites.some((suite) => suite.enabled))
+        if (this.#suites.some((suite) => suite.enabled)) {
             return;
+        }
 
         if (names?.length) {
             this._reportError(`Suites "${names}" does not match any Suite. No tests to run.`, {

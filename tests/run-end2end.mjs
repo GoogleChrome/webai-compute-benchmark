@@ -16,15 +16,12 @@ const { driver, PORT, stop } = await testSetup(HELP);
 // tests faster we run all of the Wasm benchmarks, and only a few GPU tests to cover most of
 // the common code. To run all benchmarks, enable this.
 const RUN_FULL_SUITE = false;
-let tags = 'wasm,gpu-test-suite';
-let suites = benchmarkConfigurator.suites.filter(suite =>
-    !suite.url.includes('/experimental/') &&
-    suite.tags.some((tag) => tag === 'wasm' || tag === 'gpu-test-suite')
-);
+let tags = "wasm,gpu-test-suite";
+let suites = benchmarkConfigurator.suites.filter((suite) => !suite.url.includes("/experimental/") && suite.tags.some((tag) => tag === "wasm" || tag === "gpu-test-suite"));
 let timeout = 10 * ONE_MINUTE_IN_MS;
 
 if (RUN_FULL_SUITE) {
-    tags = 'all';
+    tags = "all";
     suites = benchmarkConfigurator.suites;
     timeout = 20 * ONE_MINUTE_IN_MS;
 }
@@ -34,10 +31,11 @@ async function testPage(url) {
     await driver.get(`http://localhost:${PORT}/${url}`);
 
     await driver.executeAsyncScript((callback) => {
-        if (globalThis.benchmarkClient)
+        if (globalThis.benchmarkClient) {
             callback();
-        else
+        } else {
             globalThis.addEventListener("BenchmarkReady", () => callback(), { once: true });
+        }
     });
 
     console.log("    - Awaiting Benchmark");
@@ -67,18 +65,20 @@ async function testPage(url) {
         globalThis.benchmarkClient.start();
     });
 
-    if (error)
+    if (error) {
         throw new Error(error.message + (error?.stack ?? ""));
+    }
 
     validateMetrics(metrics);
     return metrics;
 }
 
 function validateMetrics(metrics) {
-    for (const [name, metric] of Object.entries(metrics))
+    for (const [name, metric] of Object.entries(metrics)) {
         validateMetric(name, metric);
-    assert((metrics["Wasm-Geomean"]?.mean > 0) || (metrics["WebGPU-Geomean"]?.mean > 0));
-    assert((metrics["Wasm-Score"]?.mean > 0) || (metrics["WebGPU-Score"]?.mean > 0));
+    }
+    assert(metrics["Wasm-Geomean"]?.mean > 0 || metrics["WebGPU-Geomean"]?.mean > 0);
+    assert(metrics["Wasm-Score"]?.mean > 0 || metrics["WebGPU-Score"]?.mean > 0);
 }
 
 function validateMetric(name, metric) {
@@ -111,16 +111,13 @@ async function testIterations() {
 }
 
 async function testSubIterations() {
-    const testSuites = [
-        "Image-Classification-LiteRT.js-wasm",
-        "Feature-Extraction-wasm"
-    ];
+    const testSuites = ["Image-Classification-LiteRT.js-wasm", "Feature-Extraction-wasm"];
 
-    let suites = benchmarkConfigurator.suites.filter(suite => testSuites.includes(suite.name));
+    let suites = benchmarkConfigurator.suites.filter((suite) => testSuites.includes(suite.name));
     const iterationCount = 1;
     const subIterationCount = 3;
     // URL with suites specified
-    const params = [`iterationCount=${iterationCount}`, `subIterationCount=${subIterationCount}`, `suites=${testSuites.join(',')}`];
+    const params = [`iterationCount=${iterationCount}`, `subIterationCount=${subIterationCount}`, `suites=${testSuites.join(",")}`];
     const metrics = await testPage(`index.html?${params.join("&")}`);
 
     suites.forEach((suite) => {
@@ -131,7 +128,7 @@ async function testSubIterations() {
         // Verify submetrics generated from steps
         for (let i = 0; i < subIterationCount; i++) {
             // we use some() to find the submetric since the separator might be '/'
-            const submetricKey = Object.keys(metrics).find(k => k.startsWith(suite.name) && k.includes(`sub-iter-${i + 1}`));
+            const submetricKey = Object.keys(metrics).find((k) => k.startsWith(suite.name) && k.includes(`sub-iter-${i + 1}`));
             assert(submetricKey, `Missing submetric result ending in sub-iter-${i + 1} for ${suite.name}`);
             const submetric = metrics[submetricKey];
             assert(submetric.values.length === iterationCount);
