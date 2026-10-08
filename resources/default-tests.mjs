@@ -191,4 +191,10 @@ export const defaultSuites = [
         tags: ["experimental", "gemma", "litert-lm", "webgpu"],
         type: "remote",
     },
+    {
+        name: "Experimental-NCNN-wasm",
+        url: "resources/experimental/dist/ncnn.html",
+        tags: ["experimental", "ncnn", "wasm"],
+        type: "remote",
+    },
 ];
