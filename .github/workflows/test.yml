@@ -75,6 +75,13 @@ jobs:
                   restore-keys: |
                       ${{ runner.os }}-models-
 
+            - name: Install Emscripten
+              run: |
+                  git clone --depth 1 https://github.com/emscripten-core/emsdk.git "$RUNNER_TEMP/emsdk"
+                  "$RUNNER_TEMP/emsdk/emsdk" install latest
+                  "$RUNNER_TEMP/emsdk/emsdk" activate latest
+                  echo "$RUNNER_TEMP/emsdk/upstream/emscripten" >> "$GITHUB_PATH"
+
             - name: Download Models and Build Benchmarks
               run: npm run build
 

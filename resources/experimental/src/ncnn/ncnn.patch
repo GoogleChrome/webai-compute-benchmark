@@ -1,0 +1,14 @@
+--- a/benchmark/benchncnn.cpp
++++ b/benchmark/benchncnn.cpp
+@@ -328,9 +328,8 @@
+     }
+ 
+ #ifdef __EMSCRIPTEN__
+-    EM_ASM(
+-        FS.mkdir('/working');
+-        FS.mount(NODEFS, {root: '.'}, '/working'););
++    // NODEFS is unavailable in the browser. Model param files are written to
++    // MEMFS by the JavaScript harness before main() runs.
+ #endif // __EMSCRIPTEN__
+ 
+     bool use_vulkan_compute = gpu_device != -1;
