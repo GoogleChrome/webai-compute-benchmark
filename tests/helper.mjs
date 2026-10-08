@@ -91,7 +91,7 @@ export default async function testSetup(helpText) {
     }
 
     driver = await new Builder().withCapabilities(browserOptions).build();
-    driver.manage().window().setRect({ width: 1200, height: 1000 });
+    await driver.manage().window().setRect({ width: 1000, height: 830 });
 
     function stop() {
         server.close();

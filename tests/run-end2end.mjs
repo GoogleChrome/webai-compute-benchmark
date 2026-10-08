@@ -1,6 +1,7 @@
 #! /usr/bin/env node
 
 import assert from "assert";
+import fs from "node:fs";
 import testSetup from "./helper.mjs";
 import { benchmarkConfigurator } from "../resources/benchmark-configurator.mjs";
 
@@ -166,6 +167,46 @@ async function testDeveloperMode() {
     });
 }
 
+async function captureScreenshots() {
+    const details = await driver.takeScreenshot();
+    await driver.executeScript(() => globalThis.benchmarkClient.showResultsSummary());
+    const summary = await driver.takeScreenshot();
+
+    await driver.get(`http://localhost:${PORT}/index.html`);
+    const home = await driver.takeScreenshot();
+
+    await driver.get(`http://localhost:${PORT}/index.html?developerMode&iterationCount=1&subIterationCount=1&suites=Hand-Detection-LiteRT.js-wasm`);
+    await driver.executeScript(() => {
+        document.querySelector(".developer-mode details").open = true;
+    });
+    const devMode = await driver.takeScreenshot();
+
+    await driver.executeScript(() => new Promise((resolve) => {
+        globalThis.benchmarkClient.didFinishSuite = () => new Promise(() => resolve());
+        globalThis.benchmarkClient.start();
+    }));
+    const running = await driver.takeScreenshot();
+
+    await driver.get(`http://localhost:${PORT}/about.html`);
+    const about = await driver.takeScreenshot();
+
+    const canvasBase64 = await driver.executeScript(async (pngs) => {
+        const imgs = await Promise.all(pngs.map(async (b64) => {
+            const img = new Image();
+            img.src = `data:image/png;base64,${b64}`;
+            await img.decode();
+            return img;
+        }));
+        const [{ naturalWidth: w, naturalHeight: h }] = imgs;
+        const canvas = Object.assign(document.createElement("canvas"), { width: 2 * w, height: 3 * h });
+        const ctx = canvas.getContext("2d");
+        imgs.forEach((img, i) => ctx.drawImage(img, (i % 2) * w, Math.floor(i / 2) * h));
+        return canvas.toDataURL("image/png").split(",")[1];
+    }, [home, running, summary, details, devMode, about]);
+
+    fs.writeFileSync("tests/screenshot-canvas-ci.png", canvasBase64, "base64");
+}
+
 async function test() {
     try {
         benchmarkConfigurator.suites.forEach((suite) => {
@@ -177,6 +218,7 @@ async function test() {
         await testIterations();
         await testSubIterations();
         await testAll();
+        await captureScreenshots();
         await testDeveloperMode();
         console.log("\nTests complete!");
     } catch (e) {
