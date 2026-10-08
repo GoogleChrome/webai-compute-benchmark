@@ -11,7 +11,7 @@
 import { Engine, loadLiteRtLm, SamplerType } from "@litert-lm/core";
 import { BenchmarkConnector } from "speedometer-utils/benchmark.mjs";
 import { fetchModelWithProgress } from "speedometer-utils/download-utils.mjs";
-import { createSubIteratedSuite } from "speedometer-utils/helpers.mjs";
+import { createSubIteratedSuite, ensureWebGPU } from "speedometer-utils/helpers.mjs";
 import { params } from "speedometer-utils/params.mjs";
 import { LLM_BENCHMARK_PROMPT, LLM_MAX_OUTPUT_TOKENS } from "../llm-benchmark-config.mjs";
 
@@ -24,6 +24,7 @@ class LiteRtLmBenchmark {
     }
 
     async init() {
+        await ensureWebGPU();
         console.log("Loading LiteRT-LM wasm module (not part of benchmark measurement)...");
         await loadLiteRtLm(wasmPath);
         console.log("Downloading model and initializing LiteRT-LM engine (not part of benchmark measurement)...");

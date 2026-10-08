@@ -1,6 +1,6 @@
 import { Metric } from "./metric.mjs";
 import { params } from "./shared/params.mjs";
-import { forceLayout, isValidIdentifier } from "./shared/helpers.mjs";
+import { forceLayout, isValidIdentifier, ensureWebGPU, WEBGPU_UNAVAILABLE_ERROR_MESSAGE } from "./shared/helpers.mjs";
 import { SUITE_RUNNER_LOOKUP } from "./suite-runner.mjs";
 
 const performance = globalThis.performance;
@@ -348,6 +348,20 @@ export class BenchmarkRunner {
             await this._client.willStartFirstIteration(iterationCount);
         }
 
+        const hasWebgpu = this._suites.some((s) => s.enabled && s.tags?.includes("webgpu"));
+        if (hasWebgpu) {
+            try {
+                await ensureWebGPU();
+            } catch (error) {
+                console.error(error);
+                if (this._client?.handleError) {
+                    await this._client.handleError(error);
+                    return;
+                }
+                throw error;
+            }
+        }
+
         try {
             await this._runMultipleIterations();
         } catch (error) {
@@ -356,6 +370,7 @@ export class BenchmarkRunner {
                 await this._client.handleError(error);
                 return;
             }
+            throw error;
         }
 
         if (this._client?.didFinishLastIteration) {
@@ -465,6 +480,9 @@ export class BenchmarkRunner {
                         }
                     }
                 } catch (error) {
+                    if (error?.message?.includes(WEBGPU_UNAVAILABLE_ERROR_MESSAGE)) {
+                        throw error;
+                    }
                     console.error(`Workload ${suite.name} failed:`, error);
                     this._measuredValues.steps[suite.name] = { total: 0 };
                     this._client?.didFailSuite?.(suite, error);
@@ -506,15 +524,8 @@ export class BenchmarkRunner {
             const hasWasm = this._suites.some((s) => s.enabled && s.tags?.includes("wasm"));
             const hasWebgpu = this._suites.some((s) => s.enabled && s.tags?.includes("webgpu"));
 
-            if (hasWasm && isNaN(iterationWasmMetric?.geomean)) {
-                throw new Error(`Iteration ${iteration}: Wasm was enabled but produced NaN geomean.`);
-            }
-            if (hasWebgpu && isNaN(iterationWebgpuMetric?.geomean)) {
-                throw new Error(`Iteration ${iteration}: WebGPU was enabled but produced NaN geomean.`);
-            }
-
-            const wasmGeomean = hasWasm ? iterationWasmMetric.geomean : 0;
-            const webgpuGeomean = hasWebgpu ? iterationWebgpuMetric.geomean : 0;
+            const wasmGeomean = hasWasm && !isNaN(iterationWasmMetric?.geomean) ? iterationWasmMetric.geomean : 0;
+            const webgpuGeomean = hasWebgpu && !isNaN(iterationWebgpuMetric?.geomean) ? iterationWebgpuMetric.geomean : 0;
 
             this._measuredValues.wasmGeomean = wasmGeomean;
             this._measuredValues.wasmScore = geomeanToScore(wasmGeomean);
