@@ -28,7 +28,7 @@ const SUITES_FIXTURE = [
 ];
 
 const CLIENT_FIXTURE = {
-    willStartSuite: sinon.stub(),
+    willStartSuite() {},
     willRunTest: sinon.stub(),
     didFinishSuite: sinon.stub(),
     didFailSuite: sinon.stub(),
@@ -105,7 +105,7 @@ describe("BenchmarkRunner", () => {
 
     describe("Suite", () => {
         describe("runAllSuites", () => {
-            let _runSuiteStub, _finalizeStub, _loadFrameStub, _appendFrameStub, _removeFrameStub;
+            let _runSuiteStub, _finalizeStub, _loadFrameStub, _appendFrameStub, _removeFrameStub, _willStartSuiteSpy;
 
             before(async () => {
                 _runSuiteStub = stub(SuiteRunner.prototype, "_runSuite").callsFake(async () => null);
@@ -113,6 +113,7 @@ describe("BenchmarkRunner", () => {
                 _loadFrameStub = stub(SuiteRunner.prototype, "_loadFrame").callsFake(async () => null);
                 _appendFrameStub = stub(runner, "_appendFrame").callsFake(async () => null);
                 _removeFrameStub = stub(runner, "_removeFrame").callsFake(() => null);
+                _willStartSuiteSpy = spy(runner._client, "willStartSuite");
                 for (const suite of runner._suites) {
                     spy(suite, "prepare");
                 }
@@ -130,9 +131,9 @@ describe("BenchmarkRunner", () => {
             });
 
             it("should notify client before starting each suite", () => {
-                assert.calledTwice(runner._client.willStartSuite);
-                assert.calledWith(runner._client.willStartSuite, SUITES_FIXTURE[0], 0);
-                assert.calledWith(runner._client.willStartSuite, SUITES_FIXTURE[1], 0);
+                assert.calledTwice(_willStartSuiteSpy);
+                assert.calledWith(_willStartSuiteSpy, SUITES_FIXTURE[0], 0);
+                assert.calledWith(_willStartSuiteSpy, SUITES_FIXTURE[1], 0);
             });
 
             it("should run all test suites", async () => {
@@ -157,15 +158,17 @@ describe("BenchmarkRunner", () => {
                 const removeFrameStub = stub(runner, "_removeFrame").callsFake(() => null);
                 stub(console, "error");
 
-                await runner.runAllSuites(0);
+                try {
+                    await runner.runAllSuites(0);
 
-                assert.calledOnce(runner._client.didFailSuite);
-                assert.calledWith(runner._client.didFailSuite, SUITES_FIXTURE[0], failure);
-                expect(runner._measuredValues.steps[SUITES_FIXTURE[0].name]).to.eql({ total: 0 });
-                assert.calledTwice(runSuiteStub);
-                assert.calledTwice(removeFrameStub);
-
-                runner._resetMeasuredValues();
+                    assert.calledOnce(runner._client.didFailSuite);
+                    assert.calledWith(runner._client.didFailSuite, SUITES_FIXTURE[0], failure);
+                    expect(runner._measuredValues.steps[SUITES_FIXTURE[0].name]).to.eql({ total: 0 });
+                    assert.calledTwice(runSuiteStub);
+                    assert.calledTwice(removeFrameStub);
+                } finally {
+                    runner._resetMeasuredValues();
+                }
             });
         });
 
