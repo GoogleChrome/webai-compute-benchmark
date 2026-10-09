@@ -109,8 +109,8 @@ try {
     );
     return {
       name,
-      async runAndRecord(params) {
-        const { result } = await subSuite.runAndRecord(params);
+      async runAndRecord(params, _parentSuite, _parentRecord, onProgress) {
+        const { result } = await subSuite.runAndRecord(params, onProgress);
         return result;
       },
     };
