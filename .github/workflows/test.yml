@@ -52,8 +52,8 @@ jobs:
             - name: Install Emscripten
               run: |
                   git clone --depth 1 https://github.com/emscripten-core/emsdk.git "$RUNNER_TEMP/emsdk"
-                  "$RUNNER_TEMP/emsdk/emsdk" install latest
-                  "$RUNNER_TEMP/emsdk/emsdk" activate latest
+                  "$RUNNER_TEMP/emsdk/emsdk" install 6.0.12
+                  "$RUNNER_TEMP/emsdk/emsdk" activate 6.0.12
                   echo "$RUNNER_TEMP/emsdk/upstream/emscripten" >> "$GITHUB_PATH"
 
             - name: Download Models and Build Benchmarks

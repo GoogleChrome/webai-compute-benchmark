@@ -12,10 +12,9 @@
 set -e
 
 GGML_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-EXPERIMENTAL_DIR="$( cd "$GGML_DIR/../.." >/dev/null 2>&1 && pwd )"
 SRC_DIR="$GGML_DIR/src"
 GGML_SRC="$SRC_DIR/ggml"
-OUT_DIR="$EXPERIMENTAL_DIR/dist/ggml"
+OUT_DIR="$GGML_DIR/build"
 
 if [[ "$1" != "--force" && -f "$OUT_DIR/test-quantize-perf.mjs" && -f "$OUT_DIR/test-quantize-perf.wasm" ]]; then
   echo "GGML Wasm binaries already exist in $OUT_DIR. Skipping build."

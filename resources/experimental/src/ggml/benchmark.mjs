@@ -8,7 +8,7 @@
  * Experimental GGML Wasm quantization benchmark (test-quantize-perf).
  */
 
-import TestQuantizePerfModule from "../../dist/ggml/test-quantize-perf.mjs";
+import TestQuantizePerfModule from "./build/test-quantize-perf.mjs";
 import {
   AsyncBenchmarkSuite,
   BenchmarkConnector,
@@ -17,7 +17,7 @@ import { createSubIteratedSuite } from "speedometer-utils/helpers.mjs";
 import { params } from "speedometer-utils/params.mjs";
 
 const testQuantizePerfUrl = new URL(
-  "../../dist/ggml/test-quantize-perf.wasm",
+  "./build/test-quantize-perf.wasm",
   import.meta.url,
 );
 
