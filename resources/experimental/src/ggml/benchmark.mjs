@@ -88,7 +88,6 @@ class GgmlBenchmark {
     await TestQuantizePerfModule({
       arguments: [...args],
       print: () => { },
-      printErr: () => { },
       instantiateWasm: instantiatePrecompiled(this.ggmlModule),
     });
   }
@@ -105,9 +104,8 @@ try {
   // so one sub benchmark doesn't dominate.
   const steps = SUB_BENCHMARKS.map(({ name, args }) => {
     const subSuite = createSubIteratedSuite(
-      { name, run: () => benchmark.runSubBenchmark(name, args) },
+      { run: () => benchmark.runSubBenchmark(name, args) },
       params.subIterationCount,
-      name,
     );
     return {
       name,
