@@ -1,6 +1,7 @@
 import { BenchmarkRunner, geomeanToScore } from "../../resources/benchmark-runner.mjs";
 import { SuiteRunner, RemoteSuiteRunner } from "../../resources/suite-runner.mjs";
 import { StepRunner } from "../../resources/shared/step-runner.mjs";
+import { ensureWebGPU, WEBGPU_UNAVAILABLE_ERROR_MESSAGE } from "../../resources/shared/helpers.mjs";
 import { defaultParams } from "../../resources/shared/params.mjs";
 
 function STEP_FIXTURE(name) {
@@ -217,11 +218,7 @@ describe("BenchmarkRunner", () => {
 
                 const params = { measurementMethod: "raf" };
 
-                let originalEnabledState;
                 before(async () => {
-                    originalEnabledState = SUITES_FIXTURE[0].enabled;
-                    SUITES_FIXTURE[0].enabled = false;
-
                     stub(runner, "_measuredValues").value({
                         steps: {},
                     });
@@ -239,10 +236,6 @@ describe("BenchmarkRunner", () => {
                     await suiteRunner._runSuite();
 
                     await runner._finalize();
-                });
-
-                after(() => {
-                    SUITES_FIXTURE[0].enabled = originalEnabledState;
                 });
 
                 it("should calculate measured test values correctly", () => {
@@ -300,6 +293,183 @@ describe("BenchmarkRunner", () => {
                 }
                 remoteRunner.suiteResults.total = 10;
                 expect(() => remoteRunner._validateSuiteResults()).to.not.throwError();
+            });
+        });
+
+        describe("ensureWebGPU", () => {
+            let originalGpuDescriptor;
+
+            beforeEach(() => {
+                originalGpuDescriptor = Object.getOwnPropertyDescriptor(navigator, "gpu");
+            });
+
+            afterEach(() => {
+                if (originalGpuDescriptor) {
+                    Object.defineProperty(navigator, "gpu", originalGpuDescriptor);
+                } else {
+                    delete navigator.gpu;
+                }
+            });
+
+            it("should throw when navigator.gpu is unavailable", async () => {
+                Object.defineProperty(navigator, "gpu", { value: undefined, configurable: true });
+                let caughtError;
+                try {
+                    await ensureWebGPU();
+                } catch (error) {
+                    caughtError = error;
+                }
+                expect(caughtError).to.be.an(Error);
+                expect(caughtError.message).to.be(WEBGPU_UNAVAILABLE_ERROR_MESSAGE);
+            });
+
+            it("should throw when navigator.gpu.requestAdapter() returns null", async () => {
+                Object.defineProperty(navigator, "gpu", {
+                    value: { requestAdapter: async () => null },
+                    configurable: true,
+                });
+                let caughtError;
+                try {
+                    await ensureWebGPU();
+                } catch (error) {
+                    caughtError = error;
+                }
+                expect(caughtError).to.be.an(Error);
+                expect(caughtError.message).to.be(WEBGPU_UNAVAILABLE_ERROR_MESSAGE);
+            });
+
+            it("should throw when navigator.gpu.requestAdapter() rejects", async () => {
+                Object.defineProperty(navigator, "gpu", {
+                    value: {
+                        requestAdapter: async () => {
+                            throw new Error("Adapter failure");
+                        },
+                    },
+                    configurable: true,
+                });
+                let caughtError;
+                try {
+                    await ensureWebGPU();
+                } catch (error) {
+                    caughtError = error;
+                }
+                expect(caughtError).to.be.an(Error);
+                expect(caughtError.message).to.be(WEBGPU_UNAVAILABLE_ERROR_MESSAGE);
+            });
+
+            it("should resolve when navigator.gpu.requestAdapter() returns an adapter", async () => {
+                Object.defineProperty(navigator, "gpu", {
+                    value: { requestAdapter: async () => ({}) },
+                    configurable: true,
+                });
+                await ensureWebGPU();
+            });
+        });
+
+        describe("runMultipleIterations", () => {
+            let originalGpuDescriptor;
+
+            beforeEach(() => {
+                originalGpuDescriptor = Object.getOwnPropertyDescriptor(navigator, "gpu");
+            });
+
+            afterEach(() => {
+                if (originalGpuDescriptor) {
+                    Object.defineProperty(navigator, "gpu", originalGpuDescriptor);
+                } else {
+                    delete navigator.gpu;
+                }
+            });
+
+            it("should fail fast if WebGPU is requested and unavailable", async () => {
+                Object.defineProperty(navigator, "gpu", { value: undefined, configurable: true });
+                const handleErrorSpy = sinon.spy();
+                const testClient = { handleError: handleErrorSpy };
+                const testRunner = new BenchmarkRunner(
+                    [
+                        { name: "WebGPU Suite", enabled: true, tags: ["webgpu"] },
+                        { name: "Wasm Suite", enabled: true, tags: ["wasm"] },
+                    ],
+                    testClient
+                );
+                const runMultipleStub = stub(testRunner, "_runMultipleIterations").callsFake(async () => {});
+
+                await testRunner.runMultipleIterations(1);
+
+                assert.calledOnce(handleErrorSpy);
+                expect(handleErrorSpy.firstCall.args[0].message).to.equal(WEBGPU_UNAVAILABLE_ERROR_MESSAGE);
+                assert.notCalled(runMultipleStub);
+            });
+
+            it("should not fail fast if no WebGPU benchmark was requested", async () => {
+                Object.defineProperty(navigator, "gpu", { value: undefined, configurable: true });
+                const handleErrorSpy = sinon.spy();
+                const testClient = { handleError: handleErrorSpy };
+                const testRunner = new BenchmarkRunner(
+                    [
+                        { name: "WebGPU Suite", enabled: false, tags: ["webgpu"] },
+                        { name: "Wasm Suite", enabled: true, tags: ["wasm"] },
+                    ],
+                    testClient
+                );
+                const runMultipleStub = stub(testRunner, "_runMultipleIterations").callsFake(async () => {});
+
+                await testRunner.runMultipleIterations(1);
+
+                assert.notCalled(handleErrorSpy);
+                assert.calledOnce(runMultipleStub);
+            });
+        });
+
+        describe("error handling in runAllSuites", () => {
+            it("should continue running when a workload fails for a non-WebGPU reason", async () => {
+                const didFailSuiteSpy = sinon.spy();
+                const testClient = { didFailSuite: didFailSuiteSpy };
+                const testRunner = new BenchmarkRunner(
+                    [
+                        { name: "Failing Suite", enabled: true, tags: ["wasm"], prepare: async () => {} },
+                        { name: "Passing Suite", enabled: true, tags: ["wasm"], prepare: async () => {} },
+                    ],
+                    testClient
+                );
+                stub(testRunner, "_appendFrame").callsFake(async () => null);
+                stub(testRunner, "_removeFrame").callsFake(() => null);
+                stub(testRunner, "_finalize").callsFake(async () => null);
+
+                let first = true;
+                stub(testRunner, "runSuite").callsFake(async () => {
+                    if (first) {
+                        first = false;
+                        throw new Error("Random workload failure");
+                    }
+                });
+
+                await testRunner.runAllSuites(0);
+                assert.calledOnce(didFailSuiteSpy);
+                expect(testRunner._measuredValues.steps["Failing Suite"].total).to.equal(0);
+            });
+
+            it("should rethrow and fail fast when a workload fails due to WebGPU unavailability", async () => {
+                const didFailSuiteSpy = sinon.spy();
+                const testClient = { didFailSuite: didFailSuiteSpy };
+                const testRunner = new BenchmarkRunner([{ name: "WebGPU Suite", enabled: true, tags: ["webgpu"], prepare: async () => {} }], testClient);
+                stub(testRunner, "_appendFrame").callsFake(async () => null);
+                stub(testRunner, "_removeFrame").callsFake(() => null);
+                stub(testRunner, "_finalize").callsFake(async () => null);
+
+                stub(testRunner, "runSuite").callsFake(async () => {
+                    throw new Error(WEBGPU_UNAVAILABLE_ERROR_MESSAGE);
+                });
+
+                let caughtError;
+                try {
+                    await testRunner.runAllSuites(0);
+                } catch (error) {
+                    caughtError = error;
+                }
+                expect(caughtError).to.be.an(Error);
+                expect(caughtError.message).to.contain(WEBGPU_UNAVAILABLE_ERROR_MESSAGE);
+                assert.notCalled(didFailSuiteSpy);
             });
         });
     });
