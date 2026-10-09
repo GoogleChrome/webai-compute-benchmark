@@ -36,7 +36,6 @@ DEFAULT_CFLAGS=(
   -fno-exceptions
   -mbulk-memory
   -mextended-const
-  -mfp16
   -mmultivalue
   -mmutable-globals
   -mnontrapping-fptoint
@@ -50,7 +49,6 @@ EM_LDFLAGS=(
   -sENVIRONMENT=web
   -sMODULARIZE=1
   -sEXPORT_ES6=1
-  -sEXPORTED_RUNTIME_METHODS=callMain
   -sALLOW_MEMORY_GROWTH=1
 )
 
@@ -70,30 +68,29 @@ DEFINES=(
   -DGGML_COMMIT=\"$GGML_COMMIT\"
 )
 
+INCLUDES=(
+  -I "$GGML_SRC/src"
+  -I "$GGML_SRC/src/ggml/"
+  -I "$GGML_SRC/src/ggml-cpu/"
+  -I "$GGML_SRC/include"
+)
+
 mkdir -p "$OUT_DIR"
 pushd "$OUT_DIR" >/dev/null
 
 echo "Compiling GGML object files with Emscripten..."
-"$CC" $CFLAGS "${DEFINES[@]}" -c \
+"$CC" $CFLAGS "${DEFINES[@]}" "${INCLUDES[@]}" -c \
   "$GGML_SRC/src/ggml-cpu/arch/wasm/quants.c" \
-  -I "$GGML_SRC/src" \
-  -I "$GGML_SRC/src/ggml/" \
-  -I "$GGML_SRC/src/ggml-cpu/" \
-  -I "$GGML_SRC/include" \
   -o wasm-quants.o
 
-"$CC" $CFLAGS "${DEFINES[@]}" -c \
+"$CC" $CFLAGS "${DEFINES[@]}" "${INCLUDES[@]}" -c \
   "$GGML_SRC/src/ggml.c" \
   "$GGML_SRC/src/ggml-quants.c" \
   "$GGML_SRC/src/ggml-cpu/ggml-cpu.c" \
-  "$GGML_SRC/src/ggml-cpu/quants.c" \
-  -I "$GGML_SRC/src" \
-  -I "$GGML_SRC/src/ggml/" \
-  -I "$GGML_SRC/src/ggml-cpu/" \
-  -I "$GGML_SRC/include"
+  "$GGML_SRC/src/ggml-cpu/quants.c"
 
 echo "Linking test-quantize-perf.mjs + test-quantize-perf.wasm with Emscripten..."
-"$CXX" $CFLAGS "${DEFINES[@]}" "${EM_LDFLAGS[@]}" \
+"$CXX" $CFLAGS "${DEFINES[@]}" "${INCLUDES[@]}" "${EM_LDFLAGS[@]}" \
   "$GGML_SRC/tests/test-quantize-perf.cpp" \
   "$GGML_SRC/src/ggml-cpu/repack.cpp" \
   "$GGML_SRC/src/ggml-cpu/traits.cpp" \
@@ -107,10 +104,6 @@ echo "Linking test-quantize-perf.mjs + test-quantize-perf.wasm with Emscripten..
   ggml-cpu.o \
   quants.o \
   wasm-quants.o \
-  -I "$GGML_SRC/src" \
-  -I "$GGML_SRC/src/ggml/" \
-  -I "$GGML_SRC/src/ggml-cpu/" \
-  -I "$GGML_SRC/include" \
   -o "$OUT_DIR/test-quantize-perf.mjs"
 
 rm -f ./*.o
