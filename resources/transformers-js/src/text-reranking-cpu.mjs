@@ -1,3 +1,3 @@
-import { initializeBenchmark } from './index.mjs';
+import { initializeBenchmark } from "./index.mjs";
 
-initializeBenchmark('text-reranking-cpu');
+initializeBenchmark("text-reranking-cpu");

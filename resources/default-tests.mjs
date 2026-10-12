@@ -1,5 +1,3 @@
-import { BenchmarkTestStep } from "./benchmark-runner.mjs";
-
 export const defaultSuites = [
     {
         name: "Feature-Extraction-wasm",

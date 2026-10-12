@@ -1,0 +1,10 @@
+**/node_modules
+**/dist
+**/models
+**/package-lock.json
+**/.angular
+
+resources/build-info.mjs
+resources/experimental/src/gemma/build
+sandbox
+script/model-analyzer

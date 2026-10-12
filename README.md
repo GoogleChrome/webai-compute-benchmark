@@ -20,7 +20,7 @@ See the Speedometer repo for a more detailed explanation, e.g., in which phases 
 
 - If you have not done that yet, run `npm install` and `npm run build` inside `resources/<workload-group>/` to produce output in `dist/`.
 - `npm run dev` in the root directory to start the server.
--  Navigate to `http://localhost:8080/resources/<workload-group>/dist/<workload>.html` (e.g. `http://localhost:8080/resources/transformers-js/dist/feature-extraction-cpu.html` or `http://localhost:8080/resources/experimental/dist/litert-lm.html`) to run the workload automatically.
+- Navigate to `http://localhost:8080/resources/<workload-group>/dist/<workload>.html` (e.g. `http://localhost:8080/resources/transformers-js/dist/feature-extraction-cpu.html` or `http://localhost:8080/resources/experimental/dist/litert-lm.html`) to run the workload automatically.
 
 ## Developer Mode and Custom Parameters
 
@@ -59,17 +59,17 @@ Each individual sub-iteration represents a single inference run (a single call t
 Here are the versions of key libraries in different branches:
 
 - **main (v0.2.0)**
-  - Transformers.js: `4.0.1`
-  - LiteRT.js: `2.4.0`
-  - LiteRT-LM: `0.15.0`
+    - Transformers.js: `4.0.1`
+    - LiteRT.js: `2.4.0`
+    - LiteRT-LM: `0.15.0`
 
 - **version-0.1.0**
-  - Transformers.js: `3.7.5`
-  - LiteRT.js: `2.4.0`
+    - Transformers.js: `3.7.5`
+    - LiteRT.js: `2.4.0`
 
 - **version-0.0.1**
-  - Transformers.js: `3.7.5`
-  - LiteRT.js: `0.2.1`
+    - Transformers.js: `3.7.5`
+    - LiteRT.js: `0.2.1`
 
 ## Contributing
 

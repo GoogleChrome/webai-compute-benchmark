@@ -16,69 +16,86 @@ const { driver, PORT, stop } = await testSetup(HELP);
 // tests faster we run all of the Wasm benchmarks, and only a few GPU tests to cover most of
 // the common code. To run all benchmarks, enable this.
 const RUN_FULL_SUITE = false;
-let tags = 'wasm,gpu-test-suite';
-let suites = benchmarkConfigurator.suites.filter(suite =>
-    !suite.url.includes('/experimental/') &&
-    suite.tags.some((tag) => tag === 'wasm' || tag === 'gpu-test-suite')
-);
+let tags = "wasm,gpu-test-suite";
+let suites = benchmarkConfigurator.suites.filter((suite) => !suite.url.includes("/experimental/") && suite.tags.some((tag) => tag === "wasm" || tag === "gpu-test-suite"));
 let timeout = 10 * ONE_MINUTE_IN_MS;
 
 if (RUN_FULL_SUITE) {
-    tags = 'all';
+    tags = "all";
     suites = benchmarkConfigurator.suites;
     timeout = 20 * ONE_MINUTE_IN_MS;
 }
 
 async function testPage(url) {
-    console.log(`Testing: ${url}`);
+    console.log(`\nTesting: ${url}`);
     await driver.get(`http://localhost:${PORT}/${url}`);
 
     await driver.executeAsyncScript((callback) => {
-        if (globalThis.benchmarkClient)
+        if (globalThis.benchmarkClient) {
             callback();
-        else
+        } else {
             globalThis.addEventListener("BenchmarkReady", () => callback(), { once: true });
+        }
     });
 
-    console.log("    - Awaiting Benchmark");
-    const { error, metrics } = await driver.executeAsyncScript((callback) => {
-        globalThis.addEventListener(
-            "BenchmarkDone",
-            () =>
-                callback({
-                    metrics: globalThis.benchmarkClient.metrics,
-                }),
-            { once: true }
-        );
-        // Install error handlers to report page errors back to selenium.
-        globalThis.addEventListener("error", (message, source, lineno, colno, error) =>
-            callback({
-                error: { message, source, lineno, colno, error },
-            })
-        );
-        globalThis.addEventListener("unhandledrejection", (e) => {
-            callback({
-                error: {
-                    message: e.reason.toString(),
-                    stack: e.reason?.stack,
-                },
-            });
+    await driver.executeScript(() => {
+        globalThis._e2eQueue = [];
+        globalThis._e2eWaiter = null;
+        const push = (event) => {
+            globalThis._e2eQueue.push(event);
+            globalThis._e2eWaiter?.(globalThis._e2eQueue.shift());
+            globalThis._e2eWaiter = null;
+        };
+
+        const client = globalThis.benchmarkClient;
+        let suiteStart;
+        client.willStartSuite = (suite, iteration) => {
+            suiteStart = performance.now();
+            const totalIterations = client.stepCount / client.suitesCount;
+            push({ log: `    [${iteration + 1}/${totalIterations}] ${suite.name}` });
+        };
+        const origFinishSuite = client.didFinishSuite.bind(client);
+        client.didFinishSuite = (suite) => {
+            origFinishSuite(suite);
+            push({ log: `          ${Math.round(performance.now() - suiteStart)}ms` });
+        };
+        const origFailSuite = client.didFailSuite.bind(client);
+        client.didFailSuite = (suite, error) => {
+            origFailSuite(suite, error);
+            push({ error: `Suite ${suite.name} failed: ${error?.stack || error?.message || error}` });
+        };
+
+        globalThis.addEventListener("BenchmarkDone", () => push({ metrics: client.metrics }), { once: true });
+        globalThis.addEventListener("error", (e) => push({ error: e.error?.stack || e.message }));
+        globalThis.addEventListener("unhandledrejection", (e) => push({ error: e.reason?.stack || String(e.reason) }));
+        client.start();
+    });
+
+    while (true) {
+        const { log, error, metrics } = await driver.executeAsyncScript((cb) => {
+            if (globalThis._e2eQueue.length) {
+                cb(globalThis._e2eQueue.shift());
+            } else {
+                globalThis._e2eWaiter = cb;
+            }
         });
-        globalThis.benchmarkClient.start();
-    });
-
-    if (error)
-        throw new Error(error.message + (error?.stack ?? ""));
-
-    validateMetrics(metrics);
-    return metrics;
+        if (log) {
+            console.log(log);
+        } else if (error) {
+            throw new Error(error);
+        } else if (metrics) {
+            validateMetrics(metrics);
+            return metrics;
+        }
+    }
 }
 
 function validateMetrics(metrics) {
-    for (const [name, metric] of Object.entries(metrics))
+    for (const [name, metric] of Object.entries(metrics)) {
         validateMetric(name, metric);
-    assert((metrics["Wasm-Geomean"]?.mean > 0) || (metrics["WebGPU-Geomean"]?.mean > 0));
-    assert((metrics["Wasm-Score"]?.mean > 0) || (metrics["WebGPU-Score"]?.mean > 0));
+    }
+    assert(metrics["Wasm-Geomean"]?.mean > 0 || metrics["WebGPU-Geomean"]?.mean > 0);
+    assert(metrics["Wasm-Score"]?.mean > 0 || metrics["WebGPU-Score"]?.mean > 0);
 }
 
 function validateMetric(name, metric) {
@@ -95,7 +112,6 @@ async function testIterations() {
             const metric = metrics[suite.name];
             assert(metric, `Missing suite result for ${suite.name}`);
             assert(metric.values.length === iterationCount);
-            console.log(`Suite ${suite.name} took ${metric.sum}ms`);
         } else {
             assert(!(suite.name in metrics));
         }
@@ -111,16 +127,13 @@ async function testIterations() {
 }
 
 async function testSubIterations() {
-    const testSuites = [
-        "Image-Classification-LiteRT.js-wasm",
-        "Feature-Extraction-wasm"
-    ];
+    const testSuites = ["Image-Classification-LiteRT.js-wasm", "Feature-Extraction-wasm"];
 
-    let suites = benchmarkConfigurator.suites.filter(suite => testSuites.includes(suite.name));
+    let suites = benchmarkConfigurator.suites.filter((suite) => testSuites.includes(suite.name));
     const iterationCount = 1;
     const subIterationCount = 3;
     // URL with suites specified
-    const params = [`iterationCount=${iterationCount}`, `subIterationCount=${subIterationCount}`, `suites=${testSuites.join(',')}`];
+    const params = [`iterationCount=${iterationCount}`, `subIterationCount=${subIterationCount}`, `suites=${testSuites.join(",")}`];
     const metrics = await testPage(`index.html?${params.join("&")}`);
 
     suites.forEach((suite) => {
@@ -131,7 +144,7 @@ async function testSubIterations() {
         // Verify submetrics generated from steps
         for (let i = 0; i < subIterationCount; i++) {
             // we use some() to find the submetric since the separator might be '/'
-            const submetricKey = Object.keys(metrics).find(k => k.startsWith(suite.name) && k.includes(`sub-iter-${i + 1}`));
+            const submetricKey = Object.keys(metrics).find((k) => k.startsWith(suite.name) && k.includes(`sub-iter-${i + 1}`));
             assert(submetricKey, `Missing submetric result ending in sub-iter-${i + 1} for ${suite.name}`);
             const submetric = metrics[submetricKey];
             assert(submetric.values.length === iterationCount);

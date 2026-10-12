@@ -1,3 +1,3 @@
-import { initializeBenchmark } from './index.mjs';
+import { initializeBenchmark } from "./index.mjs";
 
-initializeBenchmark('feature-extraction-cpu');
+initializeBenchmark("feature-extraction-cpu");
