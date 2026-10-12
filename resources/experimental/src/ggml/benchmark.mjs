@@ -9,17 +9,11 @@
  */
 
 import TestQuantizePerfModule from "./build/test-quantize-perf.mjs";
-import {
-  AsyncBenchmarkSuite,
-  BenchmarkConnector,
-} from "speedometer-utils/benchmark.mjs";
+import { AsyncBenchmarkSuite, BenchmarkConnector } from "speedometer-utils/benchmark.mjs";
 import { createSubIteratedSuite } from "speedometer-utils/helpers.mjs";
 import { params } from "speedometer-utils/params.mjs";
 
-const testQuantizePerfUrl = new URL(
-  "./build/test-quantize-perf.wasm",
-  import.meta.url,
-);
+const testQuantizePerfUrl = new URL("./build/test-quantize-perf.wasm", import.meta.url);
 
 /**
  * `test-quantize-perf.cpp` supports 5 `--op` measurement modes testing distinct
@@ -48,86 +42,73 @@ const testQuantizePerfUrl = new URL(
  *   which is secondary compared to direct quantized dot products (`vec_dot_q`).
  */
 const SUB_BENCHMARKS = [
-  {
-    name: "vec_dot_q",
-    args: ["--op", "vec_dot_q", "--iterations", "10", "-3"],
-  },
-  {
-    name: "quantize_row_q_dot",
-    args: ["--op", "quantize_row_q_dot", "--iterations", "10", "-3"],
-  },
+    {
+        name: "vec_dot_q",
+        args: ["--op", "vec_dot_q", "--iterations", "10", "-3"],
+    },
+    {
+        name: "quantize_row_q_dot",
+        args: ["--op", "quantize_row_q_dot", "--iterations", "10", "-3"],
+    },
 ];
 
 function instantiatePrecompiled(wasmModule) {
-  return (imports, successCallback) => {
-    const instance = new WebAssembly.Instance(wasmModule, imports);
-    successCallback(instance, wasmModule);
-    return instance.exports;
-  };
+    return (imports, successCallback) => {
+        const instance = new WebAssembly.Instance(wasmModule, imports);
+        successCallback(instance, wasmModule);
+        return instance.exports;
+    };
 }
 
 class GgmlBenchmark {
-  constructor() {
-    this.ggmlModule = null;
-  }
+    constructor() {
+        this.ggmlModule = null;
+    }
 
-  async init() {
-    console.log(
-      "Compiling GGML Wasm module (not part of benchmark measurement)...",
-    );
-    this.ggmlModule = await WebAssembly.compileStreaming(
-      fetch(testQuantizePerfUrl),
-    );
-    console.log(
-      "GGML Wasm module compiled; starting measured benchmark runs...",
-    );
-  }
+    async init() {
+        console.log("Compiling GGML Wasm module (not part of benchmark measurement)...");
+        this.ggmlModule = await WebAssembly.compileStreaming(fetch(testQuantizePerfUrl));
+        console.log("GGML Wasm module compiled; starting measured benchmark runs...");
+    }
 
-  async runSubBenchmark(name, args) {
-    console.log(`Running ${name}...`);
-    await TestQuantizePerfModule({
-      arguments: [...args],
-      print: () => { },
-      instantiateWasm: instantiatePrecompiled(this.ggmlModule),
-    });
-  }
+    async runSubBenchmark(name, args) {
+        console.log(`Running ${name}...`);
+        await TestQuantizePerfModule({
+            arguments: [...args],
+            print: () => {},
+            instantiateWasm: instantiatePrecompiled(this.ggmlModule),
+        });
+    }
 }
 
 const appName = "GGML";
 const appVersion = "0.9.4";
 
 try {
-  const benchmark = new GgmlBenchmark();
-  await benchmark.init();
+    const benchmark = new GgmlBenchmark();
+    await benchmark.init();
 
-  // TODO(ryandiaz) We may want to report the total as a geomean
-  // so one sub benchmark doesn't dominate.
-  const steps = SUB_BENCHMARKS.map(({ name, args }) => {
-    const subSuite = createSubIteratedSuite(
-      { run: () => benchmark.runSubBenchmark(name, args) },
-      params.subIterationCount,
-    );
-    return {
-      name,
-      async runAndRecord(params, _parentSuite, _parentRecord, onProgress) {
-        const { result } = await subSuite.runAndRecord(params, onProgress);
-        return result;
-      },
+    // TODO(ryandiaz) We may want to report the total as a geomean
+    // so one sub benchmark doesn't dominate.
+    const steps = SUB_BENCHMARKS.map(({ name, args }) => {
+        const subSuite = createSubIteratedSuite({ run: () => benchmark.runSubBenchmark(name, args) }, params.subIterationCount);
+        return {
+            name,
+            async runAndRecord(params, _parentSuite, _parentRecord, onProgress) {
+                const { result } = await subSuite.runAndRecord(params, onProgress);
+                return result;
+            },
+        };
+    });
+
+    /*--------- Running test suites ---------*/
+    const suites = {
+        default: new AsyncBenchmarkSuite("default", steps),
     };
-  });
 
-  /*--------- Running test suites ---------*/
-  const suites = {
-    default: new AsyncBenchmarkSuite("default", steps),
-  };
-
-  const benchmarkConnector = new BenchmarkConnector(
-    suites,
-    appName,
-    appVersion,
-  );
-  benchmarkConnector.connect();
+    const benchmarkConnector = new BenchmarkConnector(suites, appName, appVersion);
+    benchmarkConnector.connect();
 } catch (error) {
-  console.error("Failed to initialize GGML benchmark:", error);
-  throw error;
+    console.error("Failed to initialize GGML benchmark:", error);
+    throw error;
 }
