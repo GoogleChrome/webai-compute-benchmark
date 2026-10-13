@@ -1,5 +1,3 @@
-import { BenchmarkTestStep } from "./benchmark-runner.mjs";
-
 export const defaultSuites = [
     {
         name: "Feature-Extraction-wasm",
@@ -191,6 +189,12 @@ export const defaultSuites = [
         name: "Experimental-LiteRT-LM-webgpu",
         url: "resources/experimental/dist/litert-lm.html",
         tags: ["experimental", "gemma", "litert-lm", "webgpu"],
+        type: "remote",
+    },
+    {
+        name: "Experimental-GGML-wasm",
+        url: "resources/experimental/dist/ggml.html",
+        tags: ["experimental", "ggml", "wasm"],
         type: "remote",
     },
     {

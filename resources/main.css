@@ -79,8 +79,6 @@ img {
     user-select: none;
 }
 
-
-
 .logo {
     position: absolute;
     left: -70px;
@@ -91,7 +89,7 @@ img {
     text-decoration: none;
     background-image: image-set(url("logo.png") 2x);
     background-repeat: no-repeat;
-    background-size: contain; 
+    background-size: contain;
 }
 
 .version {
@@ -221,7 +219,6 @@ button,
 #home .button-row {
     margin-top: 3em;
 }
-
 
 .developer-mode {
     border-radius: 10px;
@@ -501,7 +498,7 @@ section#summary.invalid #invalid-score-text {
     max-height: 25vh;
     flex-shrink: 0;
     overflow-y: auto;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
     box-sizing: border-box;
 }
 
@@ -746,8 +743,6 @@ section#about .note {
     grid-area: footer;
 }
 
-
-
 .all-metric-results .submetrics {
     display: none;
     margin-left: 35px;
@@ -944,5 +939,3 @@ section#about .note {
     color: #fff;
     stroke: #fff;
 }
-
-

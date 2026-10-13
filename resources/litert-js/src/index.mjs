@@ -1,375 +1,403 @@
 import { BenchmarkConnector } from "speedometer-utils/benchmark.mjs";
 import { createSubIteratedSuite, getVisualOutputCanvas } from "speedometer-utils/helpers.mjs";
 import { params } from "speedometer-utils/params.mjs";
-import * as tf from '@tensorflow/tfjs';
-import { loadAndCompile, loadLiteRt, Tensor } from '@litertjs/core';
-import origamiImage from '../../media/image.jpg';
-import handImage from '../../media/hand.jpg';
-
+import * as tf from "@tensorflow/tfjs";
+import { loadAndCompile, loadLiteRt, Tensor } from "@litertjs/core";
+import origamiImage from "../../media/image.jpg";
+import handImage from "../../media/hand.jpg";
 
 // TODO: Model loading time is not currently included in the benchmark. We should
 // investigate if the model loading code is different for the different device types.
 
-const WASM_PATH = 'resources/wasm/';
+const WASM_PATH = "resources/wasm/";
 
 /**
-* Loads image from URL, and converts it to a normalized Float32 Tensor.
-* @param {HTMLImageElement} image - The image to process.
-* @param {number} height - The target height.
-* @param {number} width - The target width.
-* @returns {tf.Tensor4D} The processed image tensor [1, H, W, 3].
-*/
+ * Loads image from URL, and converts it to a normalized Float32 Tensor.
+ * @param {HTMLImageElement} image - The image to process.
+ * @param {number} height - The target height.
+ * @param {number} width - The target width.
+ * @returns {tf.Tensor4D} The processed image tensor [1, H, W, 3].
+ */
 function processImageToTensor(image, height, width) {
-   return tf.tidy(() => {
-       // Convert the image data to a tensor [H, W, 3]
-       const tensor = tf.browser.fromPixels(image);
+    return tf.tidy(() => {
+        // Convert the image data to a tensor [H, W, 3]
+        const tensor = tf.browser.fromPixels(image);
 
-       // Resize and Normalize
-       const resized = tf.image.resizeBilinear(tensor, [height, width]);
-       const normalized = resized.div(255.0);
+        // Resize and Normalize
+        const resized = tf.image.resizeBilinear(tensor, [height, width]);
+        const normalized = resized.div(255.0);
 
-       // Add batch dimension: [H, W, 3] -> [1, H, W, 3]
-       return normalized.expandDims(0);
-   });
+        // Add batch dimension: [H, W, 3] -> [1, H, W, 3]
+        return normalized.expandDims(0);
+    });
 }
 
 /*--------- Image segmentation workload using qualcomm/MediaPipe-Selfie-Segmentation_float model ---------*/
 
 class ImageSegmentation {
- constructor(device) {
-   this.device = device;
-   this.originalImage = new Image();
-   this.MODEL_URL = '../models/mediapipe_selfie-tflite-float/mediapipe_selfie.tflite';
-   this.INPUT_WIDTH = 256;
-   this.INPUT_HEIGHT = 256;
-   this.THRESHOLD = 0.99; // Threshold for determining person vs. background
- }
+    constructor(device) {
+        this.device = device;
+        this.originalImage = new Image();
+        this.MODEL_URL = "../models/mediapipe_selfie-tflite-float/mediapipe_selfie.tflite";
+        this.INPUT_WIDTH = 256;
+        this.INPUT_HEIGHT = 256;
+        this.THRESHOLD = 0.99; // Threshold for determining person vs. background
+    }
 
- /**
-* Renders the segmentation mask onto the output canvas.
-* @param {Float32Array} maskData - Raw probability scores for the mask (0.0 to 1.0).
-* @param {HTMLImageElement} originalImage - Reference to the loaded <img> element.
-*/
-async renderSegmentation(maskData, originalImage) {
-   const { ctx, canvas: outputCanvas } = await getVisualOutputCanvas(this.INPUT_WIDTH, this.INPUT_HEIGHT);
+    /**
+     * Renders the segmentation mask onto the output canvas.
+     * @param {Float32Array} maskData - Raw probability scores for the mask (0.0 to 1.0).
+     * @param {HTMLImageElement} originalImage - Reference to the loaded <img> element.
+     */
+    async renderSegmentation(maskData, originalImage) {
+        const { ctx, canvas: outputCanvas } = await getVisualOutputCanvas(this.INPUT_WIDTH, this.INPUT_HEIGHT);
 
-   // 1. Draw the original image onto the canvas. This is fast.
-   ctx.drawImage(originalImage, 0, 0, outputCanvas.width, outputCanvas.height);
+        // 1. Draw the original image onto the canvas. This is fast.
+        ctx.drawImage(originalImage, 0, 0, outputCanvas.width, outputCanvas.height);
 
-   // 2. Create a new ImageData object in memory to hold the mask.
-   const maskImageData = new ImageData(outputCanvas.width, outputCanvas.height);
-   const maskPixels = maskImageData.data;
+        // 2. Create a new ImageData object in memory to hold the mask.
+        const maskImageData = new ImageData(outputCanvas.width, outputCanvas.height);
+        const maskPixels = maskImageData.data;
 
-   // 3. Apply the Mask: Populate the mask's pixel data on the CPU.
-   for (let i = 0; i < maskData.length; i++) {
-       const pixelIndex = i * 4;
-       if (maskData[i] < this.THRESHOLD) { // Background
-           maskPixels[pixelIndex] = 0;     // R
-           maskPixels[pixelIndex + 1] = 255; // G
-           maskPixels[pixelIndex + 2] = 0;     // B
-           maskPixels[pixelIndex + 3] = 255; // Alpha (fully opaque)
-       }
-       // Pixels that are not background remain transparent (default R=G=B=A=0).
-   }
+        // 3. Apply the Mask: Populate the mask's pixel data on the CPU.
+        for (let i = 0; i < maskData.length; i++) {
+            const pixelIndex = i * 4;
+            if (maskData[i] < this.THRESHOLD) {
+                // Background
+                maskPixels[pixelIndex] = 0; // R
+                maskPixels[pixelIndex + 1] = 255; // G
+                maskPixels[pixelIndex + 2] = 0; // B
+                maskPixels[pixelIndex + 3] = 255; // Alpha (fully opaque)
+            }
+            // Pixels that are not background remain transparent (default R=G=B=A=0).
+        }
 
-   // 4. Draw the mask overlay. This is much faster than reading from the canvas.
-   ctx.putImageData(maskImageData, 0, 0);
-}
+        // 4. Draw the mask overlay. This is much faster than reading from the canvas.
+        ctx.putImageData(maskImageData, 0, 0);
+    }
 
-  /**
-  * Handles the output tensor: copies it to CPU if needed, renders the visualization,
-  * and cleans up the tensor memory.
-  * @param {Tensor} maskTensor The output tensor from the model run.
-  */
- async visualizeOutput(maskTensor, originalImage) {
-   // If the output tensor is on the GPU, we must copy it to the CPU first.
-   // To use result in javascript logic and DOM manipulation, we need CPU tensors.
-   let cpuMaskTensor;
-   if (maskTensor.accelerator === 'webgpu') {
-     cpuMaskTensor = await maskTensor.copyTo('wasm');
-     maskTensor.delete(); // The original GPU tensor is no longer needed.
-   } else {
-     cpuMaskTensor = maskTensor;
-   }
+    /**
+     * Handles the output tensor: copies it to CPU if needed, renders the visualization,
+     * and cleans up the tensor memory.
+     * @param {Tensor} maskTensor The output tensor from the model run.
+     */
+    async visualizeOutput(maskTensor, originalImage) {
+        // If the output tensor is on the GPU, we must copy it to the CPU first.
+        // To use result in javascript logic and DOM manipulation, we need CPU tensors.
+        let cpuMaskTensor;
+        if (maskTensor.accelerator === "webgpu") {
+            cpuMaskTensor = await maskTensor.copyTo("wasm");
+            maskTensor.delete(); // The original GPU tensor is no longer needed.
+        } else {
+            cpuMaskTensor = maskTensor;
+        }
 
-   const maskData = cpuMaskTensor.toTypedArray();
-   await this.renderSegmentation(maskData, originalImage);
+        const maskData = cpuMaskTensor.toTypedArray();
+        await this.renderSegmentation(maskData, originalImage);
 
-   cpuMaskTensor.delete();
- }
+        cpuMaskTensor.delete();
+    }
 
- async init() {
-   document.getElementById('device').textContent = this.device;
-   document.getElementById('workload').textContent = "Image segmentation";
-   document.getElementById('input').textContent = `Segmentation on a local image.`;
-   // Load the input image into an in-memory Image object.
-   this.originalImage.src = origamiImage;
-   await this.originalImage.decode();
+    async init() {
+        document.getElementById("device").textContent = this.device;
+        document.getElementById("workload").textContent = "Image segmentation";
+        document.getElementById("input").textContent = `Segmentation on a local image.`;
+        // Load the input image into an in-memory Image object.
+        this.originalImage.src = origamiImage;
+        await this.originalImage.decode();
 
-   // Loading model
-   await loadLiteRt(WASM_PATH, {threads: false});
-   this.model = await loadAndCompile(this.MODEL_URL, {accelerator: this.device});
+        // Loading model
+        await loadLiteRt(WASM_PATH, { threads: false });
+        this.model = await loadAndCompile(this.MODEL_URL, { accelerator: this.device });
 
-   // Preparing image
-   const imageTensor = processImageToTensor(this.originalImage, this.INPUT_HEIGHT, this.INPUT_WIDTH);
-   const imageData = imageTensor.dataSync();
-   const tensor = new Tensor(imageData, [1, this.INPUT_HEIGHT, this.INPUT_WIDTH, 3]);
-   imageTensor.dispose();
+        // Preparing image
+        const imageTensor = processImageToTensor(this.originalImage, this.INPUT_HEIGHT, this.INPUT_WIDTH);
+        const imageData = imageTensor.dataSync();
+        const tensor = new Tensor(imageData, [1, this.INPUT_HEIGHT, this.INPUT_WIDTH, 3]);
+        imageTensor.dispose();
 
-   if (this.device === 'webgpu') {
-     this.litertImageTensor = await tensor.moveTo('webgpu');
-   } else {
-     this.litertImageTensor = tensor;
-   }
- }
+        if (this.device === "webgpu") {
+            this.litertImageTensor = await tensor.moveTo("webgpu");
+        } else {
+            this.litertImageTensor = tensor;
+        }
+    }
 
- async run() {
-   const [maskTensor] = await this.model.run([this.litertImageTensor]);
-   await this.visualizeOutput(maskTensor, this.originalImage);
- }
+    async run() {
+        const [maskTensor] = await this.model.run([this.litertImageTensor]);
+        await this.visualizeOutput(maskTensor, this.originalImage);
+    }
 }
 
 /*--------- Image classification workload using qualcomm/MobileNet-v3-Small model ---------*/
 
 class ImageClassification {
- constructor(device) {
-   this.device = device;
-   this.originalImage = new Image();
-   this.MODEL_URL = '../models/mobilenet_v3_small-tflite-float/mobilenet_v3_small.tflite';
-   this.INPUT_WIDTH = 224;
-   this.INPUT_HEIGHT = 224;
-   this.LABELS_URL = '../models/mobilenet_v3_small-tflite-float/labels.txt';
-   this.labels = [];
- }
+    constructor(device) {
+        this.device = device;
+        this.originalImage = new Image();
+        this.MODEL_URL = "../models/mobilenet_v3_small-tflite-float/mobilenet_v3_small.tflite";
+        this.INPUT_WIDTH = 224;
+        this.INPUT_HEIGHT = 224;
+        this.LABELS_URL = "../models/mobilenet_v3_small-tflite-float/labels.txt";
+        this.labels = [];
+    }
 
-  /**
-  * Processes classification probabilities and displays the top 5 results.
-  * @param {Float32Array} probabilities - The raw probability array from the model.
-  */
- displayTop5Results(probabilities) {
-    // Get top 5 probabilities and their indices
-    const top5 = Array.from(probabilities)
-      .map((probability, index) => ({ probability: probability * 10, index }))
-      .sort((a, b) => b.probability - a.probability)
-      .slice(0, 5);
+    /**
+     * Processes classification probabilities and displays the top 5 results.
+     * @param {Float32Array} probabilities - The raw probability array from the model.
+     */
+    displayTop5Results(probabilities) {
+        // Get top 5 probabilities and their indices
+        const top5 = Array.from(probabilities)
+            .map((probability, index) => ({ probability: probability * 10, index }))
+            .sort((a, b) => b.probability - a.probability)
+            .slice(0, 5);
 
-    // Format and display the results
-    const results = top5.map(p => {
-      const className = this.labels[p.index];
-      return `${className}: ${p.probability.toFixed(4)}`;
-    });
+        // Format and display the results
+        const results = top5.map((p) => {
+            const className = this.labels[p.index];
+            return `${className}: ${p.probability.toFixed(4)}`;
+        });
 
-    document.getElementById('output').textContent = `Top 5 Classification results:\n${results.join('\n')}`;
-  }
+        document.getElementById("output").textContent = `Top 5 Classification results:\n${results.join("\n")}`;
+    }
 
- async init() {
-   document.getElementById('device').textContent = this.device;
-   document.getElementById('workload').textContent = "Image classification";
-   document.getElementById('input').textContent = `Classification on a local image.`;
- 
-   // Load the input image into an in-memory Image object.
-   this.originalImage.src = origamiImage;
-   await this.originalImage.decode();
+    async init() {
+        document.getElementById("device").textContent = this.device;
+        document.getElementById("workload").textContent = "Image classification";
+        document.getElementById("input").textContent = `Classification on a local image.`;
 
-   // Loading model
-   await loadLiteRt(WASM_PATH, {threads: false});
-   this.model = await loadAndCompile(this.MODEL_URL, {accelerator: this.device});
+        // Load the input image into an in-memory Image object.
+        this.originalImage.src = origamiImage;
+        await this.originalImage.decode();
 
-   // Fetch class labels
-   const labelsResponse = await fetch(this.LABELS_URL);
-   const text = await labelsResponse.text();
-   this.labels = text.split('\n');
+        // Loading model
+        await loadLiteRt(WASM_PATH, { threads: false });
+        this.model = await loadAndCompile(this.MODEL_URL, { accelerator: this.device });
 
-   // Preparing image
-   const imageTensor = processImageToTensor(this.originalImage, this.INPUT_HEIGHT, this.INPUT_WIDTH);
-   const imageData = imageTensor.dataSync();
-   const tensor = new Tensor(imageData, [1, this.INPUT_HEIGHT, this.INPUT_WIDTH, 3]);
-   imageTensor.dispose();
+        // Fetch class labels
+        const labelsResponse = await fetch(this.LABELS_URL);
+        const text = await labelsResponse.text();
+        this.labels = text.split("\n");
 
-   if (this.device === 'webgpu') {
-     this.litertImageTensor = await tensor.moveTo('webgpu');
-   } else {
-     this.litertImageTensor = tensor;
-   }
- }
+        // Preparing image
+        const imageTensor = processImageToTensor(this.originalImage, this.INPUT_HEIGHT, this.INPUT_WIDTH);
+        const imageData = imageTensor.dataSync();
+        const tensor = new Tensor(imageData, [1, this.INPUT_HEIGHT, this.INPUT_WIDTH, 3]);
+        imageTensor.dispose();
 
- async run() {
-   const [outputTensor] = await this.model.run([this.litertImageTensor]);
-   let cpuOutputTensor;
-   if (outputTensor.accelerator === 'webgpu') {
-     cpuOutputTensor = await outputTensor.copyTo('wasm');
-     outputTensor.delete(); // The original GPU tensor is no longer needed.
-   } else {
-     cpuOutputTensor = outputTensor;
-   }
-   const probabilities = cpuOutputTensor.toTypedArray();
-   cpuOutputTensor.delete();
+        if (this.device === "webgpu") {
+            this.litertImageTensor = await tensor.moveTo("webgpu");
+        } else {
+            this.litertImageTensor = tensor;
+        }
+    }
 
-   this.displayTop5Results(probabilities);
- }
+    async run() {
+        const [outputTensor] = await this.model.run([this.litertImageTensor]);
+        let cpuOutputTensor;
+        if (outputTensor.accelerator === "webgpu") {
+            cpuOutputTensor = await outputTensor.copyTo("wasm");
+            outputTensor.delete(); // The original GPU tensor is no longer needed.
+        } else {
+            cpuOutputTensor = outputTensor;
+        }
+        const probabilities = cpuOutputTensor.toTypedArray();
+        cpuOutputTensor.delete();
+
+        this.displayTop5Results(probabilities);
+    }
 }
 
 /*--------- Hand detection workload using qualcomm/MediaPipe-Hand-Detection model ---------*/
 
 class HandDetection {
-  constructor(device) {
-    this.device = device;
-    this.originalImage = new Image();
-    this.MODEL_URL = '../models/mediapipe_hand-tflite-float/HandLandmarkDetector.tflite';
-    this.INPUT_WIDTH = 256;
-    this.INPUT_HEIGHT = 256;
-    this.CONFIDENCE_THRESHOLD = 0.9;
-    this.NUM_KEYPOINTS = 21; // The landmark model provides 21 keypoints
-  }
-
-  /**
-  * Draws hand landmarks and connecting lines on the output canvas.
-  * @param {Float32Array} landmarkData - The raw landmark data from the model.
-  */
-  async drawHandLandmarks(landmarkData) {
-    const { ctx, canvas: outputCanvas } = await getVisualOutputCanvas(this.INPUT_WIDTH, this.INPUT_HEIGHT);
-    ctx.drawImage(this.originalImage, 0, 0, outputCanvas.width, outputCanvas.height);
-
-    // Define connections between landmarks
-    const connections = [
-      [0, 1], [1, 2], [2, 3], [3, 4], // Thumb
-      [0, 5], [5, 6], [6, 7], [7, 8], // Index finger
-      [5, 9], [9, 10], [10, 11], [11, 12], // Middle finger
-      [9, 13], [13, 14], [14, 15], [15, 16], // Ring finger
-      [13, 17], [0, 17], [17, 18], [18, 19], [19, 20], // Pinky finger
-    ];
-
-    // Process and draw landmarks directly
-    const landmarks = [];
-    for (let i = 0; i < this.NUM_KEYPOINTS; i++) {
-      // Directly scale normalized coordinates to canvas size
-      const x = landmarkData[i * 3] * outputCanvas.width;
-      const y = landmarkData[i * 3 + 1] * outputCanvas.height;
-      landmarks.push({ x, y });
-
-      // Draw landmark point
-      ctx.fillStyle = '#FF0000'; // Red
-      ctx.beginPath();
-      ctx.arc(x, y, 5, 0, 2 * Math.PI);
-      ctx.fill();
+    constructor(device) {
+        this.device = device;
+        this.originalImage = new Image();
+        this.MODEL_URL = "../models/mediapipe_hand-tflite-float/HandLandmarkDetector.tflite";
+        this.INPUT_WIDTH = 256;
+        this.INPUT_HEIGHT = 256;
+        this.CONFIDENCE_THRESHOLD = 0.9;
+        this.NUM_KEYPOINTS = 21; // The landmark model provides 21 keypoints
     }
 
-    // Draw connections
-    ctx.strokeStyle = '#00FF00'; // Lime Green
-    ctx.lineWidth = 3;
-    for (const conn of connections) {
-      const start = landmarks[conn[0]];
-      const end = landmarks[conn[1]];
-      if (start && end) {
-        ctx.beginPath();
-        ctx.moveTo(start.x, start.y);
-        ctx.lineTo(end.x, end.y);
-        ctx.stroke();
-      }
+    /**
+     * Draws hand landmarks and connecting lines on the output canvas.
+     * @param {Float32Array} landmarkData - The raw landmark data from the model.
+     */
+    async drawHandLandmarks(landmarkData) {
+        const { ctx, canvas: outputCanvas } = await getVisualOutputCanvas(this.INPUT_WIDTH, this.INPUT_HEIGHT);
+        ctx.drawImage(this.originalImage, 0, 0, outputCanvas.width, outputCanvas.height);
+
+        // Define connections between landmarks
+        const connections = [
+            [0, 1],
+            [1, 2],
+            [2, 3],
+            [3, 4], // Thumb
+            [0, 5],
+            [5, 6],
+            [6, 7],
+            [7, 8], // Index finger
+            [5, 9],
+            [9, 10],
+            [10, 11],
+            [11, 12], // Middle finger
+            [9, 13],
+            [13, 14],
+            [14, 15],
+            [15, 16], // Ring finger
+            [13, 17],
+            [0, 17],
+            [17, 18],
+            [18, 19],
+            [19, 20], // Pinky finger
+        ];
+
+        // Process and draw landmarks directly
+        const landmarks = [];
+        for (let i = 0; i < this.NUM_KEYPOINTS; i++) {
+            // Directly scale normalized coordinates to canvas size
+            const x = landmarkData[i * 3] * outputCanvas.width;
+            const y = landmarkData[i * 3 + 1] * outputCanvas.height;
+            landmarks.push({ x, y });
+
+            // Draw landmark point
+            ctx.fillStyle = "#FF0000"; // Red
+            ctx.beginPath();
+            ctx.arc(x, y, 5, 0, 2 * Math.PI);
+            ctx.fill();
+        }
+
+        // Draw connections
+        ctx.strokeStyle = "#00FF00"; // Lime Green
+        ctx.lineWidth = 3;
+        for (const conn of connections) {
+            const start = landmarks[conn[0]];
+            const end = landmarks[conn[1]];
+            if (start && end) {
+                ctx.beginPath();
+                ctx.moveTo(start.x, start.y);
+                ctx.lineTo(end.x, end.y);
+                ctx.stroke();
+            }
+        }
     }
-  }
 
-  async init() {
-    document.getElementById('device').textContent = this.device;
-    document.getElementById('workload').textContent = "Hand detection";
-    document.getElementById('input').textContent = `Hand detection on a local image.`;
+    async init() {
+        document.getElementById("device").textContent = this.device;
+        document.getElementById("workload").textContent = "Hand detection";
+        document.getElementById("input").textContent = `Hand detection on a local image.`;
 
-    this.originalImage.src = handImage;
-    await this.originalImage.decode();
+        this.originalImage.src = handImage;
+        await this.originalImage.decode();
 
-    await loadLiteRt(WASM_PATH, { threads: false });
-    this.model = await loadAndCompile(this.MODEL_URL, { accelerator: this.device });
- 
-    const imageTensor = processImageToTensor(this.originalImage, this.INPUT_HEIGHT, this.INPUT_WIDTH);
-    const imageData = imageTensor.dataSync();
-    const tensor = new Tensor(imageData, [1, this.INPUT_HEIGHT, this.INPUT_WIDTH, 3], 'float32');
-    imageTensor.dispose();
- 
-    if (this.device === 'webgpu') {
-      this.litertImageTensor = await tensor.moveTo('webgpu');
-    } else {
-      this.litertImageTensor = tensor;
-    }
-  }
- 
-  async run() {
-    // The landmark model has 3 outputs: handedness, worldLandmarks, landmarks
-    // landmarks: 21 landmarks suitable for 2D drawing
-    // world_landmarks: 21 landmarks suitable for real world 3D coordination system
-    // handedness: left hand or right hand
-    const [handedness, worldLandmarks, landmarks] = await this.model.run([this.litertImageTensor]);
+        await loadLiteRt(WASM_PATH, { threads: false });
+        this.model = await loadAndCompile(this.MODEL_URL, { accelerator: this.device });
 
-    let landmarksTensor;
-    if (this.device === 'webgpu') {
-      // Copy tensors from GPU to CPU before reading data
-      landmarksTensor = await landmarks.copyTo('wasm');
-      landmarks.delete();
-      worldLandmarks.delete(); // Not used, but must be cleaned up
-      handedness.delete(); // Not used, but must be cleaned up
-    } else {
-      landmarksTensor = landmarks;
-      worldLandmarks.delete();
-      handedness.delete();
+        const imageTensor = processImageToTensor(this.originalImage, this.INPUT_HEIGHT, this.INPUT_WIDTH);
+        const imageData = imageTensor.dataSync();
+        const tensor = new Tensor(imageData, [1, this.INPUT_HEIGHT, this.INPUT_WIDTH, 3], "float32");
+        imageTensor.dispose();
+
+        if (this.device === "webgpu") {
+            this.litertImageTensor = await tensor.moveTo("webgpu");
+        } else {
+            this.litertImageTensor = tensor;
+        }
     }
 
-    const landmarkData = landmarksTensor.toTypedArray();
-    landmarksTensor.delete();
+    async run() {
+        // The landmark model has 3 outputs: handedness, worldLandmarks, landmarks
+        // landmarks: 21 landmarks suitable for 2D drawing
+        // world_landmarks: 21 landmarks suitable for real world 3D coordination system
+        // handedness: left hand or right hand
+        const [handedness, worldLandmarks, landmarks] = await this.model.run([this.litertImageTensor]);
 
-    await this.drawHandLandmarks(landmarkData);
-  }
+        let landmarksTensor;
+        if (this.device === "webgpu") {
+            // Copy tensors from GPU to CPU before reading data
+            landmarksTensor = await landmarks.copyTo("wasm");
+            landmarks.delete();
+            worldLandmarks.delete(); // Not used, but must be cleaned up
+            handedness.delete(); // Not used, but must be cleaned up
+        } else {
+            landmarksTensor = landmarks;
+            worldLandmarks.delete();
+            handedness.delete();
+        }
+
+        const landmarkData = landmarksTensor.toTypedArray();
+        landmarksTensor.delete();
+
+        await this.drawHandLandmarks(landmarkData);
+    }
 }
 
 /*--------- Workload configurations ---------*/
 
 const modelConfigs = {
- 'image-segmentation-cpu': {
-   description: 'Image segmentation on wasm',
-   create: () => { return new ImageSegmentation('wasm'); },
- },
- 'image-segmentation-gpu': {
-   description: 'Image segmentation on webgpu',
-   create: () => { return new ImageSegmentation('webgpu'); },
- },
- 'image-classification-cpu': {
-   description: 'Image classification on wasm',
-   create: () => { return new ImageClassification('wasm'); },
- },
- 'image-classification-gpu': {
-   description: 'Image classification on webgpu',
-   create: () => { return new ImageClassification('webgpu'); },
- },
- 'hand-detection-cpu': {
-    description: 'Hand detection on wasm',
-    create: () => { return new HandDetection('wasm'); },
-  },
- 'hand-detection-gpu': {
-    description: 'Hand detection on webgpu',
-    create: () => { return new HandDetection('webgpu'); },
-  },
+    "image-segmentation-cpu": {
+        description: "Image segmentation on wasm",
+        create: () => {
+            return new ImageSegmentation("wasm");
+        },
+    },
+    "image-segmentation-gpu": {
+        description: "Image segmentation on webgpu",
+        create: () => {
+            return new ImageSegmentation("webgpu");
+        },
+    },
+    "image-classification-cpu": {
+        description: "Image classification on wasm",
+        create: () => {
+            return new ImageClassification("wasm");
+        },
+    },
+    "image-classification-gpu": {
+        description: "Image classification on webgpu",
+        create: () => {
+            return new ImageClassification("webgpu");
+        },
+    },
+    "hand-detection-cpu": {
+        description: "Hand detection on wasm",
+        create: () => {
+            return new HandDetection("wasm");
+        },
+    },
+    "hand-detection-gpu": {
+        description: "Hand detection on webgpu",
+        create: () => {
+            return new HandDetection("webgpu");
+        },
+    },
 };
 
 const appVersion = "1.0.0";
 let appName;
 
 export async function initializeBenchmark(modelType) {
- if (!modelType || !modelConfigs[modelType]) {
-   throw new Error(`Invalid configuration '${modelType}.'`);
- }
+    if (!modelType || !modelConfigs[modelType]) {
+        throw new Error(`Invalid configuration '${modelType}.'`);
+    }
 
- appName = modelConfigs[modelType].description;
- let benchmark;
- try {
-    benchmark = modelConfigs[modelType].create();
-    await benchmark.init();
- } catch (error) {
-    console.error(error);
- }
+    appName = modelConfigs[modelType].description;
+    let benchmark;
+    try {
+        benchmark = modelConfigs[modelType].create();
+        await benchmark.init();
+    } catch (error) {
+        console.error(error);
+    }
 
-  /*--------- Running test suites ---------*/
-  const suites = {
-    default: createSubIteratedSuite(benchmark, params.subIterationCount),
-  };
+    /*--------- Running test suites ---------*/
+    const suites = {
+        default: createSubIteratedSuite(benchmark, params.subIterationCount),
+    };
 
- const benchmarkConnector = new BenchmarkConnector(suites, appName, appVersion);
- benchmarkConnector.connect();
+    const benchmarkConnector = new BenchmarkConnector(suites, appName, appVersion);
+    benchmarkConnector.connect();
 }

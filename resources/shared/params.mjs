@@ -38,8 +38,9 @@ export class Params {
     config = "";
 
     constructor(searchParams = undefined) {
-        if (searchParams)
+        if (searchParams) {
             this._copyFromSearchParams(searchParams);
+        }
         if (!this.developerMode) {
             Object.freeze(this.viewport);
             Object.freeze(this);
@@ -48,8 +49,9 @@ export class Params {
 
     _parseInt(value, errorMessage) {
         const number = Number(value);
-        if (!Number.isInteger(number) && errorMessage)
+        if (!Number.isInteger(number) && errorMessage) {
             throw new Error(`Invalid ${errorMessage} param: '${value}', expected int.`);
+        }
         return parseInt(number);
     }
 
@@ -72,8 +74,9 @@ export class Params {
         this.config = this._parseConfig(searchParams);
 
         const unused = Array.from(searchParams.keys());
-        if (unused.length > 0)
+        if (unused.length > 0) {
             console.error("Got unused search params", unused);
+        }
     }
 
     _parseBooleanParam(searchParams, ...paramKeys) {
@@ -88,39 +91,45 @@ export class Params {
     }
 
     _parseIntParam(searchParams, paramKey, minValue) {
-        if (!searchParams.has(paramKey))
+        if (!searchParams.has(paramKey)) {
             return defaultParams[paramKey];
+        }
 
         const parsedValue = this._parseInt(searchParams.get(paramKey), "waitBeforeSync");
-        if (parsedValue < minValue)
+        if (parsedValue < minValue) {
             throw new Error(`Invalid ${paramKey} param: '${parsedValue}', value must be >= ${minValue}.`);
+        }
         searchParams.delete(paramKey);
         return parsedValue;
     }
 
     _parseViewport(searchParams) {
-        if (!searchParams.has("viewport"))
+        if (!searchParams.has("viewport")) {
             return defaultParams.viewport;
+        }
         const viewportParam = searchParams.get("viewport");
         const [width, height] = viewportParam.split("x");
         const viewport = {
             width: this._parseInt(width, "viewport.width"),
             height: this._parseInt(height, "viewport.height"),
         };
-        if (this.viewport.width < 800 || this.viewport.height < 600)
+        if (this.viewport.width < 800 || this.viewport.height < 600) {
             throw new Error(`Invalid viewport param: ${viewportParam}`);
+        }
         searchParams.delete("viewport");
         return viewport;
     }
 
     _parseSuites(searchParams) {
         if (searchParams.has("suite") || searchParams.has("suites")) {
-            if (searchParams.has("suite") && searchParams.has("suites"))
+            if (searchParams.has("suite") && searchParams.has("suites")) {
                 throw new Error("Params 'suite' and 'suites' can not be used together.");
+            }
             const value = searchParams.get("suite") || searchParams.get("suites");
             const suites = value.split(",");
-            if (suites.length === 0)
+            if (suites.length === 0) {
                 throw new Error("No suites selected");
+            }
             searchParams.delete("suite");
             searchParams.delete("suites");
             return suites;
@@ -129,28 +138,33 @@ export class Params {
     }
 
     _parseTags(searchParams) {
-        if (!searchParams.has("tags"))
+        if (!searchParams.has("tags")) {
             return defaultParams.tags;
-        if (this.suites.length)
+        }
+        if (this.suites.length) {
             throw new Error("'suites' and 'tags' cannot be used together.");
+        }
         const tags = searchParams.get("tags").split(",");
         searchParams.delete("tags");
         return tags;
     }
 
     _parseEnumParam(searchParams, paramKey, enumArray) {
-        if (!searchParams.has(paramKey))
+        if (!searchParams.has(paramKey)) {
             return defaultParams[paramKey];
+        }
         const value = searchParams.get(paramKey);
-        if (!enumArray.includes(value))
+        if (!enumArray.includes(value)) {
             throw new Error(`Got invalid ${paramKey}: '${value}', choices are ${enumArray}`);
+        }
         searchParams.delete(paramKey);
         return value;
     }
 
     _parseShuffleSeed(searchParams) {
-        if (!searchParams.has("shuffleSeed"))
+        if (!searchParams.has("shuffleSeed")) {
             return defaultParams.shuffleSeed;
+        }
         let shuffleSeed = searchParams.get("shuffleSeed");
         if (shuffleSeed !== "off") {
             if (shuffleSeed === "generate") {
@@ -159,8 +173,9 @@ export class Params {
             } else {
                 shuffleSeed = parseInt(shuffleSeed);
             }
-            if (!Number.isInteger(shuffleSeed))
+            if (!Number.isInteger(shuffleSeed)) {
                 throw new Error(`Invalid shuffle seed: '${shuffleSeed}', must be either 'off', 'generate' or an integer.`);
+            }
         }
         searchParams.delete("shuffleSeed");
         return shuffleSeed;
@@ -169,8 +184,9 @@ export class Params {
     _parseConfig(searchParams) {
         const config = searchParams.get("config") ?? "";
         searchParams.delete("config");
-        if (config && !isValidUrl(config))
+        if (config && !isValidUrl(config)) {
             throw new Error("Invalid config url passed in.");
+        }
 
         return config;
     }
@@ -183,22 +199,26 @@ export class Params {
         const rawUrlParams = { __proto__: null };
         for (const [key, value] of Object.entries(this)) {
             // Handle composite values separately.
-            if (key === "viewport" || key === "suites" || key === "tags")
+            if (key === "viewport" || key === "suites" || key === "tags") {
                 continue;
+            }
             // Skip over default values.
-            if (filter && value === defaultParams[key])
+            if (filter && value === defaultParams[key]) {
                 continue;
+            }
             rawUrlParams[key] = value;
         }
 
-        if (this.viewport.width !== defaultParams.viewport.width || this.viewport.height !== defaultParams.viewport.height)
+        if (this.viewport.width !== defaultParams.viewport.width || this.viewport.height !== defaultParams.viewport.height) {
             rawUrlParams.viewport = `${this.viewport.width}x${this.viewport.height}`;
+        }
 
         if (this.suites.length) {
             rawUrlParams.suites = this.suites.join(",");
         } else if (this.tags.length) {
-            if (!(this.tags.length === 1 && this.tags[0] === "default"))
+            if (!(this.tags.length === 1 && this.tags[0] === "default")) {
                 rawUrlParams.tags = this.tags.join(",");
+            }
         } else {
             rawUrlParams.suites = "";
         }
@@ -212,8 +232,9 @@ export class Params {
 }
 
 export function isValidUrl(url) {
-    if (typeof url !== "string" || url.length === 0)
+    if (typeof url !== "string" || url.length === 0) {
         return false;
+    }
     const protocol = URL.parse(url, "http://www.example.com")?.protocol;
     return protocol === "http:" || protocol === "https:";
 }

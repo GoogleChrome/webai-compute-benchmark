@@ -9,18 +9,11 @@
  */
 
 import CodecbenchModule from "../../dist/meshoptimizer/codecbench.mjs";
-import {
-  AsyncBenchmarkStep,
-  AsyncBenchmarkSuite,
-  BenchmarkConnector,
-} from "speedometer-utils/benchmark.mjs";
+import { AsyncBenchmarkStep, AsyncBenchmarkSuite, BenchmarkConnector } from "speedometer-utils/benchmark.mjs";
 import { forceLayout } from "speedometer-utils/helpers.mjs";
 import { params } from "speedometer-utils/params.mjs";
 
-const codecbenchUrl = new URL(
-  "../../dist/meshoptimizer/codecbench.wasm",
-  import.meta.url,
-);
+const codecbenchUrl = new URL("../../dist/meshoptimizer/codecbench.wasm", import.meta.url);
 
 /**
  * codecbench.cpp measures maximum decoding throughput (best timing over 50
@@ -45,127 +38,102 @@ const codecbenchUrl = new URL(
  *   - exp: Exponential/floating-point attribute un-filtering
  *     (meshopt_decodeFilterExp).
  */
-const SUB_BENCHMARK_NAMES = [
-  "vtx0",
-  "vtx1",
-  "idx",
-  "oct8",
-  "oct12",
-  "quat12",
-  "col8",
-  "col12",
-  "exp",
-];
+const SUB_BENCHMARK_NAMES = ["vtx0", "vtx1", "idx", "oct8", "oct12", "quat12", "col8", "col12", "exp"];
 
-const SCORE_REGEX = new RegExp(
-  "Score \\(GB\\/s\\):" +
-    "\\s+([0-9]*\\.?[0-9]+)".repeat(SUB_BENCHMARK_NAMES.length),
-);
+const SCORE_REGEX = new RegExp(`Score \\(GB\\/s\\):${"\\s+([0-9]*\\.?[0-9]+)".repeat(SUB_BENCHMARK_NAMES.length)}`);
 
 function geometricMean(values) {
-  const logSum = values.reduce((sum, v) => sum + Math.log(v), 0);
-  return Math.exp(logSum / values.length);
+    const logSum = values.reduce((sum, v) => sum + Math.log(v), 0);
+    return Math.exp(logSum / values.length);
 }
 
 function instantiatePrecompiled(wasmModule) {
-  return (imports, successCallback) => {
-    const instance = new WebAssembly.Instance(wasmModule, imports);
-    successCallback(instance, wasmModule);
-    return instance.exports;
-  };
+    return (imports, successCallback) => {
+        const instance = new WebAssembly.Instance(wasmModule, imports);
+        successCallback(instance, wasmModule);
+        return instance.exports;
+    };
 }
 
 class MeshoptimizerBenchmark {
-  constructor() {
-    this.meshoptimizerModule = null;
-  }
-
-  async init() {
-    console.log(
-      "Compiling Meshoptimizer Wasm module (not part of benchmark measurement)...",
-    );
-    this.meshoptimizerModule = await WebAssembly.compileStreaming(
-      fetch(codecbenchUrl),
-    );
-    console.log(
-      "Meshoptimizer Wasm module compiled; starting measured benchmark runs...",
-    );
-  }
-
-  async runAndParseScore() {
-    let stdout = "";
-    console.log("Running codecbench...");
-    await CodecbenchModule({
-      print: (line) => {
-        console.log(line);
-        stdout += line + "\n";
-      },
-      printErr: (line) => console.error(line),
-      instantiateWasm: instantiatePrecompiled(this.meshoptimizerModule),
-    });
-
-    const match = stdout.match(SCORE_REGEX);
-    if (!match) {
-      throw new Error(`Failed to parse codecbench output:\n${stdout}`);
+    constructor() {
+        this.meshoptimizerModule = null;
     }
 
-    const gbpsScores = match
-      .slice(1, SUB_BENCHMARK_NAMES.length + 1)
-      .map(Number);
-    const steps = {};
-    SUB_BENCHMARK_NAMES.forEach((name, i) => {
-      steps[name] = { tests: {}, total: 1000 / gbpsScores[i] };
-    });
+    async init() {
+        console.log("Compiling Meshoptimizer Wasm module (not part of benchmark measurement)...");
+        this.meshoptimizerModule = await WebAssembly.compileStreaming(fetch(codecbenchUrl));
+        console.log("Meshoptimizer Wasm module compiled; starting measured benchmark runs...");
+    }
 
-    return {
-      steps,
-      total: 1000 / geometricMean(gbpsScores),
-    };
-  }
+    async runAndParseScore() {
+        let stdout = "";
+        console.log("Running codecbench...");
+        await CodecbenchModule({
+            print: (line) => {
+                console.log(line);
+                stdout += `${line}\n`;
+            },
+            printErr: (line) => console.error(line),
+            instantiateWasm: instantiatePrecompiled(this.meshoptimizerModule),
+        });
+
+        const match = stdout.match(SCORE_REGEX);
+        if (!match) {
+            throw new Error(`Failed to parse codecbench output:\n${stdout}`);
+        }
+
+        const gbpsScores = match.slice(1, SUB_BENCHMARK_NAMES.length + 1).map(Number);
+        const steps = {};
+        SUB_BENCHMARK_NAMES.forEach((name, i) => {
+            steps[name] = { tests: {}, total: 1000 / gbpsScores[i] };
+        });
+
+        return {
+            steps,
+            total: 1000 / geometricMean(gbpsScores),
+        };
+    }
 }
 
 function createMeshoptimizerSuite(benchmark, subIterationCount) {
-  const steps = Array.from({ length: subIterationCount }, (_, i) => {
-    let parsedResult = null;
-    const step = new AsyncBenchmarkStep(
-      `sub-iter-${i + 1}`,
-      async () => {
-        forceLayout();
-        parsedResult = await benchmark.runAndParseScore();
-        forceLayout();
-      },
-      { measureAsync: false },
-    );
-    return {
-      name: step.name,
-      async runAndRecord(stepParams, suite, recordCallback) {
-        await step.runAndRecord(stepParams, suite, recordCallback);
-        return parsedResult;
-      },
-    };
-  });
-  return new AsyncBenchmarkSuite("default", steps);
+    const steps = Array.from({ length: subIterationCount }, (_, i) => {
+        let parsedResult = null;
+        const step = new AsyncBenchmarkStep(
+            `sub-iter-${i + 1}`,
+            async () => {
+                forceLayout();
+                parsedResult = await benchmark.runAndParseScore();
+                forceLayout();
+            },
+            { measureAsync: false }
+        );
+        return {
+            name: step.name,
+            async runAndRecord(stepParams, suite, recordCallback) {
+                await step.runAndRecord(stepParams, suite, recordCallback);
+                return parsedResult;
+            },
+        };
+    });
+    return new AsyncBenchmarkSuite("default", steps);
 }
 
 const appName = "Meshoptimizer";
 const appVersion = "0.25";
 
 try {
-  const benchmark = new MeshoptimizerBenchmark();
-  await benchmark.init();
+    const benchmark = new MeshoptimizerBenchmark();
+    await benchmark.init();
 
-  /*--------- Running test suites ---------*/
-  const suites = {
-    default: createMeshoptimizerSuite(benchmark, params.subIterationCount),
-  };
+    /*--------- Running test suites ---------*/
+    const suites = {
+        default: createMeshoptimizerSuite(benchmark, params.subIterationCount),
+    };
 
-  const benchmarkConnector = new BenchmarkConnector(
-    suites,
-    appName,
-    appVersion,
-  );
-  benchmarkConnector.connect();
+    const benchmarkConnector = new BenchmarkConnector(suites, appName, appVersion);
+    benchmarkConnector.connect();
 } catch (error) {
-  console.error("Failed to initialize Meshoptimizer benchmark:", error);
-  throw error;
+    console.error("Failed to initialize Meshoptimizer benchmark:", error);
+    throw error;
 }

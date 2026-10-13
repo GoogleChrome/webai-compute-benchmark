@@ -1,3 +1,3 @@
-import { initializeBenchmark } from './index.mjs';
+import { initializeBenchmark } from "./index.mjs";
 
-initializeBenchmark('sentence-similarity-cpu');
+initializeBenchmark("sentence-similarity-cpu");

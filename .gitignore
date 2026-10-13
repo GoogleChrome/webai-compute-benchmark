@@ -18,6 +18,8 @@
 
 /resources/build-info.mjs
 
+/resources/experimental/src/ggml/build/
+/resources/experimental/src/ggml/src/
 /resources/experimental/src/meshoptimizer/src/
 
 .vscode
