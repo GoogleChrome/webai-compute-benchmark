@@ -12,10 +12,9 @@
 set -e
 
 MESHOPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-EXPERIMENTAL_DIR="$( cd "$MESHOPT_DIR/../.." >/dev/null 2>&1 && pwd )"
 SRC_DIR="$MESHOPT_DIR/src"
 MESHOPT_SRC="$SRC_DIR/meshoptimizer"
-OUT_DIR="$EXPERIMENTAL_DIR/dist/meshoptimizer"
+OUT_DIR="$MESHOPT_DIR/build"
 
 if [[ "$1" != "--force" && -f "$OUT_DIR/codecbench.mjs" && -f "$OUT_DIR/codecbench.wasm" ]]; then
   echo "Meshoptimizer Wasm binaries already exist in $OUT_DIR. Skipping build."
@@ -35,7 +34,6 @@ DEFAULT_CFLAGS=(
   -fno-exceptions
   -mbulk-memory
   -mextended-const
-  -mfp16
   -mmultivalue
   -mmutable-globals
   -mnontrapping-fptoint

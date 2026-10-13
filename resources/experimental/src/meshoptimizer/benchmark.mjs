@@ -8,12 +8,12 @@
  * Experimental Meshoptimizer Wasm benchmark (codecbench).
  */
 
-import CodecbenchModule from "../../dist/meshoptimizer/codecbench.mjs";
+import CodecbenchModule from "./build/codecbench.mjs";
 import { AsyncBenchmarkStep, AsyncBenchmarkSuite, BenchmarkConnector } from "speedometer-utils/benchmark.mjs";
 import { forceLayout } from "speedometer-utils/helpers.mjs";
 import { params } from "speedometer-utils/params.mjs";
 
-const codecbenchUrl = new URL("../../dist/meshoptimizer/codecbench.wasm", import.meta.url);
+const codecbenchUrl = new URL("./build/codecbench.wasm", import.meta.url);
 
 /**
  * codecbench.cpp measures maximum decoding throughput (best timing over 50
