@@ -11,8 +11,8 @@
 import OnnxMobilenetModule from "./build/example-onnx-mobilenet-v2.mjs";
 import PytorchResnetModule from "./build/example-pytorch-resnet.mjs";
 import TfliteMobilenetModule from "./build/example-tflite-mobilenet-v3.mjs";
-import { AsyncBenchmarkSuite, BenchmarkConnector } from "speedometer-utils/benchmark.mjs";
-import { createSubIteratedSuite } from "speedometer-utils/helpers.mjs";
+import { AsyncBenchmarkStep, AsyncBenchmarkSuite, BenchmarkConnector } from "speedometer-utils/benchmark.mjs";
+import { forceLayout } from "speedometer-utils/helpers.mjs";
 import { params } from "speedometer-utils/params.mjs";
 
 const onnxMobilenetWasmUrl = new URL("./build/example_onnx_mobilenet_v2.wasm", import.meta.url);
@@ -30,6 +30,14 @@ const DATA_URLS = {
     "resnet-qo.onnx": new URL("./build/data/resnet-qo.onnx", import.meta.url),
     "resnet.onnx": new URL("./build/data/resnet.onnx", import.meta.url),
 };
+
+/**
+ * Matches Tract's internal timing output (`println!("time: {total_time:?}")`),
+ * which sums model graph optimization (`into_optimized()?.into_runnable()?`)
+ * and tensor preprocessing + inference (`model.run(...)`), excluding file I/O
+ * and JPEG image decoding.
+ */
+const TIME_REGEX = /time:\s*([0-9]*\.?[0-9]+)(ms|s)/;
 
 /**
  * Tract sub-benchmarks adapted from wasm-perf/benchmarks/tract/tract.py:
@@ -163,6 +171,7 @@ class TractBenchmark {
         const modelBytes = this.dataFiles.get(model);
         const imageBytes = this.dataFiles.get(image);
 
+        let stdout = "";
         await moduleFactory({
             arguments: [`/${model}`, `/${image}`],
             preRun: [
@@ -171,21 +180,64 @@ class TractBenchmark {
                     mod.FS.writeFile(`/${image}`, imageBytes);
                 },
             ],
-            print: () => {},
+            print: (line) => {
+                console.log(`  [${name}] ${line}`);
+                stdout += `${line}\n`;
+            },
+            printErr: (line) => console.error(`  [${name}] ${line}`),
             instantiateWasm: instantiatePrecompiled(wasmModule),
         });
+
+        const match = stdout.match(TIME_REGEX);
+        if (!match) {
+            throw new Error(`Failed to parse Tract timing output for ${name}:\n${stdout}`);
+        }
+
+        let timeMs = Number(match[1]);
+        const scale = match[2];
+        if (scale === "s") {
+            timeMs *= 1000;
+        }
+
+        return {
+            tests: {},
+            total: timeMs,
+        };
     }
+}
+
+function createTractSubSuite(benchmark, subBenchmark, subIterationCount) {
+    const steps = Array.from({ length: subIterationCount }, (_, i) => {
+        let parsedResult = null;
+        const step = new AsyncBenchmarkStep(
+            `sub-iter-${i + 1}`,
+            async () => {
+                forceLayout();
+                parsedResult = await benchmark.runSubBenchmark(subBenchmark);
+                forceLayout();
+            },
+            { measureAsync: false }
+        );
+        return {
+            name: step.name,
+            async runAndRecord(stepParams, suite, recordCallback) {
+                await step.runAndRecord(stepParams, suite, recordCallback);
+                return parsedResult;
+            },
+        };
+    });
+    return new AsyncBenchmarkSuite(subBenchmark.name, steps);
 }
 
 // TODO(ryandiaz) We may want to report the total as a geomean
 // so one sub benchmark doesn't dominate.
 function createSuiteSteps(benchmark, subBenchmarks, subIterationCount) {
     return subBenchmarks.map((subBenchmark) => {
-        const subSuite = createSubIteratedSuite({ run: () => benchmark.runSubBenchmark(subBenchmark) }, subIterationCount);
+        const subSuite = createTractSubSuite(benchmark, subBenchmark, subIterationCount);
         return {
             name: subBenchmark.name,
-            async runAndRecord(params, _parentSuite, _parentRecord, onProgress) {
-                const { result } = await subSuite.runAndRecord(params, onProgress);
+            async runAndRecord(stepParams, _parentSuite, _parentRecord, onProgress) {
+                const { result } = await subSuite.runAndRecord(stepParams, onProgress);
                 return result;
             },
         };
