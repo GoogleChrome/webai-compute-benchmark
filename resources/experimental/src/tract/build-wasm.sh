@@ -81,7 +81,6 @@ DEFAULT_RUSTFLAGS=(
   -C opt-level=2
   -C target-feature=+bulk-memory
   -C target-feature=+extended-const
-  -C target-feature=+fp16
   -C target-feature=+multivalue
   -C target-feature=+mutable-globals
   -C target-feature=+nontrapping-fptoint
