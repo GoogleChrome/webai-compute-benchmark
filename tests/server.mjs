@@ -11,16 +11,21 @@ import "lws-static";
 
 const ROOT_DIR = path.join(process.cwd(), "./");
 
-export default async function serve(port) {
-    if (!port)
+export default async function serve(port, { verbose = false } = {}) {
+    if (!port) {
         throw new Error("Port is required");
+    }
+    const stack = ["lws-cors", "lws-static", "lws-index"];
+    if (verbose) {
+        stack.unshift("lws-log");
+    }
     const ws = await LocalWebServer.create({
         port: port,
         directory: ROOT_DIR,
         corsOpenerPolicy: "same-origin",
         corsEmbedderPolicy: "require-corp",
         logFormat: "dev",
-        stack: ["lws-log", "lws-cors", "lws-static", "lws-index"],
+        stack,
     });
     await verifyStartup(ws, port);
 
@@ -49,8 +54,9 @@ async function verifyStartup(ws, port) {
 function main() {
     const optionDefinitions = [{ name: "port", type: Number, defaultValue: 8080, description: "Set the test-server port, The default value is 8080." }];
     const options = commandLineArgs(optionDefinitions);
-    serve(options.port);
+    serve(options.port, { verbose: true });
 }
 
-if (esMain(import.meta))
+if (esMain(import.meta)) {
     main();
+}

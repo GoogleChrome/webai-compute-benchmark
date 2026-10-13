@@ -1,5 +1,5 @@
 import { BenchmarkRunner, geomeanToScore } from "../../resources/benchmark-runner.mjs";
-import { SuiteRunner } from "../../resources/suite-runner.mjs";
+import { SuiteRunner, RemoteSuiteRunner } from "../../resources/suite-runner.mjs";
 import { StepRunner } from "../../resources/shared/step-runner.mjs";
 import { defaultParams } from "../../resources/shared/params.mjs";
 
@@ -28,8 +28,10 @@ const SUITES_FIXTURE = [
 ];
 
 const CLIENT_FIXTURE = {
+    willStartSuite() {},
     willRunTest: sinon.stub(),
     didFinishSuite: sinon.stub(),
+    didFailSuite: sinon.stub(),
     didRunSuites: sinon.stub(),
 };
 
@@ -103,7 +105,7 @@ describe("BenchmarkRunner", () => {
 
     describe("Suite", () => {
         describe("runAllSuites", () => {
-            let _runSuiteStub, _finalizeStub, _loadFrameStub, _appendFrameStub, _removeFrameStub;
+            let _runSuiteStub, _finalizeStub, _loadFrameStub, _appendFrameStub, _removeFrameStub, _willStartSuiteSpy;
 
             before(async () => {
                 _runSuiteStub = stub(SuiteRunner.prototype, "_runSuite").callsFake(async () => null);
@@ -111,10 +113,12 @@ describe("BenchmarkRunner", () => {
                 _loadFrameStub = stub(SuiteRunner.prototype, "_loadFrame").callsFake(async () => null);
                 _appendFrameStub = stub(runner, "_appendFrame").callsFake(async () => null);
                 _removeFrameStub = stub(runner, "_removeFrame").callsFake(() => null);
-                for (const suite of runner._suites)
+                _willStartSuiteSpy = spy(runner._client, "willStartSuite");
+                for (const suite of runner._suites) {
                     spy(suite, "prepare");
+                }
                 expect(runner._suites).not.to.have.length(0);
-                await runner.runAllSuites();
+                await runner.runAllSuites(0);
             });
 
             it("should call prepare on all suites", () => {
@@ -124,6 +128,12 @@ describe("BenchmarkRunner", () => {
                     assert.calledOnce(suite.prepare);
                 }
                 expect(suitesPrepareCount).equal(SUITES_FIXTURE.length);
+            });
+
+            it("should notify client before starting each suite", () => {
+                assert.calledTwice(_willStartSuiteSpy);
+                assert.calledWith(_willStartSuiteSpy, SUITES_FIXTURE[0], 0);
+                assert.calledWith(_willStartSuiteSpy, SUITES_FIXTURE[1], 0);
             });
 
             it("should run all test suites", async () => {
@@ -138,6 +148,27 @@ describe("BenchmarkRunner", () => {
 
             it("should fire the function responsible for finalizing results", () => {
                 assert.calledOnce(_finalizeStub);
+            });
+
+            it("should handle a failing suite and continue running remaining suites", async () => {
+                const failure = new Error("Suite failed");
+                const runSuiteStub = stub(runner, "runSuite").onFirstCall().rejects(failure).onSecondCall().resolves();
+                stub(runner, "_finalize").callsFake(async () => null);
+                stub(runner, "_appendFrame").callsFake(async () => null);
+                const removeFrameStub = stub(runner, "_removeFrame").callsFake(() => null);
+                stub(console, "error");
+
+                try {
+                    await runner.runAllSuites(0);
+
+                    assert.calledOnce(runner._client.didFailSuite);
+                    assert.calledWith(runner._client.didFailSuite, SUITES_FIXTURE[0], failure);
+                    expect(runner._measuredValues.steps[SUITES_FIXTURE[0].name]).to.eql({ total: 0 });
+                    assert.calledTwice(runSuiteStub);
+                    assert.calledTwice(removeFrameStub);
+                } finally {
+                    runner._resetMeasuredValues();
+                }
             });
         });
 
@@ -261,6 +292,44 @@ describe("BenchmarkRunner", () => {
 
                     assert.calledWith(runner._client.didRunSuites, runner._measuredValues);
                 });
+            });
+        });
+
+        describe("RemoteSuiteRunner", () => {
+            let frame, remoteRunner;
+
+            beforeEach(async () => {
+                frame = await runner._appendFrame();
+                const suite = { name: "Remote Suite", url: "resources/warmup/index.html", type: "remote" };
+                remoteRunner = new RemoteSuiteRunner(frame, runner._page, defaultParams, suite, runner._client, { steps: {} });
+                remoteRunner.postMessageCallbacks = new Map();
+            });
+
+            afterEach(() => {
+                runner._removeFrame();
+            });
+
+            it("should only accept postMessage events from the suite iframe and same origin", () => {
+                const callback = sinon.spy();
+                remoteRunner._startSubscription("app-ready", callback);
+                const data = { type: "app-ready", appId: "app-1" };
+
+                remoteRunner._handlePostMessage(new MessageEvent("message", { origin: "https://evil.example", source: frame.contentWindow, data }));
+                remoteRunner._handlePostMessage(new MessageEvent("message", { origin: window.location.origin, source: window, data }));
+                remoteRunner._handlePostMessage(new MessageEvent("message", { origin: window.location.origin, source: null, data }));
+                expect(callback.called).to.be(false);
+
+                remoteRunner._handlePostMessage(new MessageEvent("message", { origin: window.location.origin, source: frame.contentWindow, data }));
+                expect(callback.calledOnce).to.be(true);
+            });
+
+            it("should reject non-positive or non-finite totals in _validateSuiteResults", () => {
+                for (const invalidTotal of [0, -10, NaN, Infinity, "100", undefined]) {
+                    remoteRunner.suiteResults.total = invalidTotal;
+                    expect(() => remoteRunner._validateSuiteResults()).to.throwError();
+                }
+                remoteRunner.suiteResults.total = 10;
+                expect(() => remoteRunner._validateSuiteResults()).to.not.throwError();
             });
         });
     });
