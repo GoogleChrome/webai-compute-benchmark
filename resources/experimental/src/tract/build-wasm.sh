@@ -9,14 +9,13 @@
 # SPDX-FileCopyrightText: Copyright 2026 Arm Limited and/or its affiliates <open-source-office@arm.com>
 # SPDX-License-Identifier: BSD-3-Clause
 
-set -euo pipefail
+set -e
 
 TRACT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-EXPERIMENTAL_DIR="$( cd "$TRACT_DIR/../.." >/dev/null 2>&1 && pwd )"
 SRC_DIR="$TRACT_DIR/src"
 TRACT_SRC="$SRC_DIR/tract"
 TARGET_DIR="$SRC_DIR/target"
-OUT_DIR="$EXPERIMENTAL_DIR/dist/tract"
+OUT_DIR="$TRACT_DIR/build"
 DATA_CACHE_DIR="$SRC_DIR/data"
 OUT_DATA_DIR="$OUT_DIR/data"
 

@@ -8,26 +8,28 @@
  * Experimental Tract Wasm neural network inference benchmark.
  */
 
-import OnnxMobilenetModule from "../../dist/tract/example-onnx-mobilenet-v2.mjs";
-import PytorchResnetModule from "../../dist/tract/example-pytorch-resnet.mjs";
-import TfliteMobilenetModule from "../../dist/tract/example-tflite-mobilenet-v3.mjs";
-import { AsyncBenchmarkStep, AsyncBenchmarkSuite, BenchmarkConnector } from "speedometer-utils/benchmark.mjs";
-import { forceLayout } from "speedometer-utils/helpers.mjs";
+import OnnxMobilenetModule from "./build/example-onnx-mobilenet-v2.mjs";
+import PytorchResnetModule from "./build/example-pytorch-resnet.mjs";
+import TfliteMobilenetModule from "./build/example-tflite-mobilenet-v3.mjs";
+import { AsyncBenchmarkSuite, BenchmarkConnector } from "speedometer-utils/benchmark.mjs";
+import { createSubIteratedSuite } from "speedometer-utils/helpers.mjs";
 import { params } from "speedometer-utils/params.mjs";
 
-const onnxMobilenetWasmUrl = new URL("../../dist/tract/example_onnx_mobilenet_v2.wasm", import.meta.url);
-const pytorchResnetWasmUrl = new URL("../../dist/tract/example_pytorch_resnet.wasm", import.meta.url);
-const tfliteMobilenetWasmUrl = new URL("../../dist/tract/example_tflite_mobilenet_v3.wasm", import.meta.url);
+const onnxMobilenetWasmUrl = new URL("./build/example_onnx_mobilenet_v2.wasm", import.meta.url);
+const pytorchResnetWasmUrl = new URL("./build/example_pytorch_resnet.wasm", import.meta.url);
+const tfliteMobilenetWasmUrl = new URL("./build/example_tflite_mobilenet_v3.wasm", import.meta.url);
 
-const DATA_BASE_URL = new URL("tract/data/", window.location.href);
-
-/**
- * Matches Tract's internal timing output (`println!("time: {total_time:?}")`),
- * which sums model graph optimization (`into_optimized()?.into_runnable()?`)
- * and tensor preprocessing + inference (`model.run(...)`), excluding file I/O
- * and JPEG image decoding.
- */
-const TIME_REGEX = /time:\s*([0-9]*\.?[0-9]+)(ms|s)/;
+const DATA_URLS = {
+    "elephants.jpg": new URL("./build/data/elephants.jpg", import.meta.url),
+    "grace_hopper.jpg": new URL("./build/data/grace_hopper.jpg", import.meta.url),
+    "mobilenet_v3_small_100_224.tflite": new URL("./build/data/mobilenet_v3_small_100_224.tflite", import.meta.url),
+    "mobilenetv2-7-qdq.onnx": new URL("./build/data/mobilenetv2-7-qdq.onnx", import.meta.url),
+    "mobilenetv2-7-qo.onnx": new URL("./build/data/mobilenetv2-7-qo.onnx", import.meta.url),
+    "mobilenetv2-7.onnx": new URL("./build/data/mobilenetv2-7.onnx", import.meta.url),
+    "resnet-qdq.onnx": new URL("./build/data/resnet-qdq.onnx", import.meta.url),
+    "resnet-qo.onnx": new URL("./build/data/resnet-qo.onnx", import.meta.url),
+    "resnet.onnx": new URL("./build/data/resnet.onnx", import.meta.url),
+};
 
 /**
  * Tract sub-benchmarks adapted from wasm-perf/benchmarks/tract/tract.py:
@@ -136,18 +138,12 @@ class TractBenchmark {
     async init() {
         console.log("Compiling Tract Wasm modules and loading models/images (not part of benchmark measurement)...");
 
-        const uniqueFiles = new Set();
-        for (const { model, image } of SUB_BENCHMARKS) {
-            uniqueFiles.add(model);
-            uniqueFiles.add(image);
-        }
-
         const [onnxMobilenet, pytorchResnet, tfliteMobilenet] = await Promise.all([
             WebAssembly.compileStreaming(fetch(onnxMobilenetWasmUrl)),
             WebAssembly.compileStreaming(fetch(pytorchResnetWasmUrl)),
             WebAssembly.compileStreaming(fetch(tfliteMobilenetWasmUrl)),
-            ...Array.from(uniqueFiles).map(async (filename) => {
-                const bytes = await fetchUint8Array(new URL(filename, DATA_BASE_URL));
+            ...Object.entries(DATA_URLS).map(async ([filename, url]) => {
+                const bytes = await fetchUint8Array(url);
                 this.dataFiles.set(filename, bytes);
             }),
         ]);
@@ -167,7 +163,6 @@ class TractBenchmark {
         const modelBytes = this.dataFiles.get(model);
         const imageBytes = this.dataFiles.get(image);
 
-        let stdout = "";
         await moduleFactory({
             arguments: [`/${model}`, `/${image}`],
             preRun: [
@@ -176,62 +171,21 @@ class TractBenchmark {
                     mod.FS.writeFile(`/${image}`, imageBytes);
                 },
             ],
-            print: (line) => {
-                console.log(`  [${name}] ${line}`);
-                stdout += line + "\n";
-            },
-            printErr: (line) => console.error(`  [${name}] ${line}`),
+            print: () => {},
             instantiateWasm: instantiatePrecompiled(wasmModule),
         });
-
-        const match = stdout.match(TIME_REGEX);
-        if (!match) {
-            throw new Error(`Failed to parse Tract timing output for ${name}:\n${stdout}`);
-        }
-
-        let timeMs = Number(match[1]);
-        const scale = match[2];
-        if (scale === "s") {
-            timeMs *= 1000;
-        }
-
-        return {
-            tests: {},
-            total: timeMs,
-        };
     }
 }
 
-function createTractSubSuite(benchmark, subBenchmark, subIterationCount) {
-    const steps = Array.from({ length: subIterationCount }, (_, i) => {
-        let parsedResult = null;
-        const step = new AsyncBenchmarkStep(
-            `sub-iter-${i + 1}`,
-            async () => {
-                forceLayout();
-                parsedResult = await benchmark.runSubBenchmark(subBenchmark);
-                forceLayout();
-            },
-            { measureAsync: false }
-        );
-        return {
-            name: step.name,
-            async runAndRecord(stepParams, suite, recordCallback) {
-                await step.runAndRecord(stepParams, suite, recordCallback);
-                return parsedResult;
-            },
-        };
-    });
-    return new AsyncBenchmarkSuite(subBenchmark.name, steps);
-}
-
+// TODO(ryandiaz) We may want to report the total as a geomean
+// so one sub benchmark doesn't dominate.
 function createSuiteSteps(benchmark, subBenchmarks, subIterationCount) {
     return subBenchmarks.map((subBenchmark) => {
-        const subSuite = createTractSubSuite(benchmark, subBenchmark, subIterationCount);
+        const subSuite = createSubIteratedSuite({ run: () => benchmark.runSubBenchmark(subBenchmark) }, subIterationCount);
         return {
             name: subBenchmark.name,
-            async runAndRecord(stepParams, _parentSuite, _parentRecord, onProgress) {
-                const { result } = await subSuite.runAndRecord(stepParams, onProgress);
+            async runAndRecord(params, _parentSuite, _parentRecord, onProgress) {
+                const { result } = await subSuite.runAndRecord(params, onProgress);
                 return result;
             },
         };
