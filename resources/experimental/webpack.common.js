@@ -12,6 +12,7 @@ module.exports = {
         "text2text-generation-gpu": "./src/text2text-generation-gpu.mjs",
         gemma: "./src/gemma/benchmark.mjs",
         "litert-lm": "./src/litert-lm/benchmark.mjs",
+        ggml: "./src/ggml/benchmark.mjs",
     },
     plugins: [
         new HtmlWebpackPlugin({
@@ -37,6 +38,12 @@ module.exports = {
             template: path.resolve(__dirname, "src", "console-runner.html"),
             filename: "litert-lm.html",
             chunks: ["litert-lm"],
+        }),
+        new HtmlWebpackPlugin({
+            title: "Experimental GGML Runner",
+            template: path.resolve(__dirname, "src", "console-runner.html"),
+            filename: "ggml.html",
+            chunks: ["ggml"],
         }),
         {
             apply(compiler) {

@@ -68,7 +68,7 @@ export class BenchmarkSuite {
         performance.mark(suiteStartLabel);
 
         for (const step of this.steps) {
-            const result = await step.runAndRecord(params, this, this.record);
+            const result = await step.runAndRecord(params, this, this.record, onProgress);
             measuredValues.steps[step.name] = result;
             measuredValues.total += result.total;
             onProgress?.(step.name);
