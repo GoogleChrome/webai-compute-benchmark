@@ -213,6 +213,16 @@ export const defaultSuites = [
         name: "Experimental-Tract-TFLite-MobileNet-V3-wasm",
         url: "resources/experimental/dist/tract-tflite-mobilenet-v3.html",
         tags: ["experimental", "tract", "wasm"],
+    },
+        name: "Experimental-Llama-CPP-wasm",
+        url: "resources/experimental/dist/llama-cpp-wasm.html",
+        tags: ["experimental", "gemma", "llama-cpp", "wasm"],
+        type: "remote",
+    },
+    {
+        name: "Experimental-Llama-CPP-webgpu",
+        url: "resources/experimental/dist/llama-cpp-webgpu.html",
+        tags: ["experimental", "gemma", "llama-cpp", "webgpu"],
         type: "remote",
     },
 ];
