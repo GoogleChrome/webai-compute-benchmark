@@ -9,7 +9,7 @@ import globals from "globals";
 
 export default [
     {
-        ignores: ["**/node_modules/**", "**/dist/**", "**/models/**", "**/.angular/**", "resources/build-info.mjs", "resources/experimental/src/gemma/build/**", "sandbox/**", "script/model-analyzer/**"],
+        ignores: ["**/node_modules/**", "**/dist/**", "**/models/**", "**/.angular/**", "resources/build-info.mjs", "resources/experimental/src/gemma/build/**", "resources/experimental/src/ggml/build/**", "sandbox/**", "script/model-analyzer/**"],
     },
     js.configs.recommended,
     {

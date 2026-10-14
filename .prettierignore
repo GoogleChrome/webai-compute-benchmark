@@ -6,5 +6,6 @@
 
 resources/build-info.mjs
 resources/experimental/src/gemma/build
+resources/experimental/src/ggml/build
 sandbox
 script/model-analyzer
