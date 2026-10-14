@@ -5,7 +5,6 @@
 **/.angular
 
 resources/build-info.mjs
-resources/experimental/src/gemma/build
-resources/experimental/src/ggml/build
+resources/experimental/src/*/build
 sandbox
 script/model-analyzer
