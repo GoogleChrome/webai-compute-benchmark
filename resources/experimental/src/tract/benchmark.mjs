@@ -120,11 +120,11 @@ const MODEL_SUITES = {
     ],
 };
 
-function instantiatePrecompiled(wasmModule) {
+function instantiatePrecompiled(wasmModule, onError) {
     return (imports, successCallback) => {
         WebAssembly.instantiate(wasmModule, imports).then((instance) => {
             successCallback(instance, wasmModule);
-        });
+        }, onError);
         return {};
     };
 }
@@ -170,20 +170,22 @@ class TractBenchmark {
         const imageBytes = this.dataFiles.get(image);
 
         let stdout = "";
-        await moduleFactory({
-            arguments: [`/${model}`, `/${image}`],
-            preRun: [
-                (mod) => {
-                    mod.FS.writeFile(`/${model}`, modelBytes);
-                    mod.FS.writeFile(`/${image}`, imageBytes);
+        await new Promise((resolve, reject) => {
+            moduleFactory({
+                arguments: [`/${model}`, `/${image}`],
+                preRun: [
+                    (mod) => {
+                        mod.FS.writeFile(`/${model}`, modelBytes);
+                        mod.FS.writeFile(`/${image}`, imageBytes);
+                    },
+                ],
+                print: (line) => {
+                    console.log(`  [${name}] ${line}`);
+                    stdout += `${line}\n`;
                 },
-            ],
-            print: (line) => {
-                console.log(`  [${name}] ${line}`);
-                stdout += `${line}\n`;
-            },
-            printErr: (line) => console.error(`  [${name}] ${line}`),
-            instantiateWasm: instantiatePrecompiled(wasmModule),
+                printErr: (line) => console.error(`  [${name}] ${line}`),
+                instantiateWasm: instantiatePrecompiled(wasmModule, reject),
+            }).then(resolve, reject);
         });
 
         const match = stdout.match(TIME_REGEX);
