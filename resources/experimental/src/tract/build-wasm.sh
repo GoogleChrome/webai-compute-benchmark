@@ -16,7 +16,6 @@ SRC_DIR="$TRACT_DIR/src"
 TRACT_SRC="$SRC_DIR/tract"
 TARGET_DIR="$SRC_DIR/target"
 OUT_DIR="$TRACT_DIR/build"
-DATA_CACHE_DIR="$SRC_DIR/data"
 OUT_DATA_DIR="$OUT_DIR/data"
 
 DATA_FILES=(
@@ -105,7 +104,7 @@ cargo build --target wasm32-unknown-emscripten --release \
   -p example-tflite-mobilenet-v3 --bin example-tflite-mobilenet-v3 \
   -p example-pytorch-resnet --bin example-pytorch-resnet
 
-mkdir -p "$OUT_DIR" "$DATA_CACHE_DIR" "$OUT_DATA_DIR"
+mkdir -p "$OUT_DIR" "$OUT_DATA_DIR"
 
 RELEASE_DIR="$TARGET_DIR/wasm32-unknown-emscripten/release"
 for bin in example-onnx-mobilenet-v2 example-pytorch-resnet example-tflite-mobilenet-v3; do
@@ -115,12 +114,11 @@ for bin in example-onnx-mobilenet-v2 example-pytorch-resnet example-tflite-mobil
 done
 
 for f in "${DATA_FILES[@]}"; do
-  if [[ ! -f "$DATA_CACHE_DIR/$f" ]]; then
+  if [[ ! -f "$OUT_DATA_DIR/$f" ]]; then
     echo "Downloading Tract data file $f..."
-    curl -LSfs "$WASM_DATA_BASE_URL/$f" -o "$DATA_CACHE_DIR/$f.tmp"
-    mv "$DATA_CACHE_DIR/$f.tmp" "$DATA_CACHE_DIR/$f"
+    curl -LSfs "$WASM_DATA_BASE_URL/$f" -o "$OUT_DATA_DIR/$f.tmp"
+    mv "$OUT_DATA_DIR/$f.tmp" "$OUT_DATA_DIR/$f"
   fi
-  cp "$DATA_CACHE_DIR/$f" "$OUT_DATA_DIR/$f"
 done
 
 echo "Successfully built Tract Wasm modules and data in $OUT_DIR"
