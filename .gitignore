@@ -18,8 +18,5 @@
 
 /resources/build-info.mjs
 
-/resources/experimental/src/tract/build/
-/resources/experimental/src/tract/src/
-
 .vscode
 .angular

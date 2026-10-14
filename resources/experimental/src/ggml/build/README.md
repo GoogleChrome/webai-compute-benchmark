@@ -6,7 +6,7 @@ The files in this directory are checked in so that Emscripten is not required
 to build or deploy the benchmark. To refresh them, activate emsdk and run:
 
 ```bash
-resources/experimental/build-wasm-workloads.sh
+resources/experimental/build-wasm-workloads.sh ggml
 ```
 
 - Source: [ggml](https://github.com/ggml-org/ggml) v0.9.4 ([`72632094336524a9c809e129e8b1c52154543a5a`](https://github.com/ggml-org/ggml/tree/72632094336524a9c809e129e8b1c52154543a5a))

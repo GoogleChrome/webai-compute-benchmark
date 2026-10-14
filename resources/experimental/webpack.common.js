@@ -68,6 +68,7 @@ module.exports = {
             filename: "tract-tflite-mobilenet-v3.html",
             chunks: ["tract-tflite-mobilenet-v3"],
         }),
+        new HtmlWebpackPlugin({
             title: "Experimental Llama.cpp Wasm Runner",
             template: path.resolve(__dirname, "src", "console-runner.html"),
             filename: "llama-cpp-wasm.html",
