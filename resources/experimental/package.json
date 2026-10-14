@@ -9,9 +9,8 @@
     "private": true,
     "scripts": {
         "dev": "http-server ./dist -p 7005 -c-1 --cors -o",
-        "build:ggml": "bash src/ggml/build-wasm.sh",
-        "build:tract": "bash src/tract/build-wasm.sh",
-        "prebuild": "node src/download-models.mjs && npm run build:ggml && npm run build:tract",
+        "build:wasm-workloads": "bash build-wasm-workloads.sh",
+        "prebuild": "node src/download-models.mjs",
         "build": "webpack --config webpack.prod.js",
         "serve": "http-server ./dist -p 7006 -c-1 --cors -o"
     },

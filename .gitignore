@@ -18,8 +18,6 @@
 
 /resources/build-info.mjs
 
-/resources/experimental/src/ggml/build/
-/resources/experimental/src/ggml/src/
 /resources/experimental/src/tract/build/
 /resources/experimental/src/tract/src/
 
