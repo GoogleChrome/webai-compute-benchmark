@@ -12,27 +12,21 @@
 set -euo pipefail
 
 NCNN_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-EXPERIMENTAL_DIR="$( cd "$NCNN_DIR/../.." >/dev/null 2>&1 && pwd )"
 SRC_DIR="$NCNN_DIR/src"
 NCNN_SRC="$SRC_DIR/ncnn"
 BUILD_DIR="$SRC_DIR/build"
-OUT_DIR="$EXPERIMENTAL_DIR/dist/ncnn"
+OUT_DIR="$NCNN_DIR/build"
 OUT_DATA_DIR="$OUT_DIR/data"
 
 # Must match SUB_BENCHMARKS in benchmark.mjs. This is the subset selected in
 # wasm-perf/benchmarks/ncnn/ncnn.py to cover a range of profiles while keeping
 # run time down.
 PARAM_FILES=(
-  "alexnet.param"
   "efficientnetv2_b0.param"
-  "googlenet.param"
-  "googlenet_int8.param"
   "mobilenet_v3.param"
   "regnety_400m.param"
   "resnet18.param"
   "resnet50_int8.param"
-  "squeezenet_ssd.param"
-  "squeezenet_ssd_int8.param"
   "yolov4-tiny.param"
 )
 

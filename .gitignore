@@ -18,6 +18,7 @@
 
 /resources/build-info.mjs
 
+/resources/experimental/src/ncnn/build/
 /resources/experimental/src/ncnn/src/
 
 .vscode

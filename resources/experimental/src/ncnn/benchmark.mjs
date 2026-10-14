@@ -8,14 +8,21 @@
  * Experimental NCNN Wasm neural network inference benchmark (benchncnn).
  */
 
-import BenchncnnModule from "../../dist/ncnn/benchncnn.mjs";
+import BenchncnnModule from "./build/benchncnn.mjs";
 import { AsyncBenchmarkStep, AsyncBenchmarkSuite, BenchmarkConnector } from "speedometer-utils/benchmark.mjs";
 import { forceLayout } from "speedometer-utils/helpers.mjs";
 import { params } from "speedometer-utils/params.mjs";
 
-const benchncnnWasmUrl = new URL("../../dist/ncnn/benchncnn.wasm", import.meta.url);
+const benchncnnWasmUrl = new URL("./build/benchncnn.wasm", import.meta.url);
 
-const DATA_BASE_URL = new URL("ncnn/data/", window.location.href);
+const PARAM_URLS = {
+    "efficientnetv2_b0.param": new URL("./build/data/efficientnetv2_b0.param", import.meta.url),
+    "mobilenet_v3.param": new URL("./build/data/mobilenet_v3.param", import.meta.url),
+    "regnety_400m.param": new URL("./build/data/regnety_400m.param", import.meta.url),
+    "resnet18.param": new URL("./build/data/resnet18.param", import.meta.url),
+    "resnet50_int8.param": new URL("./build/data/resnet50_int8.param", import.meta.url),
+    "yolov4-tiny.param": new URL("./build/data/yolov4-tiny.param", import.meta.url),
+};
 
 /**
  * Matches benchncnn's per-model summary line written to stderr:
@@ -78,9 +85,8 @@ class NcnnBenchmark {
 
         const [ncnnModule] = await Promise.all([
             WebAssembly.compileStreaming(fetch(benchncnnWasmUrl)),
-            ...SUB_BENCHMARKS.map(async ({ name }) => {
-                const filename = `${name}.param`;
-                const bytes = await fetchUint8Array(new URL(filename, DATA_BASE_URL));
+            ...Object.entries(PARAM_URLS).map(async ([filename, url]) => {
+                const bytes = await fetchUint8Array(url);
                 this.paramFiles.set(filename, bytes);
             }),
         ]);
@@ -106,7 +112,7 @@ class NcnnBenchmark {
             print: (line) => console.log(`  [${name}] ${line}`),
             printErr: (line) => {
                 console.log(`  [${name}] ${line}`);
-                stderr += line + "\n";
+                stderr += `${line}\n`;
             },
             instantiateWasm: instantiatePrecompiled(this.ncnnModule),
         });
@@ -153,12 +159,14 @@ try {
     const benchmark = new NcnnBenchmark();
     await benchmark.init();
 
+    // TODO(ryandiaz) We may want to report the total as a geomean
+    // so one sub benchmark doesn't dominate.
     const steps = SUB_BENCHMARKS.map((subBenchmark) => {
         const subSuite = createNcnnSubSuite(benchmark, subBenchmark, params.subIterationCount);
         return {
             name: subBenchmark.name,
-            async runAndRecord(stepParams) {
-                const { result } = await subSuite.runAndRecord(stepParams);
+            async runAndRecord(stepParams, _parentSuite, _parentRecord, onProgress) {
+                const { result } = await subSuite.runAndRecord(stepParams, onProgress);
                 return result;
             },
         };
