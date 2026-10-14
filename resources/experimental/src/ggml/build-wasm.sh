@@ -61,6 +61,7 @@ DEFINES=(
   -DGGML_USE_CPU
   -DGGML_VERSION=\"$GGML_VERSION\"
   -DGGML_COMMIT=\"$GGML_COMMIT\"
+  -ffile-prefix-map="$GGML_SRC"=ggml
 )
 
 INCLUDES=(
