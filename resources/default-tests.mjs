@@ -199,29 +199,20 @@ export const defaultSuites = [
     },
     {
         name: "Experimental-Tract-ONNX-MobileNet-V2-wasm",
-        url: "resources/experimental/dist/tract.html",
+        url: "resources/experimental/dist/tract-onnx-mobilenet-v2.html",
         tags: ["experimental", "tract", "wasm"],
         type: "remote",
-        config: {
-            name: "onnx-mobilenet-v2",
-        },
     },
     {
         name: "Experimental-Tract-PyTorch-ResNet-wasm",
-        url: "resources/experimental/dist/tract.html",
+        url: "resources/experimental/dist/tract-pytorch-resnet.html",
         tags: ["experimental", "tract", "wasm"],
         type: "remote",
-        config: {
-            name: "pytorch-resnet",
-        },
     },
     {
         name: "Experimental-Tract-TFLite-MobileNet-V3-wasm",
-        url: "resources/experimental/dist/tract.html",
+        url: "resources/experimental/dist/tract-tflite-mobilenet-v3.html",
         tags: ["experimental", "tract", "wasm"],
         type: "remote",
-        config: {
-            name: "tflite-mobilenet-v3",
-        },
     },
 ];

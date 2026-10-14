@@ -13,7 +13,9 @@ module.exports = {
         gemma: "./src/gemma/benchmark.mjs",
         "litert-lm": "./src/litert-lm/benchmark.mjs",
         ggml: "./src/ggml/benchmark.mjs",
-        tract: "./src/tract/benchmark.mjs",
+        "tract-onnx-mobilenet-v2": "./src/tract/onnx-mobilenet-v2.mjs",
+        "tract-pytorch-resnet": "./src/tract/pytorch-resnet.mjs",
+        "tract-tflite-mobilenet-v3": "./src/tract/tflite-mobilenet-v3.mjs",
     },
     plugins: [
         new HtmlWebpackPlugin({
@@ -47,10 +49,22 @@ module.exports = {
             chunks: ["ggml"],
         }),
         new HtmlWebpackPlugin({
-            title: "Experimental Tract Runner",
+            title: "Experimental Tract ONNX MobileNetV2 Runner",
             template: path.resolve(__dirname, "src", "console-runner.html"),
-            filename: "tract.html",
-            chunks: ["tract"],
+            filename: "tract-onnx-mobilenet-v2.html",
+            chunks: ["tract-onnx-mobilenet-v2"],
+        }),
+        new HtmlWebpackPlugin({
+            title: "Experimental Tract PyTorch ResNet Runner",
+            template: path.resolve(__dirname, "src", "console-runner.html"),
+            filename: "tract-pytorch-resnet.html",
+            chunks: ["tract-pytorch-resnet"],
+        }),
+        new HtmlWebpackPlugin({
+            title: "Experimental Tract TFLite MobileNetV3 Runner",
+            template: path.resolve(__dirname, "src", "console-runner.html"),
+            filename: "tract-tflite-mobilenet-v3.html",
+            chunks: ["tract-tflite-mobilenet-v3"],
         }),
         {
             apply(compiler) {

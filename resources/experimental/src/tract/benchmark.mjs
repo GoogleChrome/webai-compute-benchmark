@@ -15,9 +15,11 @@ import { AsyncBenchmarkStep, AsyncBenchmarkSuite, BenchmarkConnector } from "spe
 import { forceLayout } from "speedometer-utils/helpers.mjs";
 import { params } from "speedometer-utils/params.mjs";
 
-const onnxMobilenetWasmUrl = new URL("./build/example_onnx_mobilenet_v2.wasm", import.meta.url);
-const pytorchResnetWasmUrl = new URL("./build/example_pytorch_resnet.wasm", import.meta.url);
-const tfliteMobilenetWasmUrl = new URL("./build/example_tflite_mobilenet_v3.wasm", import.meta.url);
+const WASM_URLS = {
+    onnxMobilenet: new URL("./build/example_onnx_mobilenet_v2.wasm", import.meta.url),
+    pytorchResnet: new URL("./build/example_pytorch_resnet.wasm", import.meta.url),
+    tfliteMobilenet: new URL("./build/example_tflite_mobilenet_v3.wasm", import.meta.url),
+};
 
 const DATA_URLS = {
     "elephants.jpg": new URL("./build/data/elephants.jpg", import.meta.url),
@@ -118,8 +120,6 @@ const MODEL_SUITES = {
     ],
 };
 
-const SUB_BENCHMARKS = Object.values(MODEL_SUITES).flat();
-
 function instantiatePrecompiled(wasmModule) {
     return (imports, successCallback) => {
         WebAssembly.instantiate(wasmModule, imports).then((instance) => {
@@ -138,31 +138,29 @@ async function fetchUint8Array(url) {
 }
 
 class TractBenchmark {
-    constructor() {
+    constructor(subBenchmarks) {
+        this.subBenchmarks = subBenchmarks;
         this.wasmModules = {};
         this.dataFiles = new Map();
     }
 
     async init() {
-        console.log("Compiling Tract Wasm modules and loading models/images (not part of benchmark measurement)...");
+        console.log("Compiling Tract Wasm module and loading models/images (not part of benchmark measurement)...");
 
-        const [onnxMobilenet, pytorchResnet, tfliteMobilenet] = await Promise.all([
-            WebAssembly.compileStreaming(fetch(onnxMobilenetWasmUrl)),
-            WebAssembly.compileStreaming(fetch(pytorchResnetWasmUrl)),
-            WebAssembly.compileStreaming(fetch(tfliteMobilenetWasmUrl)),
-            ...Object.entries(DATA_URLS).map(async ([filename, url]) => {
-                const bytes = await fetchUint8Array(url);
+        const runnerKeys = [...new Set(this.subBenchmarks.map(({ runnerKey }) => runnerKey))];
+        const dataFilenames = [...new Set(this.subBenchmarks.flatMap(({ model, image }) => [model, image]))];
+
+        await Promise.all([
+            ...runnerKeys.map(async (runnerKey) => {
+                this.wasmModules[runnerKey] = await WebAssembly.compileStreaming(fetch(WASM_URLS[runnerKey]));
+            }),
+            ...dataFilenames.map(async (filename) => {
+                const bytes = await fetchUint8Array(DATA_URLS[filename]);
                 this.dataFiles.set(filename, bytes);
             }),
         ]);
 
-        this.wasmModules = {
-            onnxMobilenet,
-            pytorchResnet,
-            tfliteMobilenet,
-        };
-
-        console.log("Tract Wasm modules and models loaded; starting measured benchmark runs...");
+        console.log("Tract Wasm module and models loaded; starting measured benchmark runs...");
     }
 
     async runSubBenchmark({ name, runnerKey, moduleFactory, model, image }) {
@@ -244,22 +242,33 @@ function createSuiteSteps(benchmark, subBenchmarks, subIterationCount) {
     });
 }
 
-const appName = "Tract";
 const appVersion = "0.22.0";
 
-try {
-    const benchmark = new TractBenchmark();
-    await benchmark.init();
+/**
+ * Wires up the benchmark for one of the model suites in `MODEL_SUITES`.
+ *
+ * @param {keyof typeof MODEL_SUITES} suiteName
+ */
+export async function initializeTractBenchmark(suiteName) {
+    const subBenchmarks = MODEL_SUITES[suiteName];
+    if (!subBenchmarks) {
+        throw new Error(`Unknown Tract suite "${suiteName}", expected one of: ${Object.keys(MODEL_SUITES).join(", ")}`);
+    }
 
-    /*--------- Running test suites ---------*/
-    const suites = {
-        default: new AsyncBenchmarkSuite("default", createSuiteSteps(benchmark, SUB_BENCHMARKS, params.subIterationCount)),
-        ...Object.fromEntries(Object.entries(MODEL_SUITES).map(([suiteName, subBenchmarks]) => [suiteName, new AsyncBenchmarkSuite(suiteName, createSuiteSteps(benchmark, subBenchmarks, params.subIterationCount))])),
-    };
+    const appName = `Tract-${suiteName}`;
+    try {
+        const benchmark = new TractBenchmark(subBenchmarks);
+        await benchmark.init();
 
-    const benchmarkConnector = new BenchmarkConnector(suites, appName, appVersion);
-    benchmarkConnector.connect();
-} catch (error) {
-    console.error("Failed to initialize Tract benchmark:", error);
-    throw error;
+        /*--------- Running test suites ---------*/
+        const suites = {
+            default: new AsyncBenchmarkSuite("default", createSuiteSteps(benchmark, subBenchmarks, params.subIterationCount)),
+        };
+
+        const benchmarkConnector = new BenchmarkConnector(suites, appName, appVersion);
+        benchmarkConnector.connect();
+    } catch (error) {
+        console.error(`Failed to initialize ${appName} benchmark:`, error);
+        throw error;
+    }
 }
