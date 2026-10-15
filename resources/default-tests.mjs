@@ -198,6 +198,24 @@ export const defaultSuites = [
         type: "remote",
     },
     {
+        name: "Experimental-NCNN-ResNet50-INT8-wasm",
+        url: "resources/experimental/dist/ncnn-resnet50-int8.html",
+        tags: ["experimental", "ncnn", "wasm"],
+        type: "remote",
+    },
+    {
+        name: "Experimental-NCNN-EfficientNetV2-B0-wasm",
+        url: "resources/experimental/dist/ncnn-efficientnetv2-b0.html",
+        tags: ["experimental", "ncnn", "wasm"],
+        type: "remote",
+    },
+    {
+        name: "Experimental-NCNN-YOLOv4-Tiny-wasm",
+        url: "resources/experimental/dist/ncnn-yolov4-tiny.html",
+        tags: ["experimental", "ncnn", "wasm"],
+        type: "remote",
+    },
+    {
         name: "Experimental-Tract-ONNX-MobileNet-V2-wasm",
         url: "resources/experimental/dist/tract-onnx-mobilenet-v2.html",
         tags: ["experimental", "tract", "wasm"],
