@@ -7,9 +7,9 @@
 #
 # Rebuilds the Emscripten-compiled Wasm workloads used by the experimental
 # benchmarks. The build output is checked into the repository so that
-# Emscripten and Rust are NOT required for `npm run build`, CI, or deployments.
+# Emscripten, Rust, and CMake are NOT required for `npm run build`, CI, or deployments.
 #
-# Run this manually (with emsdk activated and Rust installed) only when you
+# Run this manually (with emsdk activated and Rust and CMake installed) only when you
 # want to refresh the checked-in binaries, e.g. after bumping a source commit
 # or compiler flags, then commit the updated files under src/<workload>/build/.
 #
@@ -22,6 +22,7 @@ EXPERIMENTAL_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pw
 
 DEFAULT_WORKLOADS=(
   ggml
+  ncnn
   tract
 )
 
