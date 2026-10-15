@@ -45,10 +45,20 @@ else
   CFLAGS_ARR=("${DEFAULT_CFLAGS[@]}")
 fi
 
+# codecbench allocates several hundred MB of linear memory per run (~64 MB of
+# source vertices plus decode/encode buffers, index buffers, and 32/64 MB filter
+# buffers). Instantiating a fresh module for every sub-iteration would keep
+# each instance's WebAssembly.Memory alive until GC, risking OOM and GC pauses
+# on low-memory devices. Instead, benchmark.mjs instantiates the module once
+# and re-runs main() for each sub-iteration:
+#   -sINVOKE_RUN=0: don't run main() automatically on instantiation.
+#   -sEXPORTED_RUNTIME_METHODS=callMain: expose callMain() so benchmark.mjs
+#     can invoke main() explicitly, reusing the same instance and heap.
 EM_LDFLAGS=(
   -sENVIRONMENT=web
   -sMODULARIZE=1
   -sEXPORT_ES6=1
+  -sINVOKE_RUN=0
   -sEXPORTED_RUNTIME_METHODS=callMain
   -sALLOW_MEMORY_GROWTH=1
 )

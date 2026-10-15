@@ -12,4 +12,4 @@ resources/experimental/build-wasm-workloads.sh meshoptimizer
 - Source: [meshoptimizer](https://github.com/zeux/meshoptimizer) [`v0.25`](https://github.com/zeux/meshoptimizer/tree/v0.25)
 - Compiler: `emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 5.0.7 (263db4cffa6f9fc2ec514a70abac81362ea41849)`
 - CFLAGS: `-O2 -fno-exceptions -mbulk-memory -mextended-const -mmultivalue -mmutable-globals -mnontrapping-fptoint -mrelaxed-simd -msign-ext -msimd128`
-- LDFLAGS: `-sENVIRONMENT=web -sMODULARIZE=1 -sEXPORT_ES6=1 -sEXPORTED_RUNTIME_METHODS=callMain -sALLOW_MEMORY_GROWTH=1`
+- LDFLAGS: `-sENVIRONMENT=web -sMODULARIZE=1 -sEXPORT_ES6=1 -sINVOKE_RUN=0 -sEXPORTED_RUNTIME_METHODS=callMain -sALLOW_MEMORY_GROWTH=1`

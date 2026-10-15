@@ -57,26 +57,39 @@ function instantiatePrecompiled(wasmModule) {
 
 class MeshoptimizerBenchmark {
     constructor() {
-        this.meshoptimizerModule = null;
+        this.module = null;
+        this.stdout = "";
     }
 
+    /**
+     * Compiles and instantiates codecbench once (not part of benchmark
+     * measurement). The module is built with `-sINVOKE_RUN=0`, so `main()`
+     * does not run on instantiation; each sub-iteration calls `callMain()`
+     * instead, reusing the same instance and linear memory rather than
+     * allocating a fresh multi-hundred-MB heap per run.
+     */
     async init() {
-        console.log("Compiling Meshoptimizer Wasm module (not part of benchmark measurement)...");
-        this.meshoptimizerModule = await WebAssembly.compileStreaming(fetch(codecbenchUrl));
-        console.log("Meshoptimizer Wasm module compiled; starting measured benchmark runs...");
-    }
-
-    async runAndParseScore() {
-        let stdout = "";
-        console.log("Running codecbench...");
-        await CodecbenchModule({
+        console.log("Compiling and instantiating Meshoptimizer Wasm module (not part of benchmark measurement)...");
+        const wasmModule = await WebAssembly.compileStreaming(fetch(codecbenchUrl));
+        this.module = await CodecbenchModule({
             print: (line) => {
-                console.log(line);
-                stdout += `${line}\n`;
+                this.stdout += `${line}\n`;
             },
             printErr: (line) => console.error(line),
-            instantiateWasm: instantiatePrecompiled(this.meshoptimizerModule),
+            instantiateWasm: instantiatePrecompiled(wasmModule),
         });
+        console.log("Meshoptimizer Wasm module ready; starting measured benchmark runs...");
+    }
+
+    runAndParseScore() {
+        console.log("Running codecbench...");
+        this.stdout = "";
+        const exitCode = this.module.callMain([]);
+        const stdout = this.stdout;
+        console.log(stdout);
+        if (exitCode !== 0) {
+            throw new Error(`codecbench exited with code ${exitCode}:\n${stdout}`);
+        }
 
         const match = stdout.match(SCORE_REGEX);
         if (!match) {
@@ -84,6 +97,13 @@ class MeshoptimizerBenchmark {
         }
 
         const gbpsScores = match.slice(1, SUB_BENCHMARK_NAMES.length + 1).map(Number);
+        // codecbench prints throughput with "%.2f", so very slow kernels can
+        // round to 0.00. Reject non-positive values, which would otherwise turn
+        // into Infinity (1000 / 0) and poison the suite total and Wasm score.
+        if (gbpsScores.some((v) => !Number.isFinite(v) || v <= 0)) {
+            throw new Error(`Invalid codecbench throughput values (GB/s): ${gbpsScores.join(", ")}\n${stdout}`);
+        }
+
         const steps = {};
         SUB_BENCHMARK_NAMES.forEach((name, i) => {
             steps[name] = { tests: {}, total: 1000 / gbpsScores[i] };
