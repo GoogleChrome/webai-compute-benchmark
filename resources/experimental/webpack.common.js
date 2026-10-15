@@ -13,6 +13,7 @@ module.exports = {
         gemma: "./src/gemma/benchmark.mjs",
         "litert-lm": "./src/litert-lm/benchmark.mjs",
         ggml: "./src/ggml/benchmark.mjs",
+        meshoptimizer: "./src/meshoptimizer/benchmark.mjs",
         "tract-onnx-mobilenet-v2": "./src/tract/onnx-mobilenet-v2.mjs",
         "tract-pytorch-resnet": "./src/tract/pytorch-resnet.mjs",
         "tract-tflite-mobilenet-v3": "./src/tract/tflite-mobilenet-v3.mjs",
@@ -49,6 +50,12 @@ module.exports = {
             template: path.resolve(__dirname, "src", "console-runner.html"),
             filename: "ggml.html",
             chunks: ["ggml"],
+        }),
+        new HtmlWebpackPlugin({
+            title: "Experimental Meshoptimizer Runner",
+            template: path.resolve(__dirname, "src", "console-runner.html"),
+            filename: "meshoptimizer.html",
+            chunks: ["meshoptimizer"],
         }),
         new HtmlWebpackPlugin({
             title: "Experimental Tract ONNX MobileNetV2 Runner",
