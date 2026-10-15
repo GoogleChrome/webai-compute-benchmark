@@ -13,7 +13,7 @@ import { BenchmarkConnector } from "speedometer-utils/benchmark.mjs";
 import { fetchModelWithProgress } from "speedometer-utils/download-utils.mjs";
 import { createSubIteratedSuite } from "speedometer-utils/helpers.mjs";
 import { params } from "speedometer-utils/params.mjs";
-import { LLM_BENCHMARK_PROMPT, LLM_MAX_OUTPUT_TOKENS } from "../llm-benchmark-config.mjs";
+import { LLM_BENCHMARK_PROMPT, LLM_MAX_OUTPUT_TOKENS, LLM_SEED, LLM_TEMPERATURE, LLM_TOP_K } from "../llm-benchmark-config.mjs";
 
 const weightsPath = "../models/litert-lm/gemma3-270m-it-q4_0-web.litertlm";
 const wasmPath = "resources/wasm/";
@@ -42,9 +42,9 @@ class LiteRtLmBenchmark {
                 maxOutputTokens: LLM_MAX_OUTPUT_TOKENS,
                 samplerParams: {
                     type: SamplerType.GREEDY,
-                    temperature: 0,
-                    k: 1,
-                    seed: 42,
+                    temperature: LLM_TEMPERATURE,
+                    k: LLM_TOP_K,
+                    seed: LLM_SEED,
                 },
             },
         });

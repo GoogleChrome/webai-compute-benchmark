@@ -203,4 +203,34 @@ export const defaultSuites = [
         tags: ["experimental", "meshoptimizer", "wasm"],
         type: "remote",
     },
+    {
+        name: "Experimental-Tract-ONNX-MobileNet-V2-wasm",
+        url: "resources/experimental/dist/tract-onnx-mobilenet-v2.html",
+        tags: ["experimental", "tract", "wasm"],
+        type: "remote",
+    },
+    {
+        name: "Experimental-Tract-PyTorch-ResNet-wasm",
+        url: "resources/experimental/dist/tract-pytorch-resnet.html",
+        tags: ["experimental", "tract", "wasm"],
+        type: "remote",
+    },
+    {
+        name: "Experimental-Tract-TFLite-MobileNet-V3-wasm",
+        url: "resources/experimental/dist/tract-tflite-mobilenet-v3.html",
+        tags: ["experimental", "tract", "wasm"],
+        type: "remote",
+    },
+    {
+        name: "Experimental-Llama-CPP-wasm",
+        url: "resources/experimental/dist/llama-cpp-wasm.html",
+        tags: ["experimental", "gemma", "llama-cpp", "wasm"],
+        type: "remote",
+    },
+    {
+        name: "Experimental-Llama-CPP-webgpu",
+        url: "resources/experimental/dist/llama-cpp-webgpu.html",
+        tags: ["experimental", "gemma", "llama-cpp", "webgpu"],
+        type: "remote",
+    },
 ];
