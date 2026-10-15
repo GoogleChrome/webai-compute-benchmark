@@ -17,9 +17,6 @@ const benchncnnWasmUrl = new URL("./build/benchncnn.wasm", import.meta.url);
 
 const PARAM_URLS = {
     "efficientnetv2_b0.param": new URL("./build/data/efficientnetv2_b0.param", import.meta.url),
-    "mobilenet_v3.param": new URL("./build/data/mobilenet_v3.param", import.meta.url),
-    "regnety_400m.param": new URL("./build/data/regnety_400m.param", import.meta.url),
-    "resnet18.param": new URL("./build/data/resnet18.param", import.meta.url),
     "resnet50_int8.param": new URL("./build/data/resnet50_int8.param", import.meta.url),
     "yolov4-tiny.param": new URL("./build/data/yolov4-tiny.param", import.meta.url),
 };
@@ -48,15 +45,22 @@ const COOLING_DOWN = "0";
  * Weights are not loaded from disk: benchncnn uses an all-zero DataReader, so
  * only the network topology (`.param`) files are needed. Input tensors are
  * filled with a constant value.
+ *
+ * Each model is exposed as its own top-level suite (see the `<model>.mjs`
+ * entry points). The three models were chosen to cover distinct Wasm SIMD
+ * profiles with minimal overlap:
+ *   - resnet50_int8: the only INT8-quantized model; exercises ncnn's integer
+ *     quantize / int8 GEMM / dequantize kernels.
+ *   - efficientnetv2_b0: the broadest FP32 op mix (fused-MBConv dense 3x3
+ *     convs, depthwise MBConv, squeeze-and-excitation, Swish/exp).
+ *   - yolov4-tiny: compute-bound dense FP32 3x3 convolution at 416x416 with
+ *     large activations (cache/memory pressure) and detection ops.
  */
-const SUB_BENCHMARKS = [
-    { name: "efficientnetv2_b0", shape: "[224,224,3]" },
-    { name: "mobilenet_v3", shape: "[224,224,3]" },
-    { name: "regnety_400m", shape: "[224,224,3]" },
-    { name: "resnet18", shape: "[224,224,3]" },
-    { name: "resnet50_int8", shape: "[224,224,3]" },
-    { name: "yolov4-tiny", shape: "[416,416,3]" },
-];
+const MODELS = {
+    resnet50_int8: { name: "resnet50_int8", shape: "[224,224,3]" },
+    efficientnetv2_b0: { name: "efficientnetv2_b0", shape: "[224,224,3]" },
+    "yolov4-tiny": { name: "yolov4-tiny", shape: "[416,416,3]" },
+};
 
 function instantiatePrecompiled(wasmModule) {
     return (imports, successCallback) => {
@@ -75,30 +79,27 @@ async function fetchUint8Array(url) {
 }
 
 class NcnnBenchmark {
-    constructor() {
+    constructor(model) {
+        this.model = model;
         this.ncnnModule = null;
-        this.paramFiles = new Map();
+        this.paramBytes = null;
     }
 
     async init() {
-        console.log("Compiling NCNN Wasm module and loading param files (not part of benchmark measurement)...");
+        console.log("Compiling NCNN Wasm module and loading param file (not part of benchmark measurement)...");
 
-        const [ncnnModule] = await Promise.all([
-            WebAssembly.compileStreaming(fetch(benchncnnWasmUrl)),
-            ...Object.entries(PARAM_URLS).map(async ([filename, url]) => {
-                const bytes = await fetchUint8Array(url);
-                this.paramFiles.set(filename, bytes);
-            }),
-        ]);
+        const paramFile = `${this.model.name}.param`;
+        const [ncnnModule, paramBytes] = await Promise.all([WebAssembly.compileStreaming(fetch(benchncnnWasmUrl)), fetchUint8Array(PARAM_URLS[paramFile])]);
         this.ncnnModule = ncnnModule;
+        this.paramBytes = paramBytes;
 
-        console.log("NCNN Wasm module and param files loaded; starting measured benchmark runs...");
+        console.log("NCNN Wasm module and param file loaded; starting measured benchmark runs...");
     }
 
     async runSubBenchmark({ name, shape }) {
         console.log(`Running ${name}...`);
         const paramFile = `${name}.param`;
-        const paramBytes = this.paramFiles.get(paramFile);
+        const paramBytes = this.paramBytes;
 
         // benchncnn reports its results on stderr.
         let stderr = "";
@@ -152,34 +153,44 @@ function createNcnnSubSuite(benchmark, subBenchmark, subIterationCount) {
     return new AsyncBenchmarkSuite(subBenchmark.name, steps);
 }
 
-const appName = "NCNN";
 const appVersion = "20241226";
 
-try {
-    const benchmark = new NcnnBenchmark();
-    await benchmark.init();
+/**
+ * Wires up the benchmark for one of the models in `MODELS`.
+ *
+ * @param {keyof typeof MODELS} modelName
+ */
+export async function initializeNcnnBenchmark(modelName) {
+    const model = MODELS[modelName];
+    if (!model) {
+        throw new Error(`Unknown NCNN model "${modelName}", expected one of: ${Object.keys(MODELS).join(", ")}`);
+    }
 
-    // TODO(ryandiaz) We may want to report the total as a geomean
-    // so one sub benchmark doesn't dominate.
-    const steps = SUB_BENCHMARKS.map((subBenchmark) => {
-        const subSuite = createNcnnSubSuite(benchmark, subBenchmark, params.subIterationCount);
-        return {
-            name: subBenchmark.name,
-            async runAndRecord(stepParams, _parentSuite, _parentRecord, onProgress) {
-                const { result } = await subSuite.runAndRecord(stepParams, onProgress);
-                return result;
+    const appName = `NCNN-${modelName}`;
+    try {
+        const benchmark = new NcnnBenchmark(model);
+        await benchmark.init();
+
+        const subSuite = createNcnnSubSuite(benchmark, model, params.subIterationCount);
+        const steps = [
+            {
+                name: model.name,
+                async runAndRecord(stepParams, _parentSuite, _parentRecord, onProgress) {
+                    const { result } = await subSuite.runAndRecord(stepParams, onProgress);
+                    return result;
+                },
             },
+        ];
+
+        /*--------- Running test suites ---------*/
+        const suites = {
+            default: new AsyncBenchmarkSuite("default", steps),
         };
-    });
 
-    /*--------- Running test suites ---------*/
-    const suites = {
-        default: new AsyncBenchmarkSuite("default", steps),
-    };
-
-    const benchmarkConnector = new BenchmarkConnector(suites, appName, appVersion);
-    benchmarkConnector.connect();
-} catch (error) {
-    console.error("Failed to initialize NCNN benchmark:", error);
-    throw error;
+        const benchmarkConnector = new BenchmarkConnector(suites, appName, appVersion);
+        benchmarkConnector.connect();
+    } catch (error) {
+        console.error(`Failed to initialize ${appName} benchmark:`, error);
+        throw error;
+    }
 }

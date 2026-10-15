@@ -16,14 +16,11 @@ export LC_ALL=C
 NCNN_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 OUT_DIR="$NCNN_DIR/build"
 
-# Must match SUB_BENCHMARKS in benchmark.mjs. This is the subset selected in
-# wasm-perf/benchmarks/ncnn/ncnn.py to cover a range of profiles while keeping
-# run time down.
+# Must match MODELS / PARAM_URLS in benchmark.mjs. These three models were
+# chosen from ncnn's benchmark/ directory to cover distinct Wasm SIMD profiles
+# (INT8 integer kernels, broad FP32 op mix, compute-bound FP32 at high res).
 PARAM_FILES=(
   "efficientnetv2_b0.param"
-  "mobilenet_v3.param"
-  "regnety_400m.param"
-  "resnet18.param"
   "resnet50_int8.param"
   "yolov4-tiny.param"
 )
