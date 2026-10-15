@@ -27,7 +27,7 @@ if (RUN_FULL_SUITE) {
 }
 
 async function testPage(url) {
-    console.log(`Testing: ${url}`);
+    console.log(`\nTesting: ${url}`);
     await driver.get(`http://localhost:${PORT}/${url}`);
 
     await driver.executeAsyncScript((callback) => {
@@ -38,39 +38,56 @@ async function testPage(url) {
         }
     });
 
-    console.log("    - Awaiting Benchmark");
-    const { error, metrics } = await driver.executeAsyncScript((callback) => {
-        globalThis.addEventListener(
-            "BenchmarkDone",
-            () =>
-                callback({
-                    metrics: globalThis.benchmarkClient.metrics,
-                }),
-            { once: true }
-        );
-        // Install error handlers to report page errors back to selenium.
-        globalThis.addEventListener("error", (message, source, lineno, colno, error) =>
-            callback({
-                error: { message, source, lineno, colno, error },
-            })
-        );
-        globalThis.addEventListener("unhandledrejection", (e) => {
-            callback({
-                error: {
-                    message: e.reason.toString(),
-                    stack: e.reason?.stack,
-                },
-            });
-        });
-        globalThis.benchmarkClient.start();
+    await driver.executeScript(() => {
+        globalThis._e2eQueue = [];
+        globalThis._e2eWaiter = null;
+        const push = (event) => {
+            globalThis._e2eQueue.push(event);
+            globalThis._e2eWaiter?.(globalThis._e2eQueue.shift());
+            globalThis._e2eWaiter = null;
+        };
+
+        const client = globalThis.benchmarkClient;
+        let suiteStart;
+        client.willStartSuite = (suite, iteration) => {
+            suiteStart = performance.now();
+            const totalIterations = client.stepCount / client.suitesCount;
+            push({ log: `    [${iteration + 1}/${totalIterations}] ${suite.name}` });
+        };
+        const origFinishSuite = client.didFinishSuite.bind(client);
+        client.didFinishSuite = (suite) => {
+            origFinishSuite(suite);
+            push({ log: `          ${Math.round(performance.now() - suiteStart)}ms` });
+        };
+        const origFailSuite = client.didFailSuite.bind(client);
+        client.didFailSuite = (suite, error) => {
+            origFailSuite(suite, error);
+            push({ error: `Suite ${suite.name} failed: ${error?.stack || error?.message || error}` });
+        };
+
+        globalThis.addEventListener("BenchmarkDone", () => push({ metrics: client.metrics }), { once: true });
+        globalThis.addEventListener("error", (e) => push({ error: e.error?.stack || e.message }));
+        globalThis.addEventListener("unhandledrejection", (e) => push({ error: e.reason?.stack || String(e.reason) }));
+        client.start();
     });
 
-    if (error) {
-        throw new Error(error.message + (error?.stack ?? ""));
+    while (true) {
+        const { log, error, metrics } = await driver.executeAsyncScript((cb) => {
+            if (globalThis._e2eQueue.length) {
+                cb(globalThis._e2eQueue.shift());
+            } else {
+                globalThis._e2eWaiter = cb;
+            }
+        });
+        if (log) {
+            console.log(log);
+        } else if (error) {
+            throw new Error(error);
+        } else if (metrics) {
+            validateMetrics(metrics);
+            return metrics;
+        }
     }
-
-    validateMetrics(metrics);
-    return metrics;
 }
 
 function validateMetrics(metrics) {
@@ -95,7 +112,6 @@ async function testIterations() {
             const metric = metrics[suite.name];
             assert(metric, `Missing suite result for ${suite.name}`);
             assert(metric.values.length === iterationCount);
-            console.log(`Suite ${suite.name} took ${metric.sum}ms`);
         } else {
             assert(!(suite.name in metrics));
         }

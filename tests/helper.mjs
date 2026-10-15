@@ -12,6 +12,7 @@ const optionDefinitions = [
     { name: "browser", type: String, description: "Set the browser to test, choices are [safari, firefox, chrome]. By default the $BROWSER env variable is used." },
     { name: "browser-arg", type: String, multiple: true, description: "Additional arguments to pass to the browser. Use one arg per --browser-arg switch." },
     { name: "port", type: Number, defaultValue: 8010, description: "Set the test-server port, The default value is 8010." },
+    { name: "verbose", alias: "v", type: Boolean, defaultValue: false, description: "Enable verbose HTTP server logging." },
     { name: "help", alias: "h", description: "Print this help text." },
 ];
 
@@ -72,7 +73,7 @@ export default async function testSetup(helpText) {
     browserOptions.setLoggingPrefs(prefs);
 
     const PORT = options.port;
-    const server = await serve(PORT);
+    const server = await serve(PORT, { verbose: options.verbose });
     let driver;
 
     process.on("unhandledRejection", (err) => {
