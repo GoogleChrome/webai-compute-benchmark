@@ -22,6 +22,7 @@ EXPERIMENTAL_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pw
 
 DEFAULT_WORKLOADS=(
   ggml
+  microkernels
   tract
 )
 
