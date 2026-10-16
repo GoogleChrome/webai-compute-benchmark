@@ -5,7 +5,7 @@
 // https://developers.google.com/open-source/licenses/bsd
 
 /**
- * Experimental wasm-perf microkernels Wasm benchmark.
+ * Experimental wasm-perf microkernels Wasm benchmark (MAC and Convert).
  */
 
 import MicrokernelsModule from "./build/microkernels.mjs";
@@ -27,22 +27,16 @@ const LOOP_COUNT = 1000000;
  * (int8 .. int64, float, double), alongside a scalar reference
  * (`#pragma clang loop vectorize(disable)`) used to validate the result:
  *
- *   - 1d: 1D multiply-accumulate (MAC) reductions plus 1D element-wise type
- *     conversion kernels.
- *   - 2d / 3d / 4d: MAC reductions over arrays of 2-, 3- and 4-component
- *     structs (strided / interleaved access patterns).
- *
- * Following `microkernels.py`, each sub-benchmark's result is the sum of all
- * reported "vector run time" values (in ms), i.e. the vectorized kernels only.
+ *   - mac (1d / 2d / 3d / 4d): Multiply-accumulate (MAC) reductions over
+ *     contiguous 1D arrays and arrays of 2-, 3- and 4-component structs
+ *     (42 type combinations per dimension).
+ *   - convert (1d): Element-wise type conversion kernels across 56
+ *     input/output type pairs (`out[i] = static_cast<OutTy>(in[i])`).
  */
-const SUB_BENCHMARK_NAMES = ["1d", "2d", "3d", "4d"];
+const MAC_SUB_BENCHMARK_NAMES = ["1d", "2d", "3d", "4d"];
 
-const VECTOR_TIME_REGEX = /vector run time: ([0-9]*\.?[0-9]+(?:[eE][-+]?[0-9]+)?)/g;
-
-function geometricMean(values) {
-    const logSum = values.reduce((sum, v) => sum + Math.log(v), 0);
-    return Math.exp(logSum / values.length);
-}
+const MAC_VECTOR_TIME_REGEX = /^total mac vector run time:\s*([0-9]*\.?[0-9]+(?:[eE][-+]?[0-9]+)?)/m;
+const CONVERT_VECTOR_TIME_REGEX = /^total convert vector run time:\s*([0-9]*\.?[0-9]+(?:[eE][-+]?[0-9]+)?)/m;
 
 function instantiatePrecompiled(wasmModule, onError) {
     return (imports, successCallback) => {
@@ -53,82 +47,88 @@ function instantiatePrecompiled(wasmModule, onError) {
     };
 }
 
-export function parseMicrokernelsOutput(name, stdout) {
-    const matches = [...stdout.matchAll(VECTOR_TIME_REGEX)];
-    if (matches.length === 0) {
-        throw new Error(`Failed to parse microkernels "${name}" output:\n${stdout}`);
-    }
-    // main.cc reports a validation failure (vectorized result != scalar
-    // reference) by printing "Failed ... kernels" and skipping the remaining
-    // kernels of that group. wasm-perf still sums the reported timings, so we
-    // do the same, but surface the failure in the console.
+function parseSingleVectorTime(regex, label, stdout) {
     if (/^Failed /m.test(stdout)) {
-        console.warn(`microkernels "${name}" reported a validation failure:\n${stdout}`);
+        console.warn(`microkernels "${label}" reported a validation failure:\n${stdout}`);
     }
-
-    const timeMs = matches.reduce((sum, match) => sum + Number(match[1]), 0);
+    const match = stdout.match(regex);
+    if (!match) {
+        throw new Error(`Failed to parse microkernels "${label}" output:\n${stdout}`);
+    }
+    const timeMs = Number(match[1]);
     if (!Number.isFinite(timeMs) || timeMs <= 0) {
-        throw new Error(`Invalid microkernels "${name}" timing value: ${timeMs}\n${stdout}`);
+        throw new Error(`Invalid microkernels "${label}" timing value: ${timeMs}\n${stdout}`);
     }
     return timeMs;
 }
 
+export function parseMacOutput(name, stdout) {
+    return parseSingleVectorTime(MAC_VECTOR_TIME_REGEX, `mac-${name}`, stdout);
+}
+
+export function parseConvertOutput(stdout) {
+    return parseSingleVectorTime(CONVERT_VECTOR_TIME_REGEX, "convert-1d", stdout);
+}
+
 class MicrokernelsBenchmark {
-    constructor() {
+    constructor(suiteName) {
+        this.suiteName = suiteName;
         this.wasmModule = null;
     }
 
     async init() {
-        console.log("Compiling microkernels Wasm module (not part of benchmark measurement)...");
+        console.log(`Compiling microkernels Wasm module for ${this.suiteName} (not part of benchmark measurement)...`);
         this.wasmModule = await WebAssembly.compileStreaming(fetch(microkernelsUrl));
-        console.log("Microkernels Wasm module compiled; starting measured benchmark runs...");
+        console.log(`Microkernels Wasm module compiled; starting measured ${this.suiteName} benchmark runs...`);
     }
 
     /**
-     * Runs a single sub-benchmark in a fresh module instance, so that each run
-     * starts with a clean linear memory (the 1d convert kernels do not free
-     * their output buffers).
+     * Runs a single CLI sub-benchmark in a fresh module instance, so that each
+     * run starts with a clean linear memory (the 1d convert kernels do not
+     * free their output buffers).
      */
-    async runSubBenchmark(name) {
-        console.log(`Running microkernels ${name}...`);
+    async runCliArg(arg) {
+        console.log(`Running microkernels (${this.suiteName}) ${arg}...`);
         let stdout = "";
         await new Promise((resolve, reject) => {
             MicrokernelsModule({
-                arguments: [String(LOOP_COUNT), name],
+                arguments: [String(LOOP_COUNT), arg],
                 print: (line) => {
-                    console.log(`  [${name}] ${line}`);
+                    console.log(`  [${this.suiteName}:${arg}] ${line}`);
                     stdout += `${line}\n`;
                 },
-                printErr: (line) => console.error(`  [${name}] ${line}`),
+                printErr: (line) => console.error(`  [${this.suiteName}:${arg}] ${line}`),
                 instantiateWasm: instantiatePrecompiled(this.wasmModule, reject),
             }).then(resolve, reject);
         });
-        return parseMicrokernelsOutput(name, stdout);
+        return stdout;
     }
 
-    async runAndParse() {
-        const steps = {};
-        const stepTotals = [];
-        for (const name of SUB_BENCHMARK_NAMES) {
-            const timeMs = await this.runSubBenchmark(name);
-            steps[name] = { tests: {}, total: timeMs };
-            stepTotals.push(timeMs);
-        }
+    async runMacSubBenchmark(name) {
+        const stdout = await this.runCliArg(name);
         return {
-            steps,
-            total: geometricMean(stepTotals),
+            tests: {},
+            total: parseMacOutput(name, stdout),
+        };
+    }
+
+    async runConvertSubBenchmark() {
+        const stdout = await this.runCliArg("1d");
+        return {
+            tests: {},
+            total: parseConvertOutput(stdout),
         };
     }
 }
 
-function createMicrokernelsSuite(benchmark, subIterationCount) {
-    const steps = Array.from({ length: subIterationCount }, (_, i) => {
+function createSubIteratedSteps(runFn, subIterationCount) {
+    return Array.from({ length: subIterationCount }, (_, i) => {
         let parsedResult = null;
         const step = new AsyncBenchmarkStep(
             `sub-iter-${i + 1}`,
             async () => {
                 forceLayout();
-                parsedResult = await benchmark.runAndParse();
+                parsedResult = await runFn();
                 forceLayout();
             },
             { measureAsync: false }
@@ -141,24 +141,61 @@ function createMicrokernelsSuite(benchmark, subIterationCount) {
             },
         };
     });
-    return new AsyncBenchmarkSuite("default", steps);
 }
 
-const appName = "Microkernels";
+function createMicrokernelsSuite(benchmark, suiteName, subIterationCount) {
+    if (suiteName === "mac") {
+        // TODO(ryandiaz) We may want to report the total as a geomean
+        // so one sub benchmark doesn't dominate.
+        const steps = MAC_SUB_BENCHMARK_NAMES.map((name) => {
+            const subSuite = new AsyncBenchmarkSuite(
+                name,
+                createSubIteratedSteps(() => benchmark.runMacSubBenchmark(name), subIterationCount)
+            );
+            return {
+                name,
+                async runAndRecord(stepParams, _parentSuite, _parentRecord, onProgress) {
+                    const { result } = await subSuite.runAndRecord(stepParams, onProgress);
+                    return result;
+                },
+            };
+        });
+        return new AsyncBenchmarkSuite("default", steps);
+    }
+
+    return new AsyncBenchmarkSuite(
+        "default",
+        createSubIteratedSteps(() => benchmark.runConvertSubBenchmark(), subIterationCount)
+    );
+}
+
+const VALID_SUITES = new Set(["mac", "convert"]);
 const appVersion = "aee16b1";
 
-try {
-    const benchmark = new MicrokernelsBenchmark();
-    await benchmark.init();
+/**
+ * Wires up the benchmark for either the `"mac"` or `"convert"` microkernels suite.
+ *
+ * @param {"mac" | "convert"} suiteName
+ */
+export async function initializeMicrokernelsBenchmark(suiteName) {
+    if (!VALID_SUITES.has(suiteName)) {
+        throw new Error(`Unknown Microkernels suite "${suiteName}", expected one of: ${[...VALID_SUITES].join(", ")}`);
+    }
 
-    /*--------- Running test suites ---------*/
-    const suites = {
-        default: createMicrokernelsSuite(benchmark, params.subIterationCount),
-    };
+    const appName = `Microkernels-${suiteName}`;
+    try {
+        const benchmark = new MicrokernelsBenchmark(suiteName);
+        await benchmark.init();
 
-    const benchmarkConnector = new BenchmarkConnector(suites, appName, appVersion);
-    benchmarkConnector.connect();
-} catch (error) {
-    console.error("Failed to initialize Microkernels benchmark:", error);
-    throw error;
+        /*--------- Running test suites ---------*/
+        const suites = {
+            default: createMicrokernelsSuite(benchmark, suiteName, params.subIterationCount),
+        };
+
+        const benchmarkConnector = new BenchmarkConnector(suites, appName, appVersion);
+        benchmarkConnector.connect();
+    } catch (error) {
+        console.error(`Failed to initialize ${appName} benchmark:`, error);
+        throw error;
+    }
 }

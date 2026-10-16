@@ -198,9 +198,15 @@ export const defaultSuites = [
         type: "remote",
     },
     {
-        name: "Experimental-Microkernels-wasm",
-        url: "resources/experimental/dist/microkernels.html",
-        tags: ["experimental", "microkernels", "wasm"],
+        name: "Experimental-Microkernels-MAC-wasm",
+        url: "resources/experimental/dist/microkernels-mac.html",
+        tags: ["experimental", "microkernels", "wasm", "wasm-compute-kernels"],
+        type: "remote",
+    },
+    {
+        name: "Experimental-Microkernels-Convert-wasm",
+        url: "resources/experimental/dist/microkernels-convert.html",
+        tags: ["experimental", "microkernels", "wasm", "wasm-compute-kernels"],
         type: "remote",
     },
     {
