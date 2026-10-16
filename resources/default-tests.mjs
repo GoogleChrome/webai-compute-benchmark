@@ -198,6 +198,12 @@ export const defaultSuites = [
         type: "remote",
     },
     {
+        name: "Experimental-Glam-rs-wasm",
+        url: "resources/experimental/dist/glam-rs.html",
+        tags: ["experimental", "glam-rs", "wasm"],
+        type: "remote",
+    },
+    {
         name: "Experimental-Tract-ONNX-MobileNet-V2-wasm",
         url: "resources/experimental/dist/tract-onnx-mobilenet-v2.html",
         tags: ["experimental", "tract", "wasm"],

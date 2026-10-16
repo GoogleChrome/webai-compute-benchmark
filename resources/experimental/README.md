@@ -21,7 +21,7 @@ Node, NPM, and Git LFS are required to install dependencies, download models, an
 
 ## Wasm workloads
 
-Some workloads (e.g. GGML in `src/ggml/` and Tract in `src/tract/`) are compiled from C/C++ or Rust with Emscripten. Their build output (`src/<workload>/build/`) is checked into the repository, so Emscripten and Rust are **not** needed for `npm run build`, CI, or deployments.
+Some workloads (e.g. GGML in `src/ggml/`, glam-rs in `src/glam-rs/`, and Tract in `src/tract/`) are compiled from C/C++ or Rust with Emscripten. Their build output (`src/<workload>/build/`) is checked into the repository, so Emscripten and Rust are **not** needed for `npm run build`, CI, or deployments.
 
 To refresh the checked-in binaries (e.g. after bumping a source version or changing compiler flags), install and activate [Emscripten](https://emscripten.org/docs/getting_started/downloads.html) (`emcc` / `em++` in `PATH`) and [Rust](https://rustup.rs/) (`cargo` / `rustup` in `PATH`), then run:
 

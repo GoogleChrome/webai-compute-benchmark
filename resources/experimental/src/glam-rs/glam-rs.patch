@@ -1,0 +1,36 @@
+# Adapted from wasm-perf/benchmarks/glam_rs/wasi-glam-rs.patch:
+# SPDX-FileCopyrightText: Copyright 2026 Arm Limited and/or its affiliates <open-source-office@arm.com>
+# SPDX-License-Identifier: BSD-3-Clause
+#
+# Makes criterion available as a dev-dependency on wasm32 targets (without its
+# default features, i.e. no rayon / plotters / cargo_bench_support) and gates
+# the iai-callgrind bench, which cannot run on Wasm, behind a feature.
+
+diff --git a/Cargo.toml b/Cargo.toml
+index 99b9b29..89badaa 100644
+--- a/Cargo.toml
++++ b/Cargo.toml
+@@ -66,13 +66,11 @@ rand_xoshiro = "0.7"
+ # "alloc" is needed to support to_bytes()/deserialize() in tests.
+ rkyv = { version = "0.8", default-features = false, features = ["alloc"] }
+ serde_json = "1.0"
+-
+-[target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
+-criterion = { version = "0.5", features = ["html_reports"] }
+-iai-callgrind = "0.14"
++criterion = { version = "0.5", features = ["html_reports"], default-features = false }
+ 
+ [target.'cfg(target_arch = "wasm32")'.dev-dependencies]
+ wasm-bindgen-test = "0.3"
++criterion = { version = "0.5", features = ["html_reports"], default-features = false }
+ 
+ [lib]
+ bench = false
+@@ -128,6 +126,7 @@ harness = false
+ [[bench]]
+ name = "iai"
+ harness = false
++required-features = ["iai-callgrind"]
+ 
+ [workspace]
+ members = [
