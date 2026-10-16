@@ -5,6 +5,7 @@
 // https://developers.google.com/open-source/licenses/bsd
 
 import { defaultSuites } from "../resources/default-tests.mjs";
+import { syncReadmeWithPackageVersion } from "./bump-version.mjs";
 import { logGroup, logInfo, sh } from "./helper.mjs";
 import fs from "node:fs";
 
@@ -198,4 +199,6 @@ if (modelTableBody) {
 
     fs.writeFileSync(buildInfoPath, buildInfoSource);
     logInfo(`Wrote ${buildInfoPath} with version ${versionWithDate} (${shortGitHash})`);
+
+    syncReadmeWithPackageVersion();
 }

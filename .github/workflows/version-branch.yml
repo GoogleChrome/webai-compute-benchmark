@@ -1,0 +1,91 @@
+name: Version Branch Automation
+
+on:
+    pull_request:
+        branches: ["main"]
+        paths:
+            - "package.json"
+            - "resources/**/package-lock.json"
+    push:
+        branches: ["main"]
+        paths:
+            - "package.json"
+
+permissions: {}
+
+jobs:
+    sync-readme-on-pr:
+        name: Auto-Update README Version Branches on PR
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        runs-on: ubuntu-latest
+        permissions:
+            contents: write
+        steps:
+            - name: Checkout PR Branch
+              uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+              with:
+                  ref: ${{ github.head_ref }}
+
+            - name: Setup Node
+              uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+              with:
+                  node-version-file: "package.json"
+                  cache: "npm"
+
+            - name: Install Node Packages
+              run: npm ci
+
+            - name: Update README.md if Version Changed
+              env:
+                  PR_TITLE: ${{ github.event.pull_request.title }}
+              run: |
+                  node script/bump-version.mjs --changes "${PR_TITLE}"
+                  if ! git diff --quiet README.md; then
+                      git config user.name "github-actions[bot]"
+                      git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+                      git add README.md
+                      git commit -m "Update README version branches for v$(jq -r .version package.json)"
+                      git push
+                  fi
+
+    create-version-branch:
+        name: Create Old Version Branch on Merge
+        if: github.event_name == 'push'
+        runs-on: ubuntu-latest
+        permissions:
+            contents: write
+        steps:
+            - name: Checkout Repository
+              uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+              with:
+                  fetch-depth: 0
+
+            - name: Detect Version Bump and Create Branch
+              env:
+                  BEFORE_SHA: ${{ github.event.before }}
+              run: |
+                  if [ "$BEFORE_SHA" = "0000000000000000000000000000000000000000" ]; then
+                      echo "No previous commit SHA available; skipping branch creation."
+                      exit 0
+                  fi
+
+                  OLD_VERSION=$(git show "${BEFORE_SHA}:package.json" | jq -r .version)
+                  NEW_VERSION=$(jq -r .version package.json)
+
+                  echo "Old version: ${OLD_VERSION}"
+                  echo "New version: ${NEW_VERSION}"
+
+                  if [ "$OLD_VERSION" = "$NEW_VERSION" ]; then
+                      echo "Version did not change; nothing to do."
+                      exit 0
+                  fi
+
+                  BRANCH_NAME="version-${OLD_VERSION}"
+                  if git ls-remote --exit-code --heads origin "${BRANCH_NAME}" >/dev/null 2>&1; then
+                      echo "Branch ${BRANCH_NAME} already exists on origin."
+                  else
+                      echo "Creating branch ${BRANCH_NAME} at commit ${BEFORE_SHA}..."
+                      git branch "${BRANCH_NAME}" "${BEFORE_SHA}"
+                      git push origin "${BRANCH_NAME}"
+                      echo "Pushed branch ${BRANCH_NAME}."
+                  fi
