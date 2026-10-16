@@ -20,7 +20,7 @@ See the Speedometer repo for a more detailed explanation, e.g., in which phases 
 
 - If you have not done that yet, run `npm install` and `npm run build` inside `resources/<workload-group>/` to produce output in `dist/`.
 - `npm run dev` in the root directory to start the server.
--  Navigate to `http://localhost:8080/resources/<workload-group>/dist/<workload>.html` (e.g. `http://localhost:8080/resources/transformers-js/dist/feature-extraction-cpu.html` or `http://localhost:8080/resources/experimental/dist/litert-lm.html`) to run the workload automatically.
+- Navigate to `http://localhost:8080/resources/<workload-group>/dist/<workload>.html` (e.g. `http://localhost:8080/resources/transformers-js/dist/feature-extraction-cpu.html`, `http://localhost:8080/resources/experimental/dist/litert-lm.html`, or `http://localhost:8080/resources/experimental/dist/llama-cpp-wasm.html`) to run the workload automatically.
 
 ## Developer Mode and Custom Parameters
 
@@ -56,20 +56,27 @@ Each individual sub-iteration represents a single inference run (a single call t
 
 ## Version Branches
 
-Here are the versions of key libraries in different branches:
+Here are the versions of key libraries and notable differences across branches:
 
-- **main (v0.2.0)**
-  - Transformers.js: `4.0.1`
-  - LiteRT.js: `2.4.0`
-  - LiteRT-LM: `0.15.0`
+- **main (v0.3.0)**
+    - Transformers.js: `4.0.1`
+    - LiteRT.js: `2.4.0`
+    - LiteRT-LM: `0.15.0`
+    - Changes: Split score into separate WASM and WebGPU scores (`10,000 / geomean` scale); added experimental LiteRT-LM WebGPU benchmark.
+
+- **version-0.2.0**
+    - Transformers.js: `4.0.1`
+    - LiteRT.js: `2.4.0`
+    - Changes: Updated Transformers.js from `3.7.5` to `4.0.1`; added experimental `gemma.cpp` WASM benchmark.
 
 - **version-0.1.0**
-  - Transformers.js: `3.7.5`
-  - LiteRT.js: `2.4.0`
+    - Transformers.js: `3.7.5`
+    - LiteRT.js: `2.4.0`
+    - Changes: Updated LiteRT.js from `0.2.1` to `2.4.0`.
 
 - **version-0.0.1**
-  - Transformers.js: `3.7.5`
-  - LiteRT.js: `0.2.1`
+    - Transformers.js: `3.7.5`
+    - LiteRT.js: `0.2.1`
 
 ## Contributing
 

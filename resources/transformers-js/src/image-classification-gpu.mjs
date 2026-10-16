@@ -1,3 +1,3 @@
-import { initializeBenchmark } from './index.mjs';
+import { initializeBenchmark } from "./index.mjs";
 
-initializeBenchmark('image-classification-gpu');
+initializeBenchmark("image-classification-gpu");

@@ -20,10 +20,11 @@ async function test() {
                     stats: globalThis.testRunner.stats,
                     testResults: globalThis.testResults,
                 });
-            if (window.testResults)
+            if (window.testResults) {
                 returnResults();
-            else
+            } else {
                 globalThis.addEventListener("test-complete", returnResults, { once: true });
+            }
         });
 
         printTree(testResults);

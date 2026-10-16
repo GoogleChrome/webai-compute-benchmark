@@ -1,3 +1,3 @@
-import { initializeBenchmark } from './index.mjs';
+import { initializeBenchmark } from "./index.mjs";
 
-initializeBenchmark('hand-detection-cpu');
+initializeBenchmark("hand-detection-cpu");

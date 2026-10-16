@@ -26,136 +26,144 @@ import { spawn } from "child_process";
 import commandLineUsage from "command-line-usage";
 import { styleText } from "node:util";
 
-export const GITHUB_ACTIONS_OUTPUT = ("GITHUB_ACTIONS_OUTPUT" in process.env) || ("GITHUB_EVENT_PATH" in process.env);
+export const GITHUB_ACTIONS_OUTPUT = "GITHUB_ACTIONS_OUTPUT" in process.env || "GITHUB_EVENT_PATH" in process.env;
 
 export function logInfo(...args) {
-  const text = args.join(" ")
-  if (GITHUB_ACTIONS_OUTPUT)
-    core.info(styleText("yellow", text));
-  else
-    console.log(styleText("yellow", text));
+    const text = args.join(" ");
+    if (GITHUB_ACTIONS_OUTPUT) {
+        core.info(styleText("yellow", text));
+    } else {
+        console.log(styleText("yellow", text));
+    }
 }
 
 export function logError(...args) {
-  let error;
-  if (args.length == 1 && args[0] instanceof Error)
-    error = args[0];
-  const text = args.join(" ");
-  if (GITHUB_ACTIONS_OUTPUT) {
-    if (error?.stack)
-      core.error(error.stack);
-    else
-      core.error(styleText("red", text));
-  } else {
-    if (error?.stack)
-      console.error(styleText("red", error.stack));
-    else
-      console.error(styleText("red", text));
-  }
+    let error;
+    if (args.length === 1 && args[0] instanceof Error) {
+        error = args[0];
+    }
+    const text = args.join(" ");
+    if (GITHUB_ACTIONS_OUTPUT) {
+        if (error?.stack) {
+            core.error(error.stack);
+        } else {
+            core.error(styleText("red", text));
+        }
+    } else {
+        if (error?.stack) {
+            console.error(styleText("red", error.stack));
+        } else {
+            console.error(styleText("red", text));
+        }
+    }
 }
 
 export function logCommand(...args) {
-  const cmd = args.join(" ");
-  if (GITHUB_ACTIONS_OUTPUT) {
-    core.notice(styleText("blue", cmd));
-  } else {
-    console.log(styleText("blue", cmd));
-  }
+    const cmd = args.join(" ");
+    if (GITHUB_ACTIONS_OUTPUT) {
+        core.notice(styleText("blue", cmd));
+    } else {
+        console.log(styleText("blue", cmd));
+    }
 }
-
 
 export async function logGroup(name, body) {
-  if (GITHUB_ACTIONS_OUTPUT) {
-    core.startGroup(name);
-  } else {
-    logInfo("=".repeat(80));
-    logInfo(name);
-    logInfo(".".repeat(80));
-  }
-  try {
-    return await body();
-  } finally {
-    if (GITHUB_ACTIONS_OUTPUT)
-      core.endGroup();
-  } 
+    if (GITHUB_ACTIONS_OUTPUT) {
+        core.startGroup(name);
+    } else {
+        logInfo("=".repeat(80));
+        logInfo(name);
+        logInfo(".".repeat(80));
+    }
+    try {
+        return await body();
+    } finally {
+        if (GITHUB_ACTIONS_OUTPUT) {
+            core.endGroup();
+        }
+    }
 }
-
 
 export function printHelp(message, optionDefinitions) {
-  const usage = commandLineUsage([
-      {
-          header: "Run all tests",
-      },
-      {
-          header: "Options",
-          optionList: optionDefinitions,
-      },
-  ]);
-  if (!message?.length) {
-      console.log(usage);
-      process.exit(0);
-  } else {
-      console.error(message);
-      console.log();
-      console.log(usage);
-      process.exit(1);
-  }
+    const usage = commandLineUsage([
+        {
+            header: "Run all tests",
+        },
+        {
+            header: "Options",
+            optionList: optionDefinitions,
+        },
+    ]);
+    if (!message?.length) {
+        console.log(usage);
+        process.exit(0);
+    } else {
+        console.error(message);
+        console.log();
+        console.log(usage);
+        process.exit(1);
+    }
 }
 
-
-export async function sh(args, options={}) {
-  const cmd = args.join(" ");
-  const binary = args[0];
-  if (GITHUB_ACTIONS_OUTPUT)
-    core.startGroup(binary);
-  logCommand(cmd);
-  try {
-    return await spawnCaptureStdout(binary, args.slice(1), options);
-  } catch(e) {
-    if (e.stdout) logError("Stdout:\n" + e.stdout);
-    if (e.stderr) logError("Stderr:\n" + e.stderr);
-    throw e;
-  } finally {
-    if (GITHUB_ACTIONS_OUTPUT)
-      core.endGroup();
-  }
+export async function sh(args, options = {}) {
+    const cmd = args.join(" ");
+    const binary = args[0];
+    if (GITHUB_ACTIONS_OUTPUT) {
+        core.startGroup(binary);
+    }
+    logCommand(cmd);
+    try {
+        return await spawnCaptureStdout(binary, args.slice(1), options);
+    } catch (e) {
+        if (e.stdout) {
+            logError(`Stdout:\n${e.stdout}`);
+        }
+        if (e.stderr) {
+            logError(`Stderr:\n${e.stderr}`);
+        }
+        throw e;
+    } finally {
+        if (GITHUB_ACTIONS_OUTPUT) {
+            core.endGroup();
+        }
+    }
 }
 
-const SPAWN_OPTIONS =  Object.freeze({ 
-  stdio: ["inherit", "pipe", "pipe"]
+const SPAWN_OPTIONS = Object.freeze({
+    stdio: ["inherit", "pipe", "pipe"],
 });
 
-async function spawnCaptureStdout(binary, args, options={}) {
-  options = Object.assign(options, SPAWN_OPTIONS);
-  const childProcess = spawn(binary, args, options);
-  childProcess.stdout.pipe(process.stdout);
-  if (childProcess.stderr) {
-    childProcess.stderr.pipe(process.stderr);
-  }
-  return new Promise((resolve, reject) => {
-    childProcess.stdoutString = "";
-    childProcess.stderrString = "";
-    childProcess.stdio[1].on("data", (data) => {
-      childProcess.stdoutString += data.toString();
-    });
-    if (childProcess.stdio[2]) {
-      childProcess.stdio[2].on("data", (data) => {
-        childProcess.stderrString += data.toString();
-      });
+async function spawnCaptureStdout(binary, args, options = {}) {
+    options = Object.assign(options, SPAWN_OPTIONS);
+    const childProcess = spawn(binary, args, options);
+    childProcess.stdout.pipe(process.stdout);
+    if (childProcess.stderr) {
+        childProcess.stderr.pipe(process.stderr);
     }
-    childProcess.on("close", (code) => {
-      if (code === 0) {
-        resolve(childProcess);
-      } else {
-        // Reject the Promise with an Error on failure
-        const error = new Error(`Command failed with exit code ${code}: ${binary} ${args.join(" ")}\nStderr:\n${childProcess.stderrString}`);
-        error.process = childProcess;
-        error.stdout = childProcess.stdoutString;
-        error.stderr = childProcess.stderrString;
-        error.exitCode = code;
-        reject(error);
-      }
+    return new Promise((resolve, reject) => {
+        childProcess.stdoutString = "";
+        childProcess.stderrString = "";
+        childProcess.stdio[1].on("data", (data) => {
+            childProcess.stdoutString += data.toString();
+        });
+        if (childProcess.stdio[2]) {
+            childProcess.stdio[2].on("data", (data) => {
+                childProcess.stderrString += data.toString();
+            });
+        }
+        childProcess.on("close", (code) => {
+            if (code === 0) {
+                resolve(childProcess);
+            } else {
+                // Reject the Promise with an Error on failure
+                const error = new Error(`Command failed with exit code ${code}: ${binary} ${args.join(" ")}\nStderr:\n${childProcess.stderrString}`);
+                error.process = childProcess;
+                error.stdout = childProcess.stdoutString;
+                error.stderr = childProcess.stderrString;
+                error.exitCode = code;
+                reject(error);
+            }
+        });
+        childProcess.on("error", reject);
     });
-    childProcess.on("error", reject);
-  })
 }
