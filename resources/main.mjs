@@ -1,6 +1,7 @@
 import { BenchmarkRunner } from "./benchmark-runner.mjs";
 import * as Statistics from "./statistics.mjs";
 import { renderMetricView } from "./metric-ui.mjs";
+import { WEBGPU_UNAVAILABLE_ERROR_MESSAGE } from "./shared/helpers.mjs";
 import { defaultParams, params } from "./shared/params.mjs";
 import { createDeveloperModeContainer } from "./developer-mode.mjs";
 
@@ -20,6 +21,7 @@ class MainBenchmarkClient {
     _steppingResolver = null;
     _benchmarkConfiguratorPromise = null;
     _failedSuites = new Set();
+    _webgpuUnavailable = false;
 
     constructor() {
         this._benchmarkConfiguratorPromise = import("./benchmark-configurator.mjs");
@@ -140,6 +142,9 @@ class MainBenchmarkClient {
 
     didFailSuite(suite, error) {
         this._failedSuites.add(suite.name);
+        if (error?.message?.includes(WEBGPU_UNAVAILABLE_ERROR_MESSAGE)) {
+            this._webgpuUnavailable = true;
+        }
         this._finishedTestCount++;
         this._progressCompleted.value = this._finishedTestCount;
     }
@@ -152,6 +157,7 @@ class MainBenchmarkClient {
         this._measuredValuesList = [];
         this._finishedTestCount = 0;
         this._failedSuites.clear();
+        this._webgpuUnavailable = false;
         document.body.style.removeProperty("--details-top-position");
         document.body.classList.remove("has-warning");
     }
@@ -167,12 +173,13 @@ class MainBenchmarkClient {
 
         if (wasmScoreResults.isValid || webgpuScoreResults.isValid) {
             this._populateValidScores(wasmScoreResults, webgpuScoreResults);
+            this._populateDetailedResults(metrics);
+            this.showResultsDetails();
         } else {
             this._populateInvalidScore();
+            this.showResultsSummary();
         }
 
-        this._populateDetailedResults(metrics);
-        this.showResultsDetails();
         globalThis.dispatchEvent(new Event("BenchmarkDone"));
     }
 
@@ -181,13 +188,16 @@ class MainBenchmarkClient {
         this._isRunning = false;
         this._hasResults = true;
         this._metrics = Object.create(null);
+        if (error?.message?.includes(WEBGPU_UNAVAILABLE_ERROR_MESSAGE)) {
+            this._webgpuUnavailable = true;
+        }
         this._populateInvalidScore();
         this.showResultsSummary();
-        throw error;
+        globalThis.dispatchEvent(new Event("BenchmarkDone"));
     }
 
     _populateValidScores(wasmScoreResults, webgpuScoreResults) {
-        document.getElementById("summary").className = "valid";
+        document.getElementById("summary").className = this._webgpuUnavailable ? "valid has-error" : "valid";
 
         if (wasmScoreResults.isValid) {
             document.getElementById("wasm-result-number").textContent = wasmScoreResults.formattedMean;
@@ -205,8 +215,13 @@ class MainBenchmarkClient {
                 document.getElementById("webgpu-confidence-number").textContent = `\u00b1 ${webgpuScoreResults.formattedDelta}`;
             }
         } else {
-            document.getElementById("webgpu-result-number").textContent = "N/A";
+            document.getElementById("webgpu-result-number").textContent = this._webgpuUnavailable ? "Error" : "N/A";
             document.getElementById("webgpu-confidence-number").textContent = "";
+        }
+
+        const reasonElement = document.getElementById("invalid-score-reason");
+        if (reasonElement && this._webgpuUnavailable) {
+            reasonElement.textContent = WEBGPU_UNAVAILABLE_ERROR_MESSAGE;
         }
     }
 
@@ -216,6 +231,10 @@ class MainBenchmarkClient {
         document.getElementById("wasm-confidence-number").textContent = "";
         document.getElementById("webgpu-result-number").textContent = "Error";
         document.getElementById("webgpu-confidence-number").textContent = "";
+        const reasonElement = document.getElementById("invalid-score-reason");
+        if (reasonElement) {
+            reasonElement.textContent = this._webgpuUnavailable ? WEBGPU_UNAVAILABLE_ERROR_MESSAGE : "One or more subtests produced no duration.";
+        }
     }
 
     _computeResults(measuredValuesList, valueKey, displayUnit) {
@@ -228,7 +247,7 @@ class MainBenchmarkClient {
             return number.toPrecision(Math.max(nonDecimalDigitCount, Math.min(6, sigFig)));
         }
 
-        const values = measuredValuesList.map((v) => v[valueKey]);
+        const values = measuredValuesList.map((v) => v[valueKey]).filter((v) => isFinite(v) && v > 0);
         const sum = values.reduce((a, b) => a + b, 0);
         const arithmeticMean = sum / values.length;
         let meanSigFig = 4;

@@ -477,19 +477,34 @@ section#summary.invalid .scores-container {
 section#summary.invalid .buttons {
     display: none;
 }
+#invalid-score-text,
+#results-warning {
+    padding: 16px 24px;
+    border: 2px solid #ff6b6b;
+    border-radius: 10px;
+    background: linear-gradient(rgba(255, 68, 68, 0.12), rgba(255, 68, 68, 0.12)), var(--background);
+    line-height: 1.5;
+}
 #invalid-score-text {
     display: none;
     text-align: center;
+    max-width: 520px;
+    margin: 20px auto;
 }
-section#summary.invalid #invalid-score-text {
+#invalid-score-reason,
+#results-warning strong {
+    display: inline-block;
+    font-size: 18px;
+    font-weight: bold;
+    color: #ff8080;
+    margin-bottom: 6px;
+}
+section#summary.invalid #invalid-score-text,
+section#summary.has-error #invalid-score-text {
     display: block;
 }
 
 #results-warning {
-    color: #ff4444;
-    border: 1px solid #ff4444;
-    background-color: var(--background);
-    padding: 10px;
     position: sticky;
     top: 0;
     z-index: 100;

@@ -1,5 +1,5 @@
 import { BenchmarkConnector } from "speedometer-utils/benchmark.mjs";
-import { createSubIteratedSuite } from "speedometer-utils/helpers.mjs";
+import { createSubIteratedSuite, ensureWebGPU } from "speedometer-utils/helpers.mjs";
 import { pipeline, env } from "@huggingface/transformers";
 import { params } from "speedometer-utils/params.mjs";
 
@@ -68,9 +68,13 @@ export async function initializeBenchmark(modelType) {
     let benchmark;
     try {
         benchmark = modelConfigs[modelType].create();
+        if (benchmark.device === "webgpu") {
+            await ensureWebGPU();
+        }
         await benchmark.init();
     } catch (error) {
         console.error(error);
+        throw error;
     }
 
     /*--------- Running test suites ---------*/
