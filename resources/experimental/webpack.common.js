@@ -12,7 +12,8 @@ module.exports = {
         "text2text-generation-gpu": "./src/text2text-generation-gpu.mjs",
         gemma: "./src/gemma/benchmark.mjs",
         "litert-lm": "./src/litert-lm/benchmark.mjs",
-        eigen: "./src/eigen/benchmark.mjs",
+        "eigen-eig33": "./src/eigen/eig33.mjs",
+        "eigen-geometry": "./src/eigen/geometry.mjs",
         ggml: "./src/ggml/benchmark.mjs",
         "tract-onnx-mobilenet-v2": "./src/tract/onnx-mobilenet-v2.mjs",
         "tract-pytorch-resnet": "./src/tract/pytorch-resnet.mjs",
@@ -82,10 +83,16 @@ module.exports = {
             chunks: ["llama-cpp-webgpu"],
         }),
         new HtmlWebpackPlugin({
-            title: "Experimental Eigen Runner",
+            title: "Experimental Eigen Eig33 Runner",
             template: path.resolve(__dirname, "src", "console-runner.html"),
-            filename: "eigen.html",
-            chunks: ["eigen"],
+            filename: "eigen-eig33.html",
+            chunks: ["eigen-eig33"],
+        }),
+        new HtmlWebpackPlugin({
+            title: "Experimental Eigen Geometry Runner",
+            template: path.resolve(__dirname, "src", "console-runner.html"),
+            filename: "eigen-geometry.html",
+            chunks: ["eigen-geometry"],
         }),
         {
             apply(compiler) {

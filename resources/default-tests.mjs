@@ -192,8 +192,14 @@ export const defaultSuites = [
         type: "remote",
     },
     {
-        name: "Experimental-Eigen-wasm",
-        url: "resources/experimental/dist/eigen.html",
+        name: "Experimental-Eigen-Eig33-wasm",
+        url: "resources/experimental/dist/eigen-eig33.html",
+        tags: ["experimental", "eigen", "wasm"],
+        type: "remote",
+    },
+    {
+        name: "Experimental-Eigen-Geometry-wasm",
+        url: "resources/experimental/dist/eigen-geometry.html",
         tags: ["experimental", "eigen", "wasm"],
         type: "remote",
     },
