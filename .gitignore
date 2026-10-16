@@ -18,7 +18,5 @@
 
 /resources/build-info.mjs
 
-/resources/experimental/src/eigen/src/
-
 .vscode
 .angular

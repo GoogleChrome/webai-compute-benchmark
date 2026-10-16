@@ -21,6 +21,7 @@ set -euo pipefail
 EXPERIMENTAL_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 DEFAULT_WORKLOADS=(
+  eigen
   ggml
   tract
 )
