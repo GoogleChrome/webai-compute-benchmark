@@ -9,6 +9,7 @@ export class SuiteRunner {
     #client;
     #suiteResults;
     #prepareTime = 0;
+    #stopForwardingFrameErrors = null;
 
     constructor(frame, params, suite, client, measuredValues) {
         if (!isValidIdentifier(suite?.name)) {
@@ -56,6 +57,16 @@ export class SuiteRunner {
     async run() {
         await this._prepareSuite();
         await this._runSuite();
+    }
+
+    /**
+     * Called by the BenchmarkRunner once the suite is done, whether it succeeded
+     * or failed, right before the frame is removed.
+     */
+    async teardown() {
+        // Errors raised while the workload shuts down don't affect the results.
+        this.#stopForwardingFrameErrors?.();
+        this.#stopForwardingFrameErrors = null;
     }
 
     async _prepareSuite() {
@@ -114,7 +125,7 @@ export class SuiteRunner {
             frame.onload = () => {
                 const contentWindow = frame.contentWindow;
                 if (contentWindow) {
-                    contentWindow.addEventListener("error", (e) => {
+                    const forwardError = (e) => {
                         window.dispatchEvent(
                             new ErrorEvent("error", {
                                 message: e.message,
@@ -124,15 +135,21 @@ export class SuiteRunner {
                                 error: e.error,
                             })
                         );
-                    });
-                    contentWindow.addEventListener("unhandledrejection", (e) => {
+                    };
+                    const forwardRejection = (e) => {
                         window.dispatchEvent(
                             new PromiseRejectionEvent("unhandledrejection", {
                                 promise: e.promise,
                                 reason: e.reason,
                             })
                         );
-                    });
+                    };
+                    contentWindow.addEventListener("error", forwardError);
+                    contentWindow.addEventListener("unhandledrejection", forwardRejection);
+                    this.#stopForwardingFrameErrors = () => {
+                        contentWindow.removeEventListener("error", forwardError);
+                        contentWindow.removeEventListener("unhandledrejection", forwardRejection);
+                    };
                 }
                 resolve();
             };
@@ -163,9 +180,15 @@ export class SuiteRunner {
     }
 }
 
+// How long to wait for a workload to release its resources (see
+// shared/workload-teardown.mjs) before removing its frame anyway.
+const WORKLOAD_TEARDOWN_TIMEOUT_MS = 10000;
+
 export class RemoteSuiteRunner extends SuiteRunner {
     #appId;
     #prepareTime;
+    #messageHandler = null;
+    #workloadSupportsTeardown = false;
 
     get appId() {
         return this.#appId;
@@ -177,15 +200,61 @@ export class RemoteSuiteRunner extends SuiteRunner {
 
     async run() {
         this.postMessageCallbacks = new Map();
-        const handler = this._handlePostMessage.bind(this);
-        window.addEventListener("message", handler);
+        this._startListening();
+        // Workloads using shared/workload-teardown.mjs announce that they can
+        // release their resources on request, see teardown().
+        this._startSubscription("teardown-ready", () => {
+            this.#workloadSupportsTeardown = true;
+        });
 
         // FIXME: use this._suite in all SuiteRunner methods directly.
         try {
             await this._prepareSuite();
             await this._runSuite();
         } finally {
-            window.removeEventListener("message", handler);
+            this._stopListening();
+        }
+    }
+
+    async teardown() {
+        await super.teardown();
+        // run() never returns if the workload reported an error, so its
+        // listener might still be registered.
+        this._stopListening();
+        const contentWindow = this.frame?.contentWindow;
+        if (!this.#workloadSupportsTeardown || !contentWindow) {
+            return;
+        }
+        // Removing the frame isn't enough to reliably free the memory used by the
+        // workload, so ask it to release its resources explicitly first.
+        this._startListening();
+        let timeoutId;
+        try {
+            const teardownComplete = this._subscribeOnce("teardown-complete").then(() => true);
+            const timeout = new Promise((resolve) => {
+                timeoutId = setTimeout(() => resolve(false), WORKLOAD_TEARDOWN_TIMEOUT_MS);
+            });
+            contentWindow.postMessage({ id: this.appId, key: "benchmark-connector", type: "benchmark-teardown" }, window.location.origin);
+            if (!(await Promise.race([teardownComplete, timeout]))) {
+                console.warn(`Workload ${this.suite.name} did not finish its teardown within ${WORKLOAD_TEARDOWN_TIMEOUT_MS}ms.`);
+            }
+        } finally {
+            clearTimeout(timeoutId);
+            this._stopListening();
+        }
+    }
+
+    _startListening() {
+        if (!this.#messageHandler) {
+            this.#messageHandler = this._handlePostMessage.bind(this);
+            window.addEventListener("message", this.#messageHandler);
+        }
+    }
+
+    _stopListening() {
+        if (this.#messageHandler) {
+            window.removeEventListener("message", this.#messageHandler);
+            this.#messageHandler = null;
         }
     }
 

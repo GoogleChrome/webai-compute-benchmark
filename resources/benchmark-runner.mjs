@@ -53,6 +53,7 @@ export class BenchmarkRunner {
         }
         this._suites = suites;
         this._client = client;
+        this._suiteRunner = null;
         this._metrics = null;
         this._iterationCount = params.iterationCount;
         if (params.shuffleSeed !== "off") {
@@ -208,6 +209,7 @@ export class BenchmarkRunner {
                     this._measuredValues.steps[suite.name] = { total: 0 };
                     await this._client?.didFailSuite?.(suite, error);
                 } finally {
+                    await this._teardownSuite();
                     this._removeFrame();
                 }
             }
@@ -233,7 +235,24 @@ export class BenchmarkRunner {
         const type = suite.type ?? "default";
         const suiteRunnerClass = SUITE_RUNNER_LOOKUP[type];
         const suiteRunner = new suiteRunnerClass(this._frame, params, suite, this._client, this._measuredValues);
+        this._suiteRunner = suiteRunner;
         await suiteRunner.run();
+    }
+
+    async _teardownSuite() {
+        // Let the workload release its resources (wasm memory, GPU buffers, etc.)
+        // while its frame still exists. Every suite runs in the same page, so
+        // anything left behind accumulates over the whole run.
+        const suiteRunner = this._suiteRunner;
+        this._suiteRunner = null;
+        if (!suiteRunner) {
+            return;
+        }
+        try {
+            await suiteRunner.teardown();
+        } catch (error) {
+            console.error(`Workload ${suiteRunner.suite.name} teardown failed:`, error);
+        }
     }
 
     async _finalize(iteration) {
