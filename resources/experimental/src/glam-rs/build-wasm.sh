@@ -15,7 +15,7 @@ export LC_ALL=C
 GLAM_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 OUT_DIR="$GLAM_DIR/build"
 
-# Must match SUB_BENCHMARKS in benchmark.mjs. This is the reduced subset of
+# Must match BENCH_MODULES in benchmark.mjs. This is the reduced subset of
 # glam's criterion benches used by wasm-perf/benchmarks/glam_rs/glam_rs.py.
 BENCHES=(
   affine2

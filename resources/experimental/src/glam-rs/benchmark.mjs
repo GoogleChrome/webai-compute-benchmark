@@ -6,7 +6,8 @@
 
 /**
  * Experimental glam-rs Wasm benchmark (criterion benches of glam's linear
- * algebra types, compiled from Rust with Emscripten).
+ * algebra types, compiled from Rust with Emscripten and split by operation
+ * category via criterion's CLI filter regex).
  */
 
 import Affine2Module from "./build/affine2.mjs";
@@ -22,33 +23,64 @@ import { params } from "speedometer-utils/params.mjs";
 
 /**
  * glam criterion bench binaries, matching the reduced subset used by
- * `wasm-perf/benchmarks/glam_rs/glam_rs.py`. Each binary benchmarks a set of
- * operations (e.g. `mul`, `inverse`, `transform_point`, `from_*`) on the
- * corresponding glam type:
+ * `wasm-perf/benchmarks/glam_rs/glam_rs.py`:
  *   - affine2 / affine3: 2D / 3D affine transforms.
  *   - mat2 / mat3: 2x2 / 3x3 matrices.
  *   - quat: quaternions.
  *   - vec2 / vec4: 2D / 4D vectors.
  */
-const SUB_BENCHMARKS = [
-    { name: "affine2", moduleFactory: Affine2Module, wasmUrl: new URL("./build/affine2.wasm", import.meta.url) },
-    { name: "affine3", moduleFactory: Affine3Module, wasmUrl: new URL("./build/affine3.wasm", import.meta.url) },
-    { name: "mat2", moduleFactory: Mat2Module, wasmUrl: new URL("./build/mat2.wasm", import.meta.url) },
-    { name: "mat3", moduleFactory: Mat3Module, wasmUrl: new URL("./build/mat3.wasm", import.meta.url) },
-    { name: "quat", moduleFactory: QuatModule, wasmUrl: new URL("./build/quat.wasm", import.meta.url) },
-    { name: "vec2", moduleFactory: Vec2Module, wasmUrl: new URL("./build/vec2.wasm", import.meta.url) },
-    { name: "vec4", moduleFactory: Vec4Module, wasmUrl: new URL("./build/vec4.wasm", import.meta.url) },
-];
+const BENCH_MODULES = {
+    affine2: { name: "affine2", moduleFactory: Affine2Module, wasmUrl: new URL("./build/affine2.wasm", import.meta.url) },
+    affine3: { name: "affine3", moduleFactory: Affine3Module, wasmUrl: new URL("./build/affine3.wasm", import.meta.url) },
+    mat2: { name: "mat2", moduleFactory: Mat2Module, wasmUrl: new URL("./build/mat2.wasm", import.meta.url) },
+    mat3: { name: "mat3", moduleFactory: Mat3Module, wasmUrl: new URL("./build/mat3.wasm", import.meta.url) },
+    quat: { name: "quat", moduleFactory: QuatModule, wasmUrl: new URL("./build/quat.wasm", import.meta.url) },
+    vec2: { name: "vec2", moduleFactory: Vec2Module, wasmUrl: new URL("./build/vec2.wasm", import.meta.url) },
+    vec4: { name: "vec4", moduleFactory: Vec4Module, wasmUrl: new URL("./build/vec4.wasm", import.meta.url) },
+};
 
 /**
- * Criterion's defaults (3 s warm-up + 5 s measurement per bench function) would
- * make a single run take over 6 minutes, so the warm-up and measurement times
- * are reduced to keep the workload in line with the other experimental
- * benchmarks. Criterion still collects its default 100 samples per function.
+ * Operation-focused suites partitioning glam's criterion benchmarks via
+ * criterion's positional CLI filter regex:
+ *   - mul: Matrix, vector, quaternion, and affine multiplications (16 benches
+ *     across all 7 bench binaries).
+ *   - transform: 2D and 3D point/vector spatial transformations (8 benches
+ *     across affine2, affine3, mat3).
+ *   - invert: Matrix inversion, determinant, transpose, and quaternion
+ *     conjugate (9 benches across affine2, affine3, mat2, mat3, quat).
+ *   - construct-interp: Euler/SRT construction, linear/spherical interpolation
+ *     (`lerp`/`slerp`), and `angle_to` (7 benches across affine2, affine3,
+ *     mat3, quat, vec2).
+ */
+const OPERATION_SUITES = {
+    mul: {
+        filter: " mul ",
+        benches: ["affine2", "affine3", "mat2", "mat3", "quat", "vec2", "vec4"],
+    },
+    transform: {
+        filter: "transform",
+        benches: ["affine2", "affine3", "mat3"],
+    },
+    invert: {
+        filter: "inverse|determinant|transpose|conjugate",
+        benches: ["affine2", "affine3", "mat2", "mat3", "quat"],
+    },
+    "construct-interp": {
+        filter: "from |lerp|slerp|angle_to",
+        benches: ["affine2", "affine3", "mat3", "quat", "vec2"],
+    },
+};
+
+/**
+ * Criterion's defaults (3 s warm-up + 5 s measurement + 100,000 bootstrap
+ * resamples per bench function) would make a single run take several minutes,
+ * so warm-up, measurement time, and bootstrap resamples are reduced while
+ * keeping Criterion's default 100 samples per function.
  */
 const WARM_UP_TIME_S = 0.1;
 const MEASUREMENT_TIME_S = 0.3;
-const CRITERION_ARGS = ["--bench", "--noplot", "--color", "never", "--warm-up-time", String(WARM_UP_TIME_S), "--measurement-time", String(MEASUREMENT_TIME_S)];
+const NUM_RESAMPLES = 1000;
+const CRITERION_ARGS = ["--bench", "--noplot", "--color", "never", "--warm-up-time", String(WARM_UP_TIME_S), "--measurement-time", String(MEASUREMENT_TIME_S), "--nresamples", String(NUM_RESAMPLES)];
 
 const NUM_PATTERN = "([0-9]*\\.?[0-9]+(?:[eE][-+]?[0-9]+)?)";
 const UNIT_PATTERN = "(ps|ns|µs|us|ms|s)";
@@ -101,66 +133,58 @@ export function parseCriterionOutput(name, stdout) {
 }
 
 class GlamBenchmark {
-    constructor() {
+    constructor(suiteName, { filter, benches }) {
+        this.suiteName = suiteName;
+        this.filter = filter;
+        this.subBenchmarks = benches.map((name) => BENCH_MODULES[name]);
         this.wasmModules = new Map();
     }
 
     async init() {
-        console.log("Compiling glam-rs Wasm modules (not part of benchmark measurement)...");
+        console.log(`Compiling glam-rs Wasm modules for ${this.suiteName} (not part of benchmark measurement)...`);
         await Promise.all(
-            SUB_BENCHMARKS.map(async ({ name, wasmUrl }) => {
+            this.subBenchmarks.map(async ({ name, wasmUrl }) => {
                 this.wasmModules.set(name, await WebAssembly.compileStreaming(fetch(wasmUrl)));
             })
         );
-        console.log("glam-rs Wasm modules compiled; starting measured benchmark runs...");
+        console.log(`glam-rs Wasm modules compiled; starting measured ${this.suiteName} benchmark runs...`);
     }
 
     /**
-     * Runs a single criterion bench binary in a fresh module instance (and thus
-     * a fresh MEMFS), so criterion never compares against a baseline saved by a
-     * previous run.
+     * Runs a single criterion bench binary (filtered to `this.filter`) in a
+     * fresh module instance (and thus a fresh MEMFS), so criterion never
+     * compares against a baseline saved by a previous run.
      */
     async runSubBenchmark({ name, moduleFactory }) {
-        console.log(`Running glam-rs ${name}...`);
+        console.log(`Running glam-rs (${this.suiteName}) ${name}...`);
         let stdout = "";
         await new Promise((resolve, reject) => {
             moduleFactory({
-                // Pass a copy: Emscripten's callMain() may mutate the arguments array.
-                arguments: [...CRITERION_ARGS],
+                // Pass a fresh array: Emscripten's callMain() mutates `arguments`.
+                arguments: [...CRITERION_ARGS, this.filter],
                 print: (line) => {
-                    console.log(`  [${name}] ${line}`);
+                    console.log(`  [${this.suiteName}:${name}] ${line}`);
                     stdout += `${line}\n`;
                 },
-                printErr: (line) => console.error(`  [${name}] ${line}`),
+                printErr: (line) => console.error(`  [${this.suiteName}:${name}] ${line}`),
                 instantiateWasm: instantiatePrecompiled(this.wasmModules.get(name), reject),
             }).then(resolve, reject);
         });
-        return parseCriterionOutput(name, stdout);
-    }
-
-    async runAndParse() {
-        const steps = {};
-        const stepTotals = [];
-        for (const subBenchmark of SUB_BENCHMARKS) {
-            const timeNs = await this.runSubBenchmark(subBenchmark);
-            steps[subBenchmark.name] = { tests: {}, total: timeNs };
-            stepTotals.push(timeNs);
-        }
         return {
-            steps,
-            total: geometricMean(stepTotals),
+            tests: {},
+            total: parseCriterionOutput(`${this.suiteName}:${name}`, stdout),
         };
     }
 }
 
-function createGlamSuite(benchmark, subIterationCount) {
+function createGlamSubSuite(benchmark, subBenchmark, subIterationCount) {
     const steps = Array.from({ length: subIterationCount }, (_, i) => {
         let parsedResult = null;
         const step = new AsyncBenchmarkStep(
             `sub-iter-${i + 1}`,
             async () => {
                 forceLayout();
-                parsedResult = await benchmark.runAndParse();
+                parsedResult = await benchmark.runSubBenchmark(subBenchmark);
                 forceLayout();
             },
             { measureAsync: false }
@@ -173,24 +197,51 @@ function createGlamSuite(benchmark, subIterationCount) {
             },
         };
     });
-    return new AsyncBenchmarkSuite("default", steps);
+    return new AsyncBenchmarkSuite(subBenchmark.name, steps);
 }
 
-const appName = "Glam-rs";
+// TODO(ryandiaz) We may want to report the total as a geomean
+// so one sub benchmark doesn't dominate.
+function createSuiteSteps(benchmark, subBenchmarks, subIterationCount) {
+    return subBenchmarks.map((subBenchmark) => {
+        const subSuite = createGlamSubSuite(benchmark, subBenchmark, subIterationCount);
+        return {
+            name: subBenchmark.name,
+            async runAndRecord(stepParams, _parentSuite, _parentRecord, onProgress) {
+                const { result } = await subSuite.runAndRecord(stepParams, onProgress);
+                return result;
+            },
+        };
+    });
+}
+
 const appVersion = "0.30.5";
 
-try {
-    const benchmark = new GlamBenchmark();
-    await benchmark.init();
+/**
+ * Wires up the benchmark for one of the operation suites in `OPERATION_SUITES`.
+ *
+ * @param {keyof typeof OPERATION_SUITES} suiteName
+ */
+export async function initializeGlamBenchmark(suiteName) {
+    const suiteConfig = OPERATION_SUITES[suiteName];
+    if (!suiteConfig) {
+        throw new Error(`Unknown glam-rs suite "${suiteName}", expected one of: ${Object.keys(OPERATION_SUITES).join(", ")}`);
+    }
 
-    /*--------- Running test suites ---------*/
-    const suites = {
-        default: createGlamSuite(benchmark, params.subIterationCount),
-    };
+    const appName = `Glam-rs-${suiteName}`;
+    try {
+        const benchmark = new GlamBenchmark(suiteName, suiteConfig);
+        await benchmark.init();
 
-    const benchmarkConnector = new BenchmarkConnector(suites, appName, appVersion);
-    benchmarkConnector.connect();
-} catch (error) {
-    console.error("Failed to initialize glam-rs benchmark:", error);
-    throw error;
+        /*--------- Running test suites ---------*/
+        const suites = {
+            default: new AsyncBenchmarkSuite("default", createSuiteSteps(benchmark, benchmark.subBenchmarks, params.subIterationCount)),
+        };
+
+        const benchmarkConnector = new BenchmarkConnector(suites, appName, appVersion);
+        benchmarkConnector.connect();
+    } catch (error) {
+        console.error(`Failed to initialize ${appName} benchmark:`, error);
+        throw error;
+    }
 }
