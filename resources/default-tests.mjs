@@ -200,7 +200,7 @@ export const defaultSuites = [
     {
         name: "Experimental-Glam-rs-wasm",
         url: "resources/experimental/dist/glam-rs.html",
-        tags: ["experimental", "glam-rs", "wasm"],
+        tags: ["experimental", "glam-rs", "wasm", "wasm-compute-kernels"],
         type: "remote",
     },
     {
