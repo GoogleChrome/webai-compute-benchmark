@@ -11,7 +11,7 @@ resources/experimental/build-wasm-workloads.sh glam-rs
 ```
 
 - Source: [glam-rs](https://github.com/bitshifter/glam-rs) [`0.30.5`](https://github.com/bitshifter/glam-rs/tree/2600660b3c2deb816ee2fbc742006089e36fe6cf) (patched with `glam-rs.patch`)
-- Benches: `affine2 affine3 mat2 mat3 quat vec2 vec4`
+- Benches: `affine3 mat2 mat3 quat vec2`
 - Rust Compiler: `rustc 1.99.0 (b940084d7 2026-09-28)` (`cargo 1.99.0 (5f94df478 2026-08-27)`)
 - Emscripten: `emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 5.0.7 (263db4cffa6f9fc2ec514a70abac81362ea41849)`
 - RUSTFLAGS: `-C opt-level=3 -C target-feature=+bulk-memory -C target-feature=+extended-const -C target-feature=+multivalue -C target-feature=+mutable-globals -C target-feature=+nontrapping-fptoint -C target-feature=+relaxed-simd -C target-feature=+sign-ext -C target-feature=+simd128 -C link-arg=-sENVIRONMENT=web -C link-arg=-sMODULARIZE=1 -C link-arg=-sEXPORT_ES6=1 -C link-arg=-sALLOW_MEMORY_GROWTH=1`

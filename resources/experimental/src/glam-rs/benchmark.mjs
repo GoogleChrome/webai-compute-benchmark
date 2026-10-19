@@ -10,64 +10,60 @@
  * category via criterion's CLI filter regex).
  */
 
-import Affine2Module from "./build/affine2.mjs";
 import Affine3Module from "./build/affine3.mjs";
 import Mat2Module from "./build/mat2.mjs";
 import Mat3Module from "./build/mat3.mjs";
 import QuatModule from "./build/quat.mjs";
 import Vec2Module from "./build/vec2.mjs";
-import Vec4Module from "./build/vec4.mjs";
 import { AsyncBenchmarkStep, AsyncBenchmarkSuite, BenchmarkConnector } from "speedometer-utils/benchmark.mjs";
 import { forceLayout } from "speedometer-utils/helpers.mjs";
 import { params } from "speedometer-utils/params.mjs";
 
 /**
- * glam criterion bench binaries, matching the reduced subset used by
- * `wasm-perf/benchmarks/glam_rs/glam_rs.py`:
- *   - affine2 / affine3: 2D / 3D affine transforms.
- *   - mat2 / mat3: 2x2 / 3x3 matrices.
- *   - quat: quaternions.
- *   - vec2 / vec4: 2D / 4D vectors.
+ * glam criterion bench binaries (pruned from the subset in
+ * `wasm-perf/benchmarks/glam_rs/glam_rs.py` to remove redundant 1-op and
+ * wrapper modules `affine2` and `vec4`):
+ *   - affine3: 3D SIMD affine transforms (`Affine3A`).
+ *   - mat2 / mat3: 2x2 SIMD (`Mat2`) and 3x3 scalar (`Mat3`) matrices.
+ *   - quat: SIMD quaternions (`Quat`).
+ *   - vec2: 2D scalar vectors (`Vec2`).
  */
 const BENCH_MODULES = {
-    affine2: { name: "affine2", moduleFactory: Affine2Module, wasmUrl: new URL("./build/affine2.wasm", import.meta.url) },
     affine3: { name: "affine3", moduleFactory: Affine3Module, wasmUrl: new URL("./build/affine3.wasm", import.meta.url) },
     mat2: { name: "mat2", moduleFactory: Mat2Module, wasmUrl: new URL("./build/mat2.wasm", import.meta.url) },
     mat3: { name: "mat3", moduleFactory: Mat3Module, wasmUrl: new URL("./build/mat3.wasm", import.meta.url) },
     quat: { name: "quat", moduleFactory: QuatModule, wasmUrl: new URL("./build/quat.wasm", import.meta.url) },
     vec2: { name: "vec2", moduleFactory: Vec2Module, wasmUrl: new URL("./build/vec2.wasm", import.meta.url) },
-    vec4: { name: "vec4", moduleFactory: Vec4Module, wasmUrl: new URL("./build/vec4.wasm", import.meta.url) },
 };
 
 /**
  * Operation-focused suites partitioning glam's criterion benchmarks via
  * criterion's positional CLI filter regex:
- *   - mul: Matrix, vector, quaternion, and affine multiplications (16 benches
- *     across all 7 bench binaries).
- *   - transform: 2D and 3D point/vector spatial transformations (8 benches
- *     across affine2, affine3, mat3).
- *   - invert: Matrix inversion, determinant, transpose, and quaternion
- *     conjugate (9 benches across affine2, affine3, mat2, mat3, quat).
+ *   - mul: Matrix, quaternion, and 3D affine multiplications (10 benches across
+ *     affine3, mat2, mat3, quat; excludes duplicate right-hand `mat4 mul affine3a`).
+ *   - transform: 2D scalar and 3D SIMD point/vector spatial transformations
+ *     (6 benches across affine3, mat3).
+ *   - invert: Matrix inversion, determinant, and transpose across 2x2 SIMD,
+ *     3x3 scalar, and 3x3 SIMD layouts (7 benches across affine3, mat2, mat3).
  *   - construct-interp: Euler/SRT construction, linear/spherical interpolation
- *     (`lerp`/`slerp`), and `angle_to` (7 benches across affine2, affine3,
- *     mat3, quat, vec2).
+ *     (`lerp`/`slerp`), and `angle_to` (6 benches across affine3, quat, vec2).
  */
 const OPERATION_SUITES = {
     mul: {
-        filter: " mul ",
-        benches: ["affine2", "affine3", "mat2", "mat3", "quat", "vec2", "vec4"],
+        filter: "^(affine3a|mat2|mat3|quat) mul ",
+        benches: ["affine3", "mat2", "mat3", "quat"],
     },
     transform: {
         filter: "transform",
-        benches: ["affine2", "affine3", "mat3"],
+        benches: ["affine3", "mat3"],
     },
     invert: {
-        filter: "inverse|determinant|transpose|conjugate",
-        benches: ["affine2", "affine3", "mat2", "mat3", "quat"],
+        filter: "inverse|determinant|transpose",
+        benches: ["affine3", "mat2", "mat3"],
     },
     "construct-interp": {
         filter: "from |lerp|slerp|angle_to",
-        benches: ["affine2", "affine3", "mat3", "quat", "vec2"],
+        benches: ["affine3", "quat", "vec2"],
     },
 };
 

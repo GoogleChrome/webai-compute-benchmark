@@ -15,16 +15,15 @@ export LC_ALL=C
 GLAM_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 OUT_DIR="$GLAM_DIR/build"
 
-# Must match BENCH_MODULES in benchmark.mjs. This is the reduced subset of
-# glam's criterion benches used by wasm-perf/benchmarks/glam_rs/glam_rs.py.
+# Must match BENCH_MODULES in benchmark.mjs. Pruned from the subset in
+# wasm-perf/benchmarks/glam_rs/glam_rs.py to exclude redundant 1-op/wrapper
+# binaries (affine2, vec4).
 BENCHES=(
-  affine2
   affine3
   mat2
   mat3
   quat
   vec2
-  vec4
 )
 
 for cmd in cargo rustc rustup emcc git patch; do
