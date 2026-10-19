@@ -82,8 +82,6 @@ echo "[meshoptimizer] Compiling codecbench.mjs + codecbench.wasm with $EMCC_VERS
   "$MESHOPT_SRC"/tools/codecbench.cpp \
   -o "$OUT_DIR/codecbench.mjs"
 
-cp "$MESHOPT_SRC/LICENSE.md" "$OUT_DIR/LICENSE"
-
 cat > "$OUT_DIR/README.md" <<EOF
 # Meshoptimizer codecbench (Wasm)
 

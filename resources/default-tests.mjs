@@ -200,7 +200,7 @@ export const defaultSuites = [
     {
         name: "Experimental-Meshoptimizer-wasm",
         url: "resources/experimental/dist/meshoptimizer.html",
-        tags: ["experimental", "meshoptimizer", "wasm"],
+        tags: ["experimental", "meshoptimizer", "wasm", "wasm-compute-kernels"],
         type: "remote",
     },
     {
