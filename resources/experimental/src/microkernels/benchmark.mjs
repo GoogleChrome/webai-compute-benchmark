@@ -15,10 +15,7 @@ import { params } from "speedometer-utils/params.mjs";
 
 const microkernelsUrl = new URL("./build/microkernels.wasm", import.meta.url);
 
-/**
- * Loop count `N` passed to every sub-benchmark, matching
- * `wasm-perf/benchmarks/microkernels/microkernels.py`.
- */
+//Loop count `N` passed to every sub-benchmark
 const LOOP_COUNT = 1000000;
 
 /**
