@@ -79,8 +79,6 @@ echo "[eigen] Compiling geometry.mjs + geometry.wasm with $EMCC_VERSION..."
   -I "$EIGEN_SRC" \
   -o "$STAGE_DIR/geometry.mjs"
 
-cp "$EIGEN_SRC/COPYING.MPL2" "$STAGE_DIR/LICENSE"
-
 cat > "$STAGE_DIR/README.md" <<EOF
 # Eigen eig33 & geometry (Wasm)
 
