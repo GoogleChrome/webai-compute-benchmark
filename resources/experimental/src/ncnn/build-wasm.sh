@@ -142,8 +142,6 @@ for f in "${PARAM_FILES[@]}"; do
   cp "$NCNN_SRC/benchmark/$f" "$STAGE_DATA_DIR/$f"
 done
 
-cp "$NCNN_SRC/LICENSE.txt" "$STAGE_DIR/LICENSE"
-
 cat > "$STAGE_DIR/README.md" <<EOF
 # NCNN benchncnn (Wasm)
 
