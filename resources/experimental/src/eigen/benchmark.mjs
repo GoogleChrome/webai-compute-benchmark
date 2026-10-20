@@ -208,7 +208,27 @@ function createEigenSuite(benchmark, subIterationCount) {
             },
         };
     });
-    return new AsyncBenchmarkSuite("default", steps);
+    const suite = new AsyncBenchmarkSuite("default", steps);
+    return {
+        async runAndRecord(stepParams, onProgress) {
+            const response = await suite.runAndRecord(stepParams, onProgress);
+            const measuredValues = response.result;
+
+            // Transpose sub-iter -> sub-benchmark into sub-benchmark -> sub-iter:
+            const subBenchmarkSteps = {};
+            for (const [subIterName, subIterResult] of Object.entries(measuredValues.steps)) {
+                for (const [subBenchName, subBenchResult] of Object.entries(subIterResult.steps)) {
+                    subBenchmarkSteps[subBenchName] ??= { steps: {}, total: 0 };
+                    const val = subBenchResult.total;
+                    subBenchmarkSteps[subBenchName].steps[subIterName] = { tests: {}, total: val };
+                    subBenchmarkSteps[subBenchName].total += val;
+                }
+            }
+            measuredValues.steps = subBenchmarkSteps;
+
+            return response;
+        },
+    };
 }
 
 const appVersion = "5.0.0-dev";
