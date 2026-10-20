@@ -198,6 +198,12 @@ export const defaultSuites = [
         type: "remote",
     },
     {
+        name: "Experimental-Meshoptimizer-wasm",
+        url: "resources/experimental/dist/meshoptimizer.html",
+        tags: ["experimental", "meshoptimizer", "wasm", "wasm-compute-kernels"],
+        type: "remote",
+    },
+    {
         name: "Experimental-Tract-ONNX-MobileNet-V2-wasm",
         url: "resources/experimental/dist/tract-onnx-mobilenet-v2.html",
         tags: ["experimental", "tract", "wasm", "wasm-compute-kernels"],
