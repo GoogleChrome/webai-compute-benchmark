@@ -21,7 +21,6 @@ class MainBenchmarkClient {
     _steppingResolver = null;
     _benchmarkConfiguratorPromise = null;
     _failedSuites = new Set();
-    _webgpuUnavailable = false;
 
     constructor() {
         this._benchmarkConfiguratorPromise = import("./benchmark-configurator.mjs");
@@ -140,11 +139,8 @@ class MainBenchmarkClient {
         this._progressCompleted.value = this._finishedTestCount;
     }
 
-    didFailSuite(suite, error) {
+    didFailSuite(suite) {
         this._failedSuites.add(suite.name);
-        if (error?.message?.includes(WEBGPU_UNAVAILABLE_ERROR_MESSAGE)) {
-            this._webgpuUnavailable = true;
-        }
         this._finishedTestCount++;
         this._progressCompleted.value = this._finishedTestCount;
     }
@@ -157,7 +153,6 @@ class MainBenchmarkClient {
         this._measuredValuesList = [];
         this._finishedTestCount = 0;
         this._failedSuites.clear();
-        this._webgpuUnavailable = false;
         document.body.style.removeProperty("--details-top-position");
         document.body.classList.remove("has-warning");
     }
@@ -188,16 +183,14 @@ class MainBenchmarkClient {
         this._isRunning = false;
         this._hasResults = true;
         this._metrics = Object.create(null);
-        if (error?.message?.includes(WEBGPU_UNAVAILABLE_ERROR_MESSAGE)) {
-            this._webgpuUnavailable = true;
-        }
-        this._populateInvalidScore();
+        const reason = error?.message?.includes(WEBGPU_UNAVAILABLE_ERROR_MESSAGE) ? WEBGPU_UNAVAILABLE_ERROR_MESSAGE : undefined;
+        this._populateInvalidScore(reason);
         this.showResultsSummary();
-        globalThis.dispatchEvent(new Event("BenchmarkDone"));
+        throw error;
     }
 
     _populateValidScores(wasmScoreResults, webgpuScoreResults) {
-        document.getElementById("summary").className = this._webgpuUnavailable ? "valid has-error" : "valid";
+        document.getElementById("summary").className = "valid";
 
         if (wasmScoreResults.isValid) {
             document.getElementById("wasm-result-number").textContent = wasmScoreResults.formattedMean;
@@ -215,17 +208,12 @@ class MainBenchmarkClient {
                 document.getElementById("webgpu-confidence-number").textContent = `\u00b1 ${webgpuScoreResults.formattedDelta}`;
             }
         } else {
-            document.getElementById("webgpu-result-number").textContent = this._webgpuUnavailable ? "Error" : "N/A";
+            document.getElementById("webgpu-result-number").textContent = "N/A";
             document.getElementById("webgpu-confidence-number").textContent = "";
-        }
-
-        const reasonElement = document.getElementById("invalid-score-reason");
-        if (reasonElement && this._webgpuUnavailable) {
-            reasonElement.textContent = WEBGPU_UNAVAILABLE_ERROR_MESSAGE;
         }
     }
 
-    _populateInvalidScore() {
+    _populateInvalidScore(reason = "One or more subtests produced no duration.") {
         document.getElementById("summary").className = "invalid";
         document.getElementById("wasm-result-number").textContent = "Error";
         document.getElementById("wasm-confidence-number").textContent = "";
@@ -233,7 +221,7 @@ class MainBenchmarkClient {
         document.getElementById("webgpu-confidence-number").textContent = "";
         const reasonElement = document.getElementById("invalid-score-reason");
         if (reasonElement) {
-            reasonElement.textContent = this._webgpuUnavailable ? WEBGPU_UNAVAILABLE_ERROR_MESSAGE : "One or more subtests produced no duration.";
+            reasonElement.textContent = reason;
         }
     }
 

@@ -1,6 +1,6 @@
 import { Metric } from "./metric.mjs";
 import { params } from "./shared/params.mjs";
-import { forceLayout, isValidIdentifier, ensureWebGPU, WEBGPU_UNAVAILABLE_ERROR_MESSAGE } from "./shared/helpers.mjs";
+import { forceLayout, isValidIdentifier, ensureWebGPU } from "./shared/helpers.mjs";
 import { SUITE_RUNNER_LOOKUP } from "./suite-runner.mjs";
 
 const performance = globalThis.performance;
@@ -480,9 +480,6 @@ export class BenchmarkRunner {
                         }
                     }
                 } catch (error) {
-                    if (error?.message?.includes(WEBGPU_UNAVAILABLE_ERROR_MESSAGE)) {
-                        throw error;
-                    }
                     console.error(`Workload ${suite.name} failed:`, error);
                     this._measuredValues.steps[suite.name] = { total: 0 };
                     this._client?.didFailSuite?.(suite, error);
@@ -490,8 +487,9 @@ export class BenchmarkRunner {
                     this._removeFrame();
                 }
             }
-        } finally {
             await this._finishRunAllSuites(iteration);
+        } finally {
+            await this._wakeLock.release();
         }
     }
 
@@ -503,7 +501,6 @@ export class BenchmarkRunner {
         await this._finalize(iteration);
         performance.mark(finalizeEndLabel);
         performance.measure("runner-finalize", finalizeStartLabel, finalizeEndLabel);
-        await this._wakeLock.release();
     }
 
     async runSuite(suite) {

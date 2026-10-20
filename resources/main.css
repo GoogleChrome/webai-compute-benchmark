@@ -499,8 +499,7 @@ section#summary.invalid .buttons {
     color: #ff8080;
     margin-bottom: 6px;
 }
-section#summary.invalid #invalid-score-text,
-section#summary.has-error #invalid-score-text {
+section#summary.invalid #invalid-score-text {
     display: block;
 }
 

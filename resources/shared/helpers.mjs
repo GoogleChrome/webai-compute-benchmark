@@ -85,19 +85,17 @@ export function isValidIdentifier(name) {
 export const WEBGPU_UNAVAILABLE_ERROR_MESSAGE = "WebGPU is not available or enabled in this browser.";
 
 export async function ensureWebGPU() {
-    let adapter = null;
+    let device = null;
     if (globalThis.navigator?.gpu) {
         try {
-            adapter = await navigator.gpu.requestAdapter();
+            const adapter = await navigator.gpu.requestAdapter();
+            device = await adapter?.requestDevice();
+            device?.destroy();
         } catch {
-            adapter = null;
+            device = null;
         }
     }
-    if (!adapter) {
-        const error = new Error(WEBGPU_UNAVAILABLE_ERROR_MESSAGE);
-        if (typeof window !== "undefined" && window.top && window.top !== window) {
-            window.top.dispatchEvent(new ErrorEvent("error", { message: error.message, error }));
-        }
-        throw error;
+    if (!device) {
+        throw new Error(WEBGPU_UNAVAILABLE_ERROR_MESSAGE);
     }
 }

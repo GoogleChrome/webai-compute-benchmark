@@ -357,12 +357,41 @@ describe("BenchmarkRunner", () => {
                 expect(caughtError.message).to.be(WEBGPU_UNAVAILABLE_ERROR_MESSAGE);
             });
 
-            it("should resolve when navigator.gpu.requestAdapter() returns an adapter", async () => {
+            it("should throw when adapter.requestDevice() returns null or rejects", async () => {
                 Object.defineProperty(navigator, "gpu", {
-                    value: { requestAdapter: async () => ({}) },
+                    value: {
+                        requestAdapter: async () => ({
+                            requestDevice: async () => {
+                                throw new Error("Device failure");
+                            },
+                        }),
+                    },
+                    configurable: true,
+                });
+                let caughtError;
+                try {
+                    await ensureWebGPU();
+                } catch (error) {
+                    caughtError = error;
+                }
+                expect(caughtError).to.be.an(Error);
+                expect(caughtError.message).to.be(WEBGPU_UNAVAILABLE_ERROR_MESSAGE);
+            });
+
+            it("should resolve and destroy device when requestAdapter() and requestDevice() succeed", async () => {
+                const destroySpy = sinon.spy();
+                Object.defineProperty(navigator, "gpu", {
+                    value: {
+                        requestAdapter: async () => ({
+                            requestDevice: async () => ({
+                                destroy: destroySpy,
+                            }),
+                        }),
+                    },
                     configurable: true,
                 });
                 await ensureWebGPU();
+                assert.calledOnce(destroySpy);
             });
         });
 
@@ -422,7 +451,7 @@ describe("BenchmarkRunner", () => {
         });
 
         describe("error handling in runAllSuites", () => {
-            it("should continue running when a workload fails for a non-WebGPU reason", async () => {
+            it("should continue running when a workload fails", async () => {
                 const didFailSuiteSpy = sinon.spy();
                 const testClient = { didFailSuite: didFailSuiteSpy };
                 const testRunner = new BenchmarkRunner(
@@ -434,7 +463,7 @@ describe("BenchmarkRunner", () => {
                 );
                 stub(testRunner, "_appendFrame").callsFake(async () => null);
                 stub(testRunner, "_removeFrame").callsFake(() => null);
-                stub(testRunner, "_finalize").callsFake(async () => null);
+                const finalizeStub = stub(testRunner, "_finalize").callsFake(async () => null);
 
                 let first = true;
                 stub(testRunner, "runSuite").callsFake(async () => {
@@ -446,19 +475,22 @@ describe("BenchmarkRunner", () => {
 
                 await testRunner.runAllSuites(0);
                 assert.calledOnce(didFailSuiteSpy);
+                assert.calledOnce(finalizeStub);
                 expect(testRunner._measuredValues.steps["Failing Suite"].total).to.equal(0);
             });
 
-            it("should rethrow and fail fast when a workload fails due to WebGPU unavailability", async () => {
-                const didFailSuiteSpy = sinon.spy();
-                const testClient = { didFailSuite: didFailSuiteSpy };
-                const testRunner = new BenchmarkRunner([{ name: "WebGPU Suite", enabled: true, tags: ["webgpu"], prepare: async () => {} }], testClient);
+            it("should not call _finalize if an unhandled error escapes the suite loop, while still releasing wakeLock", async () => {
+                const testRunner = new BenchmarkRunner([{ name: "Suite 1", enabled: true, tags: ["wasm"], prepare: async () => {} }], {
+                    didFailSuite: () => {
+                        throw new Error("Client failure");
+                    },
+                });
                 stub(testRunner, "_appendFrame").callsFake(async () => null);
                 stub(testRunner, "_removeFrame").callsFake(() => null);
-                stub(testRunner, "_finalize").callsFake(async () => null);
-
+                const finalizeStub = stub(testRunner, "_finalize").callsFake(async () => null);
+                const wakeLockReleaseSpy = spy(testRunner._wakeLock, "release");
                 stub(testRunner, "runSuite").callsFake(async () => {
-                    throw new Error(WEBGPU_UNAVAILABLE_ERROR_MESSAGE);
+                    throw new Error("Workload failure");
                 });
 
                 let caughtError;
@@ -468,8 +500,9 @@ describe("BenchmarkRunner", () => {
                     caughtError = error;
                 }
                 expect(caughtError).to.be.an(Error);
-                expect(caughtError.message).to.contain(WEBGPU_UNAVAILABLE_ERROR_MESSAGE);
-                assert.notCalled(didFailSuiteSpy);
+                expect(caughtError.message).to.equal("Client failure");
+                assert.notCalled(finalizeStub);
+                assert.calledOnce(wakeLockReleaseSpy);
             });
         });
     });
