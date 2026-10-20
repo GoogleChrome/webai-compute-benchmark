@@ -4,20 +4,19 @@
 
 The **Tract** benchmarks (`Experimental-Tract-*-wasm`) measure end-to-end neural network graph optimization and single-threaded CPU inference performance in WebAssembly using [`tract`](https://github.com/sonos/tract) (`v0.22.0`), Sonos's pure-Rust, self-contained ONNX and TensorFlow Lite inference engine.
 
-The three example binaries (`example-onnx-mobilenet-v2`, `example-pytorch-resnet`, and `example-tflite-mobilenet-v3`) are compiled from Rust to `wasm32-unknown-emscripten` with 128-bit SIMD and relaxed SIMD enabled. 
+The three example binaries (`example-onnx-mobilenet-v2`, `example-pytorch-resnet`, and `example-tflite-mobilenet-v3`) are compiled from Rust to `wasm32-unknown-emscripten` with 128-bit SIMD and relaxed SIMD enabled.
 
 ---
 
 ## How Measurement & Scoring Work
 
- 
 The benchmark measures and sums two compute-intensive phases:
 
 - **`optimize_time`:** Tract's ahead-of-time graph compiler, which performs constant folding, operator fusion (e.g., fusing Conv2D + BatchNorm + ReLU/Clip), layout selection (`NCHW` vs. packed `HWIO`/`MMM` tiles), and kernel selection.
 - **`run_time` (`resize` + tensor normalization + `model.run(...)`):** Bilinear/triangle image resizing to 224 x 224 x 3, RGB-to-FP32 tensor normalization, and full forward-pass neural network inference.
 
 **Output & Aggregation:**
-   Each invocation prints the total time of both phases, and each top-level suite, which represents a specific model architectur, reports the sum of its sub-benchmarks, which represent a different quantization.
+Each invocation prints the total time of both phases, and each top-level suite, which represents a specific model architectur, reports the sum of its sub-benchmarks, which represent a different quantization.
 
 ---
 
