@@ -167,3 +167,15 @@ async function spawnCaptureStdout(binary, args, options = {}) {
         childProcess.on("error", reject);
     });
 }
+
+export function getPackageVersion(lockfile, packageName) {
+    const matchingPaths = Object.keys(lockfile.packages).filter((path) => path === `node_modules/${packageName}` || path.endsWith(`/node_modules/${packageName}`));
+
+    if (matchingPaths.length === 0) {
+        throw new Error(`Could not find package "${packageName}" in lockfile.`);
+    } else if (matchingPaths.length > 1) {
+        throw new Error(`Found multiple occurrences of package "${packageName}" in lockfile: ${matchingPaths.join(", ")}. Please specify which one to use.`);
+    }
+
+    return lockfile.packages[matchingPaths[0]].version;
+}

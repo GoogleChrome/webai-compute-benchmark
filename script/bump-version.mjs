@@ -19,11 +19,6 @@
  *   node script/bump-version.mjs --check
  */
 
-import esMain from "es-main";
-import fs from "node:fs";
-import { parseArgs } from "node:util";
-import { logError, logInfo } from "./helper.mjs";
-
 const PACKAGE_JSON_PATH = "package.json";
 const README_PATH = "README.md";
 
@@ -48,24 +43,9 @@ const TRACKED_LIBRARIES = [
 ];
 
 /**
- * Looks up the resolved version of an npm package inside a parsed package-lock.json file.
- */
-function getPackageVersion(lockfile, packageName) {
-    const matchingPaths = Object.keys(lockfile.packages).filter((path) => path === `node_modules/${packageName}` || path.endsWith(`/node_modules/${packageName}`));
-
-    if (matchingPaths.length === 0) {
-        throw new Error(`Could not find package "${packageName}" in lockfile.`);
-    } else if (matchingPaths.length > 1) {
-        throw new Error(`Found multiple occurrences of package "${packageName}" in lockfile: ${matchingPaths.join(", ")}.`);
-    }
-
-    return lockfile.packages[matchingPaths[0]].version;
-}
-
-/**
  * Reads the current resolved version of every library in TRACKED_LIBRARIES from disk.
  */
-function readCurrentLibraries() {
+function readCurrentLibraries(fs, getPackageVersion) {
     const libraries = [];
     for (const { name, lockfilePath, packageName } of TRACKED_LIBRARIES) {
         const lockfile = JSON.parse(fs.readFileSync(lockfilePath, "utf8"));
@@ -78,10 +58,39 @@ function readCurrentLibraries() {
 }
 
 /**
+ * Compares two semver strings (e.g. "0.3.0" vs "0.4.0").
+ * Returns -1 if versionA < versionB, 1 if versionA > versionB, or 0 if equal.
+ */
+export function compareSemver(versionA, versionB) {
+    const [coreA, preA] = versionA.replace(/^v/, "").split("-");
+    const [coreB, preB] = versionB.replace(/^v/, "").split("-");
+    const partsA = coreA.split(".").map(Number);
+    const partsB = coreB.split(".").map(Number);
+
+    for (let i = 0; i < 3; i++) {
+        const diff = (partsA[i] || 0) - (partsB[i] || 0);
+        if (diff !== 0) {
+            return diff > 0 ? 1 : -1;
+        }
+    }
+
+    if (preA && !preB) {
+        return -1;
+    }
+    if (!preA && preB) {
+        return 1;
+    }
+    if (preA && preB && preA !== preB) {
+        return preA < preB ? -1 : 1;
+    }
+    return 0;
+}
+
+/**
  * Resolves the target benchmark version given the current version in package.json
  * and an optional CLI argument (either major/minor/patch or an explicit semver string).
  */
-function resolveTargetVersion(currentVersion, versionArg) {
+export function resolveTargetVersion(currentVersion, versionArg) {
     if (!versionArg) {
         return currentVersion;
     }
@@ -101,6 +110,9 @@ function resolveTargetVersion(currentVersion, versionArg) {
     if (!/^\d+\.\d+\.\d+(-[\w.]+)?$/.test(cleanVersion)) {
         throw new Error(`Invalid target version "${versionArg}". Expected semver (e.g. 0.4.0) or major/minor/patch.`);
     }
+    if (compareSemver(cleanVersion, currentVersion) < 0) {
+        throw new Error(`Downgrading benchmark version from "${currentVersion}" to "${cleanVersion}" is not supported.`);
+    }
     return cleanVersion;
 }
 
@@ -111,7 +123,7 @@ function resolveTargetVersion(currentVersion, versionArg) {
  *   - libraries: Map<libraryName, versionString> recorded under main
  *   - existingChanges: any "- Changes: ..." text already recorded on main
  */
-function parseMainVersionEntry(readmeContent) {
+export function parseMainVersionEntry(readmeContent) {
     const mainBlockRegex = /^- \*\*main \(v([\d.]+(?:-[\w.]+)?)\)\*\*\n((?: {4}- .+\n)+)/m;
     const match = readmeContent.match(mainBlockRegex);
     if (!match) {
@@ -145,16 +157,34 @@ function parseMainVersionEntry(readmeContent) {
 }
 
 /**
+ * Validates that neither the benchmark version nor any tracked library was downgraded.
+ */
+function assertNoDowngrades(previousVersion, targetVersion, previousLibraries, currentLibraries) {
+    if (compareSemver(targetVersion, previousVersion) < 0) {
+        throw new Error(`Downgrading benchmark version from "${previousVersion}" to "${targetVersion}" is not supported.`);
+    }
+
+    for (const { name, version } of currentLibraries) {
+        const prevVersion = previousLibraries.get(name);
+        if (prevVersion && compareSemver(version, prevVersion) < 0) {
+            throw new Error(`Downgrading ${name} from "${prevVersion}" to "${version}" is not supported.`);
+        }
+    }
+}
+
+/**
  * Builds the "- Changes: ..." description by comparing previous vs. current library
  * versions and appending any custom summary (such as a PR title or --changes flag).
  */
-function buildChangesSummary(previousLibraries, currentLibraries, explicitChanges) {
+export function buildChangesSummary(previousLibraries, currentLibraries, explicitChanges) {
     const diffs = [];
 
     for (const { name, version } of currentLibraries) {
         const prevVersion = previousLibraries.get(name);
         if (!prevVersion) {
             diffs.push(`Added ${name} \`${version}\``);
+        } else if (compareSemver(version, prevVersion) < 0) {
+            throw new Error(`Downgrading ${name} from "${prevVersion}" to "${version}" is not supported.`);
         } else if (prevVersion !== version) {
             diffs.push(`Updated ${name} from \`${prevVersion}\` to \`${version}\``);
         }
@@ -186,12 +216,14 @@ function formatMainBlock(version, libraries, changesSummary) {
 
 /**
  * Updates README.md:
+ *   - Rejects any benchmark or library version downgrade.
  *   - If targetVersion matches the version already listed on main, updates that block in place.
  *   - If targetVersion is newer, renames "- **main (v<old>)**" to "- **version-<old>**"
  *     and inserts a new "- **main (v<targetVersion>)**" entry right above it.
  */
-function updateReadmeContent(readmeContent, targetVersion, currentLibraries, explicitChanges) {
+export function updateReadmeContent(readmeContent, targetVersion, currentLibraries, explicitChanges) {
     const mainEntry = parseMainVersionEntry(readmeContent);
+    assertNoDowngrades(mainEntry.version, targetVersion, mainEntry.libraries, currentLibraries);
 
     if (mainEntry.version === targetVersion) {
         const updatedMainBlock = formatMainBlock(targetVersion, currentLibraries, mainEntry.existingChanges);
@@ -228,9 +260,12 @@ export function verifyReadmeInSync(readmeContent, packageVersion, currentLibrari
  * Synchronizes README.md (and optionally package.json) with the target version
  * and resolved library versions from lockfiles. Returns true if README.md changed.
  */
-export function syncReadmeWithPackageVersion({ versionArg, explicitChanges } = {}) {
+export async function syncReadmeWithPackageVersion({ versionArg, explicitChanges } = {}) {
+    const { default: fs } = await import("node:fs");
+    const { getPackageVersion, logInfo } = await import("./helper.mjs");
+
     const packageJson = JSON.parse(fs.readFileSync(PACKAGE_JSON_PATH, "utf8"));
-    const currentLibraries = readCurrentLibraries();
+    const currentLibraries = readCurrentLibraries(fs, getPackageVersion);
     const readmeContent = fs.readFileSync(README_PATH, "utf8");
 
     const targetVersion = resolveTargetVersion(packageJson.version, versionArg);
@@ -250,7 +285,11 @@ export function syncReadmeWithPackageVersion({ versionArg, explicitChanges } = {
     return false;
 }
 
-function main() {
+async function main() {
+    const { default: fs } = await import("node:fs");
+    const { parseArgs } = await import("node:util");
+    const { getPackageVersion, logInfo } = await import("./helper.mjs");
+
     const { values, positionals } = parseArgs({
         options: {
             changes: { type: "string", short: "c" },
@@ -261,24 +300,28 @@ function main() {
 
     if (values.check) {
         const packageJson = JSON.parse(fs.readFileSync(PACKAGE_JSON_PATH, "utf8"));
-        const currentLibraries = readCurrentLibraries();
+        const currentLibraries = readCurrentLibraries(fs, getPackageVersion);
         const readmeContent = fs.readFileSync(README_PATH, "utf8");
         verifyReadmeInSync(readmeContent, packageJson.version, currentLibraries);
         logInfo(`Verified ${README_PATH} matches package.json version v${packageJson.version}.`);
         return;
     }
 
-    syncReadmeWithPackageVersion({
+    await syncReadmeWithPackageVersion({
         versionArg: positionals[0],
         explicitChanges: values.changes,
     });
 }
 
-if (esMain(import.meta)) {
-    try {
-        main();
-    } catch (error) {
-        logError(error.message);
-        process.exit(1);
+if (typeof process !== "undefined" && process.versions?.node) {
+    const { default: esMain } = await import("es-main");
+    if (esMain(import.meta)) {
+        const { logError } = await import("./helper.mjs");
+        try {
+            await main();
+        } catch (error) {
+            logError(error.message);
+            process.exit(1);
+        }
     }
 }

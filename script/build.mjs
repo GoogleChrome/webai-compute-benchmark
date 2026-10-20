@@ -6,7 +6,7 @@
 
 import { defaultSuites } from "../resources/default-tests.mjs";
 import { syncReadmeWithPackageVersion } from "./bump-version.mjs";
-import { logGroup, logInfo, sh } from "./helper.mjs";
+import { getPackageVersion, logGroup, logInfo, sh } from "./helper.mjs";
 import fs from "node:fs";
 
 const workloadDirs = new Set();
@@ -86,18 +86,6 @@ async function ensureGitLfsFiles() {
 async function buildWorkload(workloadDir) {
     await sh(["npm", "ci"], { cwd: workloadDir });
     await sh(["npm", "run", "build"], { cwd: workloadDir });
-}
-
-function getPackageVersion(lockfile, packageName) {
-    const matchingPaths = Object.keys(lockfile.packages).filter((path) => path === `node_modules/${packageName}` || path.endsWith(`/node_modules/${packageName}`));
-
-    if (matchingPaths.length === 0) {
-        throw new Error(`Could not find package "${packageName}" in lockfile.`);
-    } else if (matchingPaths.length > 1) {
-        throw new Error(`Found multiple occurrences of package "${packageName}" in lockfile: ${matchingPaths.join(", ")}. Please specify which one to use.`);
-    }
-
-    return lockfile.packages[matchingPaths[0]].version;
 }
 
 async function writeBuildInfo() {
@@ -200,5 +188,5 @@ if (modelTableBody) {
     fs.writeFileSync(buildInfoPath, buildInfoSource);
     logInfo(`Wrote ${buildInfoPath} with version ${versionWithDate} (${shortGitHash})`);
 
-    syncReadmeWithPackageVersion();
+    await syncReadmeWithPackageVersion();
 }
