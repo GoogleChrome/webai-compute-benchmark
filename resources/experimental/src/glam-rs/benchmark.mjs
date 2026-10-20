@@ -85,13 +85,13 @@ const UNIT_PATTERN = "(ps|ns|µs|us|ms|s)";
  */
 const TIME_REGEX = new RegExp(`time:\\s+\\[${NUM_PATTERN} ${UNIT_PATTERN} ${NUM_PATTERN} ${UNIT_PATTERN} ${NUM_PATTERN} ${UNIT_PATTERN}\\]`, "g");
 
-const MS_PER_UNIT = {
-    ps: 1e-9,
-    ns: 1e-6,
-    µs: 1e-3,
-    us: 1e-3,
-    ms: 1,
-    s: 1e3,
+const NS_PER_UNIT = {
+    ps: 1e-3,
+    ns: 1,
+    µs: 1e3,
+    us: 1e3,
+    ms: 1e6,
+    s: 1e9,
 };
 
 function geometricMean(values) {
@@ -110,7 +110,7 @@ function instantiatePrecompiled(wasmModule, onError) {
 
 /**
  * Following `glam_rs.py`, a bench binary's result is the geometric mean of the
- * criterion point estimates (the middle value of each `time:` line), in ms.
+ * criterion point estimates (the middle value of each `time:` line), in ns.
  */
 export function parseCriterionOutput(name, stdout) {
     // Emscripten reports stdout as a TTY, so strip any ANSI color codes in case
@@ -121,11 +121,11 @@ export function parseCriterionOutput(name, stdout) {
     if (matches.length === 0) {
         throw new Error(`Failed to parse glam-rs "${name}" criterion output:\n${stdout}`);
     }
-    const estimatesMs = matches.map((match) => Number(match[3]) * MS_PER_UNIT[match[4]]);
-    if (estimatesMs.some((v) => !Number.isFinite(v) || v <= 0)) {
-        throw new Error(`Invalid glam-rs "${name}" timing values (ms): ${estimatesMs.join(", ")}\n${stdout}`);
+    const estimatesNs = matches.map((match) => Number(match[3]) * NS_PER_UNIT[match[4]]);
+    if (estimatesNs.some((v) => !Number.isFinite(v) || v <= 0)) {
+        throw new Error(`Invalid glam-rs "${name}" timing values (ns): ${estimatesNs.join(", ")}\n${stdout}`);
     }
-    return geometricMean(estimatesMs);
+    return geometricMean(estimatesNs);
 }
 
 class GlamBenchmark {
