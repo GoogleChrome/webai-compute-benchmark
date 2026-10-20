@@ -19,6 +19,11 @@
  *   node script/bump-version.mjs --check
  */
 
+import fs from "node:fs";
+import { parseArgs } from "node:util";
+import esMain from "es-main";
+import { getPackageVersion, logError, logInfo } from "./helper.mjs";
+
 const PACKAGE_JSON_PATH = "package.json";
 const README_PATH = "README.md";
 
@@ -45,7 +50,7 @@ const TRACKED_LIBRARIES = [
 /**
  * Reads the current resolved version of every library in TRACKED_LIBRARIES from disk.
  */
-function readCurrentLibraries(fs, getPackageVersion) {
+export function getCurrentLibraryVersions() {
     const libraries = [];
     for (const { name, lockfilePath, packageName } of TRACKED_LIBRARIES) {
         const lockfile = JSON.parse(fs.readFileSync(lockfilePath, "utf8"));
@@ -260,12 +265,9 @@ export function verifyReadmeInSync(readmeContent, packageVersion, currentLibrari
  * Synchronizes README.md (and optionally package.json) with the target version
  * and resolved library versions from lockfiles. Returns true if README.md changed.
  */
-export async function syncReadmeWithPackageVersion({ versionArg, explicitChanges } = {}) {
-    const { default: fs } = await import("node:fs");
-    const { getPackageVersion, logInfo } = await import("./helper.mjs");
-
+export function syncReadmeWithPackageVersion({ versionArg, explicitChanges } = {}) {
     const packageJson = JSON.parse(fs.readFileSync(PACKAGE_JSON_PATH, "utf8"));
-    const currentLibraries = readCurrentLibraries(fs, getPackageVersion);
+    const currentLibraries = getCurrentLibraryVersions();
     const readmeContent = fs.readFileSync(README_PATH, "utf8");
 
     const targetVersion = resolveTargetVersion(packageJson.version, versionArg);
@@ -285,11 +287,7 @@ export async function syncReadmeWithPackageVersion({ versionArg, explicitChanges
     return false;
 }
 
-async function main() {
-    const { default: fs } = await import("node:fs");
-    const { parseArgs } = await import("node:util");
-    const { getPackageVersion, logInfo } = await import("./helper.mjs");
-
+function main() {
     const { values, positionals } = parseArgs({
         options: {
             changes: { type: "string", short: "c" },
@@ -300,28 +298,24 @@ async function main() {
 
     if (values.check) {
         const packageJson = JSON.parse(fs.readFileSync(PACKAGE_JSON_PATH, "utf8"));
-        const currentLibraries = readCurrentLibraries(fs, getPackageVersion);
+        const currentLibraries = getCurrentLibraryVersions();
         const readmeContent = fs.readFileSync(README_PATH, "utf8");
         verifyReadmeInSync(readmeContent, packageJson.version, currentLibraries);
         logInfo(`Verified ${README_PATH} matches package.json version v${packageJson.version}.`);
         return;
     }
 
-    await syncReadmeWithPackageVersion({
+    syncReadmeWithPackageVersion({
         versionArg: positionals[0],
         explicitChanges: values.changes,
     });
 }
 
-if (typeof process !== "undefined" && process.versions?.node) {
-    const { default: esMain } = await import("es-main");
-    if (esMain(import.meta)) {
-        const { logError } = await import("./helper.mjs");
-        try {
-            await main();
-        } catch (error) {
-            logError(error.message);
-            process.exit(1);
-        }
+if (esMain(import.meta)) {
+    try {
+        main();
+    } catch (error) {
+        logError(error.message);
+        process.exit(1);
     }
 }

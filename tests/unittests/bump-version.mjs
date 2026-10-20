@@ -4,6 +4,7 @@
 // license that can be found in the LICENSE file or at
 // https://developers.google.com/open-source/licenses/bsd
 
+import expect from "expect.js";
 import { buildChangesSummary, compareSemver, parseMainVersionEntry, resolveTargetVersion, updateReadmeContent, verifyReadmeInSync } from "../../script/bump-version.mjs";
 
 const SAMPLE_README = `# Web AI Compute Benchmark

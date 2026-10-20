@@ -188,5 +188,5 @@ if (modelTableBody) {
     fs.writeFileSync(buildInfoPath, buildInfoSource);
     logInfo(`Wrote ${buildInfoPath} with version ${versionWithDate} (${shortGitHash})`);
 
-    await syncReadmeWithPackageVersion();
+    syncReadmeWithPackageVersion();
 }

@@ -80,6 +80,7 @@ jobs:
 
             - name: Run Unit Tests
               run: |
+                  npm run test:node
                   echo "Running in $BROWSER"
                   npm run test:${{ matrix.browser }}
 
