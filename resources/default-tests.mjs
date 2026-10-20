@@ -198,6 +198,30 @@ export const defaultSuites = [
         type: "remote",
     },
     {
+        name: "Experimental-Glam-rs-Mul-wasm",
+        url: "resources/experimental/dist/glam-rs-mul.html",
+        tags: ["experimental", "glam-rs", "wasm", "wasm-compute-kernels"],
+        type: "remote",
+    },
+    {
+        name: "Experimental-Glam-rs-Transform-wasm",
+        url: "resources/experimental/dist/glam-rs-transform.html",
+        tags: ["experimental", "glam-rs", "wasm", "wasm-compute-kernels"],
+        type: "remote",
+    },
+    {
+        name: "Experimental-Glam-rs-Invert-wasm",
+        url: "resources/experimental/dist/glam-rs-invert.html",
+        tags: ["experimental", "glam-rs", "wasm", "wasm-compute-kernels"],
+        type: "remote",
+    },
+    {
+        name: "Experimental-Glam-rs-Construct-Interp-wasm",
+        url: "resources/experimental/dist/glam-rs-construct-interp.html",
+        tags: ["experimental", "glam-rs", "wasm", "wasm-compute-kernels"],
+        type: "remote",
+    },
+    {
         name: "Experimental-Tract-ONNX-MobileNet-V2-wasm",
         url: "resources/experimental/dist/tract-onnx-mobilenet-v2.html",
         tags: ["experimental", "tract", "wasm", "wasm-compute-kernels"],
