@@ -136,7 +136,29 @@ function createMeshoptimizerSuite(benchmark, subIterationCount) {
             },
         };
     });
-    return new AsyncBenchmarkSuite("default", steps);
+    const suite = new AsyncBenchmarkSuite("default", steps);
+    return {
+        async runAndRecord(stepParams, onProgress) {
+            const response = await suite.runAndRecord(stepParams, onProgress);
+            const measuredValues = response.result;
+
+            // Transpose sub-iter -> decoder into decoder -> sub-iter:
+            const decoderSteps = {};
+            for (const name of SUB_BENCHMARK_NAMES) {
+                decoderSteps[name] = { steps: {}, total: 0 };
+            }
+            for (const [subIterName, subIterResult] of Object.entries(measuredValues.steps)) {
+                for (const name of SUB_BENCHMARK_NAMES) {
+                    const val = subIterResult.steps[name].total;
+                    decoderSteps[name].steps[subIterName] = { tests: {}, total: val };
+                    decoderSteps[name].total += val;
+                }
+            }
+            measuredValues.steps = decoderSteps;
+
+            return response;
+        },
+    };
 }
 
 const appName = "Meshoptimizer";
