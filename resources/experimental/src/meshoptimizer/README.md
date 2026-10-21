@@ -8,10 +8,16 @@ Specifically, it compiles and runs upstream's standalone **`tools/codecbench.cpp
 
 ---
 
+### Why Include Meshoptimizer in a WebAI Compute Benchmark?
+
+Pure matrix-multiplication benchmarks only measure how well a browser's Wasm compiler optimizes tight FMA (f32x4.mul + f32x4.add) or integer dot-product (i32x4.dot_i16x8_s) loops.
+
+In real WebAI applications, a large fraction of wall-clock time is spent in "data movement & representation conversion" around the matrix multiplies: unpacking sub-byte weights (vtx0/vtx1), converting between INT8 and FP32 (oct8/oct12), normalizing vectors (oct8/quat12), reconstructing exponents (exp), and streaming through tens of megabytes of Wasm linear memory without bounds-check overhead. meshoptimizer isolates and stress-tests all of those non-FMA Wasm SIMD paths.
+
 ## How Measurement & Scoring Work
 
 1. **Test Data Generation:**
-   On each run, `codecbench` procedurally generates a synthetic 3D grid mesh of vertices and triangles, along with 32 MB and 64 MB buffers of packed 4-channel 8-bit (`u8x4`) and 16-bit (`u16x4`) vertex attributes.
+   Before timing begins, benchCodecs() generates a synthetic 1000 × 1000 grid mesh with 4,008,004 vertices (16 bytes each = 64.13 MB) and 2,000,000 triangles (6,000,000 uint32 indices = 24.00 MB), and pre-compresses them into byte buffers.
 
 2. **Internal Timing Loop:**
    For each decoder, `codecbench` compresses the test buffer once, then runs the decompression kernel in a loop and records the **best (minimum) decompression time**, reporting throughput in **GB/s** (`Score (GB/s): ...`).

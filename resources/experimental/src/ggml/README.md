@@ -21,8 +21,6 @@ Instead of decompressing weights back into 32-bit floats (`f32`) in memory, GGML
 
 ## How Measurement & Scoring Work
 
-In [`benchmark.mjs`](./benchmark.mjs):
-
 - Each sub-benchmark invokes `test-quantize-perf.wasm` with CLI flags:
   `--op <op_name> --iterations 10 -3`
     - **`-3` (L1 Cache Working Set):** Selects an array size of **32,768 floats** (32K elements = 128 KB as `f32`), chosen to fit inside the CPU's L1/L2 cache so the benchmark isolates **Wasm SIMD instruction throughput** rather than main-memory RAM bandwidth.
