@@ -16,7 +16,7 @@ The benchmark measures and sums two compute-intensive phases:
 - **`run_time` (`resize` + tensor normalization + `model.run(...)`):** Bilinear/triangle image resizing to 224 x 224 x 3, RGB-to-FP32 tensor normalization, and full forward-pass neural network inference.
 
 **Output & Aggregation:**
-Each invocation prints the total time of both phases, and each top-level suite, which represents a specific model architectur, reports the sum of its sub-benchmarks, which represent a different quantization.
+Each invocation prints the total time of both phases, and each top-level suite, which represents a specific model architecture, reports the sum of its sub-benchmarks, which represent a different quantization.
 
 ---
 
@@ -41,7 +41,7 @@ Runs image classification on a static 224x224 image using **MobileNetV2** (an ef
 
 ### 2. `Experimental-Tract-PyTorch-ResNet-wasm`
 
-Runs image classification on a static 224x224 image using a PyTorch-exported **ResNet-18** model. Unlike MobileNetV2's lightweight depthwise convolutions, ResNet uses **dense $3 \times 3$ standard convolutions** with large channel counts (64 to 512 channels) and residual skip connections—making it roughly 3 times heavier in raw compute and memory footprint:
+Runs image classification on a static 224x224 image using a PyTorch-exported **ResNet-18** model. Unlike MobileNetV2's lightweight depthwise convolutions, ResNet uses **dense 3 x 3 standard convolutions** with large channel counts (64 to 512 channels) and residual skip connections—making it roughly 3 times heavier in raw compute and memory footprint:
 
 - **`example-pytorch-resnet` (`resnet.onnx` — FP32 Baseline):**
   32-bit floating-point ResNet. Heavily compute-bound on `im2col` / indirect tiled general matrix multiplication (GEMM) using Wasm `f32x4` SIMD FMA loops.
