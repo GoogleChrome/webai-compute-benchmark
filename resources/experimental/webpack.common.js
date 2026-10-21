@@ -13,6 +13,7 @@ module.exports = {
         gemma: "./src/gemma/benchmark.mjs",
         "litert-lm": "./src/litert-lm/benchmark.mjs",
         ggml: "./src/ggml/benchmark.mjs",
+        meshoptimizer: "./src/meshoptimizer/benchmark.mjs",
         "ncnn-resnet50-int8": "./src/ncnn/resnet50-int8.mjs",
         "ncnn-efficientnetv2-b0": "./src/ncnn/efficientnetv2-b0.mjs",
         "ncnn-yolov4-tiny": "./src/ncnn/yolov4-tiny.mjs",
@@ -52,6 +53,12 @@ module.exports = {
             template: path.resolve(__dirname, "src", "console-runner.html"),
             filename: "ggml.html",
             chunks: ["ggml"],
+        }),
+        new HtmlWebpackPlugin({
+            title: "Experimental Meshoptimizer Runner",
+            template: path.resolve(__dirname, "src", "console-runner.html"),
+            filename: "meshoptimizer.html",
+            chunks: ["meshoptimizer"],
         }),
         new HtmlWebpackPlugin({
             title: "Experimental NCNN ResNet50-INT8 Runner",
