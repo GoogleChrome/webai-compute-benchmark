@@ -61,8 +61,8 @@ class MainBenchmarkClient {
         currentSteppingResolver();
     }
 
-    async _awaitNextStep(suite, test) {
-        console.log(`Next Step: ${suite.name} ${test.name}`, { suite, test });
+    async _awaitNextStep(suite) {
+        console.log(`Next Step: ${suite.name}`, { suite });
         await this._steppingPromise;
     }
 
@@ -125,11 +125,11 @@ class MainBenchmarkClient {
         frame.style.transform = "translate(-50%, -50%)";
     }
 
-    async willRunTest(suite, test) {
+    async willStartSuite(suite) {
         document.getElementById("info-label").textContent = suite.name;
         document.getElementById("info-progress").textContent = `${this._finishedTestCount} / ${this.stepCount}`;
         if (this._steppingPromise) {
-            await this._awaitNextStep(suite, test);
+            await this._awaitNextStep(suite);
         }
     }
 
