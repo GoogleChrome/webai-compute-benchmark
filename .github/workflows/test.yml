@@ -37,6 +37,9 @@ jobs:
             - name: Check linting
               run: npm run lint:check
 
+            - name: Check README and version branches
+              run: node script/bump-version.mjs --check
+
     build:
         name: Build
         runs-on: macos-latest

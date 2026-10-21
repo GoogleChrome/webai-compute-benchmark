@@ -5,7 +5,7 @@
 // https://developers.google.com/open-source/licenses/bsd
 
 import expect from "expect.js";
-import { buildChangesSummary, compareSemver, parseMainVersionEntry, resolveTargetVersion, updateReadmeContent, verifyReadmeInSync } from "../../script/bump-version.mjs";
+import { buildChangesSummary, compareSemver, parseMainVersionEntry, parseVersionBranches, resolveTargetVersion, updateReadmeContent, verifyReadmeInSync, verifyVersionBranchesExist } from "../../script/bump-version.mjs";
 
 const SAMPLE_README = `# Web AI Compute Benchmark
 
@@ -91,6 +91,12 @@ describe("bump-version", () => {
         });
     });
 
+    describe("parseVersionBranches", () => {
+        it("should extract all version-* branch names from README.md", () => {
+            expect(parseVersionBranches(SAMPLE_README)).to.eql(["version-0.2.0"]);
+        });
+    });
+
     describe("buildChangesSummary", () => {
         it("should summarize library upgrades, additions, and explicit changes", () => {
             const previousLibraries = new Map([
@@ -128,9 +134,19 @@ describe("bump-version", () => {
             expect(updated).to.contain("- **version-0.3.0**\n    - Transformers.js: `4.0.1`");
         });
 
-        it("should preserve existing changes when version is unchanged", () => {
+        it("should preserve existing changes when version and libraries are unchanged", () => {
             const updated = updateReadmeContent(SAMPLE_README, "0.3.0", SAMPLE_LIBRARIES, "Bump fast-uri");
             expect(updated).to.equal(SAMPLE_README);
+        });
+
+        it("should require a benchmark version bump when a tracked library is updated", () => {
+            const updatedLibraries = [
+                { name: "Transformers.js", version: "4.1.0" },
+                { name: "LiteRT.js", version: "2.4.0" },
+                { name: "LiteRT-LM", version: "0.15.0" },
+            ];
+
+            expect(() => updateReadmeContent(SAMPLE_README, "0.3.0", updatedLibraries, "")).to.throwError(/Tracked library version\(s\) changed \(Transformers\.js \(4\.0\.1 -> 4\.1\.0\)\), so the benchmark version must be bumped/);
         });
 
         it("should reject benchmark version downgrades relative to README.md", () => {
@@ -153,17 +169,27 @@ describe("bump-version", () => {
             expect(() => verifyReadmeInSync(SAMPLE_README, "0.3.0", SAMPLE_LIBRARIES)).to.not.throwError();
         });
 
-        it("should throw when package.json version differs from README.md", () => {
-            expect(() => verifyReadmeInSync(SAMPLE_README, "0.4.0", SAMPLE_LIBRARIES)).to.throwError(/lists "main \(v0\.3\.0\)", but package\.json version is "0\.4\.0"/);
+        it("should throw with branch instructions when package.json version differs from README.md", () => {
+            expect(() => verifyReadmeInSync(SAMPLE_README, "0.4.0", SAMPLE_LIBRARIES)).to.throwError(/git branch version-0\.3\.0 origin\/main/);
         });
 
-        it("should throw when a library version differs from README.md", () => {
+        it("should throw with version bump and branch instructions when a library version differs from README.md", () => {
             const mismatchedLibraries = [
                 { name: "Transformers.js", version: "4.2.0" },
                 { name: "LiteRT.js", version: "2.4.0" },
                 { name: "LiteRT-LM", version: "0.15.0" },
             ];
-            expect(() => verifyReadmeInSync(SAMPLE_README, "0.3.0", mismatchedLibraries)).to.throwError(/lists Transformers\.js version "4\.0\.1".*but lockfile has "4\.2\.0"/);
+            expect(() => verifyReadmeInSync(SAMPLE_README, "0.3.0", mismatchedLibraries)).to.throwError(/Because Transformers\.js was updated, please bump the benchmark version[\s\S]*git branch version-0\.3\.0 origin\/main/);
+        });
+    });
+
+    describe("verifyVersionBranchesExist", () => {
+        it("should pass when all version-* branches in README.md exist on origin", () => {
+            expect(() => verifyVersionBranchesExist(SAMPLE_README, ["version-0.2.0", "version-0.1.0"])).to.not.throwError();
+        });
+
+        it("should throw with branch creation instructions when a version-* branch is missing on origin", () => {
+            expect(() => verifyVersionBranchesExist(SAMPLE_README, ["version-0.1.0"])).to.throwError(/Branch "version-0\.2\.0" is listed in README\.md[\s\S]*git branch version-0\.2\.0 origin\/main/);
         });
     });
 });
