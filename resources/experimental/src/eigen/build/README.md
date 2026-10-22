@@ -11,5 +11,5 @@ resources/experimental/build-wasm-workloads.sh eigen
 
 - Source: [Eigen](https://gitlab.com/libeigen/eigen) ([`e0a59e5a66e6d16fa93ab4f5e48bf539205e837f`](https://gitlab.com/libeigen/eigen/-/tree/e0a59e5a66e6d16fa93ab4f5e48bf539205e837f))
 - Compiler: `emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 5.0.7 (263db4cffa6f9fc2ec514a70abac81362ea41849)`
-- CFLAGS: `-O3 -fno-exceptions -mbulk-memory -mextended-const -mfp16 -mmultivalue -mmutable-globals -mnontrapping-fptoint -mrelaxed-simd -msign-ext -msimd128`
+- CFLAGS: `-O3 -fno-exceptions -mbulk-memory -mextended-const -mmultivalue -mmutable-globals -mnontrapping-fptoint -mrelaxed-simd -msign-ext -msimd128`
 - LDFLAGS: `-sENVIRONMENT=web -sMODULARIZE=1 -sEXPORT_ES6=1`

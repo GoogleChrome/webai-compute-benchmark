@@ -36,7 +36,6 @@ DEFAULT_CFLAGS=(
   -fno-exceptions
   -mbulk-memory
   -mextended-const
-  -mfp16
   -mmultivalue
   -mmutable-globals
   -mnontrapping-fptoint
