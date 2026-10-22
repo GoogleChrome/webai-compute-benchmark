@@ -4,3 +4,4 @@ resources/experimental/models/llama-cpp/gemma-3-270m-it-Q8_0.gguf filter=lfs dif
 resources/experimental/src/tract/build/*.wasm filter=lfs diff=lfs merge=lfs -text
 resources/experimental/src/tract/build/data/*.onnx filter=lfs diff=lfs merge=lfs -text
 resources/experimental/src/tract/build/data/*.tflite filter=lfs diff=lfs merge=lfs -text
+resources/experimental/src/ncnn/build/*.wasm filter=lfs diff=lfs merge=lfs -text
