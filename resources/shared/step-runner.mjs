@@ -97,9 +97,6 @@ export class StepRunner {
         if (this.#suite.type === "async") {
             return "async";
         }
-        if (this.#params.useAsyncSteps) {
-            return "async";
-        }
         return this.#params.measurementMethod;
     }
 }
@@ -114,11 +111,8 @@ export class AsyncStepRunner extends StepRunner {
     }
 }
 
-export class RemoteStepRunner extends StepRunner {}
-
 export const STEP_RUNNER_LOOKUP = Object.freeze({
     __proto__: null,
     default: StepRunner,
     async: AsyncStepRunner,
-    remote: RemoteStepRunner,
 });
