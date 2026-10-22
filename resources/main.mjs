@@ -17,8 +17,6 @@ class MainBenchmarkClient {
     _hasResults = false;
     _developerModeContainer = null;
     _metrics = Object.create(null);
-    _steppingPromise = null;
-    _steppingResolver = null;
     _benchmarkConfiguratorPromise = null;
     _failedSuites = new Set();
 
@@ -34,41 +32,9 @@ class MainBenchmarkClient {
     }
 
     start() {
-        if (this._isStepping()) {
-            this._clearStepping();
-        } else if (this._startBenchmark()) {
+        if (this._startBenchmark()) {
             this._showSection("#running");
         }
-    }
-
-    step() {
-        const currentSteppingResolver = this._steppingResolver;
-        this._steppingPromise = new Promise((resolve) => {
-            this._steppingResolver = resolve;
-        });
-        if (this._isStepping()) {
-            currentSteppingResolver();
-        }
-        if (!this._isRunning) {
-            this._startBenchmark();
-            this._showSection("#running");
-        }
-    }
-
-    _clearStepping() {
-        const currentSteppingResolver = this._steppingResolver;
-        this._steppingPromise = null;
-        this._steppingResolver = null;
-        currentSteppingResolver();
-    }
-
-    async _awaitNextStep(suite) {
-        console.log(`Next Step: ${suite.name}`, { suite });
-        await this._steppingPromise;
-    }
-
-    _isStepping() {
-        return this._steppingResolver !== null;
     }
 
     async _startBenchmark() {
@@ -92,9 +58,7 @@ class MainBenchmarkClient {
             );
             return false;
         }
-        if (!this._isStepping()) {
-            this._developerModeContainer?.remove();
-        }
+        this._developerModeContainer?.remove();
         this._progressCompleted = document.getElementById("progress-completed");
         if (params.iterationCount < 50) {
             const progressNode = document.getElementById("progress");
@@ -129,9 +93,6 @@ class MainBenchmarkClient {
     async willStartSuite(suite) {
         document.getElementById("info-label").textContent = suite.name;
         document.getElementById("info-progress").textContent = `${this._finishedTestCount} / ${this.stepCount}`;
-        if (this._steppingPromise) {
-            await this._awaitNextStep(suite);
-        }
     }
 
     didFinishSuite() {
@@ -261,17 +222,6 @@ class MainBenchmarkClient {
             formattedMeanAndDelta: formattedMean + (formattedDelta ? ` \xb1 ${formattedDelta} (${formattedPercentDelta})` : ""),
             isValid: values.length > 0 && isFinite(sum) && sum > 0,
         };
-    }
-
-    _addDetailedResultsRow(table, iterationNumber, value) {
-        const row = document.createElement("tr");
-        const th = document.createElement("th");
-        th.textContent = `Iteration ${iterationNumber + 1}`;
-        const td = document.createElement("td");
-        td.textContent = value;
-        row.appendChild(th);
-        row.appendChild(td);
-        table.appendChild(row);
     }
 
     _populateDetailedResults(metrics) {

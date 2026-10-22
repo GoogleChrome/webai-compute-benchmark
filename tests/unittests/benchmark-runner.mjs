@@ -14,14 +14,14 @@ function STEP_FIXTURE(name) {
 const SUITES_FIXTURE = [
     {
         name: "Suite 1",
-        async prepare(page) {},
+        async prepare() {},
         enabled: true,
         tags: ["webgpu"],
         steps: [STEP_FIXTURE("Test 1"), STEP_FIXTURE("Test 2"), STEP_FIXTURE("Test 3")],
     },
     {
         name: "Suite 2",
-        async prepare(page) {},
+        async prepare() {},
         enabled: true,
         tags: ["wasm"],
         steps: [STEP_FIXTURE("Test 1")],
@@ -218,7 +218,7 @@ describe("BenchmarkRunner", () => {
                 runner._suite = suite;
                 await runner._appendFrame();
                 performanceMarkSpy = spy(window.performance, "mark");
-                const suiteRunner = new SuiteRunner(runner._frame, runner._page, params, suite, runner._client, runner._measuredValues);
+                const suiteRunner = new SuiteRunner(runner._frame, params, suite, runner._client, runner._measuredValues);
                 await suiteRunner._runSuite();
             });
 
@@ -262,7 +262,7 @@ describe("BenchmarkRunner", () => {
                     performanceNowStub.onSecondCall().returns(asyncEnd);
 
                     // instantiate recorded test results
-                    const suiteRunner = new SuiteRunner(runner._frame, runner._page, params, suite, runner._client, runner._measuredValues);
+                    const suiteRunner = new SuiteRunner(runner._frame, params, suite, runner._client, runner._measuredValues);
                     await suiteRunner._runSuite();
 
                     await runner._finalize();
@@ -293,8 +293,8 @@ describe("BenchmarkRunner", () => {
 
             beforeEach(async () => {
                 frame = await runner._appendFrame();
-                const suite = { name: "Remote Suite", url: "resources/warmup/index.html", type: "remote" };
-                remoteRunner = new RemoteSuiteRunner(frame, runner._page, defaultParams, suite, runner._client, { steps: {} });
+                const suite = { name: "Remote Suite", url: "resources/transformers-js/dist/feature-extraction-cpu.html", type: "remote" };
+                remoteRunner = new RemoteSuiteRunner(frame, defaultParams, suite, runner._client, { steps: {} });
                 remoteRunner.postMessageCallbacks = new Map();
             });
 
