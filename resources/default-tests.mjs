@@ -2,7 +2,7 @@ export const defaultSuites = [
     {
         name: "Feature-Extraction-wasm",
         url: "resources/transformers-js/dist/feature-extraction-cpu.html",
-        tags: ["default", "feature-extraction", "wasm", "transformers-js"],
+        tags: ["default", "feature-extraction", "wasm", "transformers-js", "mobile"],
         type: "remote",
         modelId: "Xenova/UAE-Large-V1",
     },
@@ -16,7 +16,7 @@ export const defaultSuites = [
     {
         name: "Sentence-Similarity-wasm",
         url: "resources/transformers-js/dist/sentence-similarity-cpu.html",
-        tags: ["default", "sentence-similarity", "wasm", "transformers-js"],
+        tags: ["default", "sentence-similarity", "wasm", "transformers-js", "mobile"],
         type: "remote",
         modelId: "Alibaba-NLP/gte-base-en-v1.5",
     },
@@ -44,7 +44,7 @@ export const defaultSuites = [
     {
         name: "Background-Removal-wasm",
         url: "resources/transformers-js/dist/background-removal-cpu.html",
-        tags: ["default", "background-removal", "wasm", "transformers-js"],
+        tags: ["default", "background-removal", "wasm", "transformers-js", "mobile"],
         type: "remote",
         modelId: "Xenova/modnet",
     },
@@ -58,7 +58,7 @@ export const defaultSuites = [
     {
         name: "Text-Reranking-wasm",
         url: "resources/transformers-js/dist/text-reranking-cpu.html",
-        tags: ["default", "text-reranking", "wasm", "transformers-js"],
+        tags: ["default", "text-reranking", "wasm", "transformers-js", "mobile"],
         type: "remote",
         modelId: "mixedbread-ai/mxbai-rerank-base-v1",
     },
@@ -72,7 +72,7 @@ export const defaultSuites = [
     {
         name: "SFW-Image-Classification-wasm",
         url: "resources/transformers-js/dist/image-classification-cpu.html",
-        tags: ["default", "image-classification", "wasm", "transformers-js"],
+        tags: ["default", "image-classification", "wasm", "transformers-js", "mobile"],
         type: "remote",
         modelId: "AdamCodd/vit-base-nsfw-detector",
     },
@@ -86,7 +86,7 @@ export const defaultSuites = [
     {
         name: "Zero-shot-Image-Classification-wasm",
         url: "resources/transformers-js/dist/zero-shot-image-classification-cpu.html",
-        tags: ["default", "image-classification", "wasm", "transformers-js"],
+        tags: ["default", "image-classification", "wasm", "transformers-js", "mobile"],
         type: "remote",
         modelId: "Xenova/mobileclip_s0",
     },
@@ -100,7 +100,7 @@ export const defaultSuites = [
     {
         name: "Text-to-Speech-wasm",
         url: "resources/transformers-js/dist/text-to-speech-cpu.html",
-        tags: ["default", "text-to-speech", "wasm", "transformers-js"],
+        tags: ["default", "text-to-speech", "wasm", "transformers-js", "mobile"],
         type: "remote",
         modelId: "onnx-community/Kokoro-82M-v1.0-ONNX",
     },
@@ -114,7 +114,7 @@ export const defaultSuites = [
     {
         name: "Mask-Generation-wasm",
         url: "resources/transformers-js/dist/mask-generation-cpu.html",
-        tags: ["default", "mask-generation", "wasm", "transformers-js"],
+        tags: ["default", "mask-generation", "wasm", "transformers-js", "mobile"],
         type: "remote",
         modelId: "Xenova/sam-vit-base",
     },
@@ -128,7 +128,7 @@ export const defaultSuites = [
     {
         name: "Image-Segmentation-LiteRT.js-wasm",
         url: "resources/litert-js/dist/image-segmentation-cpu.html",
-        tags: ["default", "image-segmentation", "wasm", "litert-js"],
+        tags: ["default", "image-segmentation", "wasm", "litert-js", "mobile"],
         type: "remote",
         modelId: "qualcomm/MediaPipe-Selfie-Segmentation",
     },
@@ -142,7 +142,7 @@ export const defaultSuites = [
     {
         name: "Image-Classification-LiteRT.js-wasm",
         url: "resources/litert-js/dist/image-classification-cpu.html",
-        tags: ["default", "image-classification", "wasm", "litert-js"],
+        tags: ["default", "image-classification", "wasm", "litert-js", "mobile"],
         type: "remote",
         modelId: "qualcomm/MobileNet-v3-Small",
     },
@@ -156,7 +156,7 @@ export const defaultSuites = [
     {
         name: "Hand-Detection-LiteRT.js-wasm",
         url: "resources/litert-js/dist/hand-detection-cpu.html",
-        tags: ["default", "hand-detection", "wasm", "litert-js"],
+        tags: ["default", "hand-detection", "wasm", "litert-js", "mobile"],
         type: "remote",
         modelId: "qualcomm/MediaPipe-Hand-Detection",
     },
