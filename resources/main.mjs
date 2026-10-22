@@ -1,6 +1,7 @@
 import { BenchmarkRunner } from "./benchmark-runner.mjs";
 import * as Statistics from "./statistics.mjs";
 import { renderMetricView } from "./metric-ui.mjs";
+import { WEBGPU_UNAVAILABLE_ERROR_MESSAGE } from "./shared/helpers.mjs";
 import { defaultParams, params } from "./shared/params.mjs";
 import { createDeveloperModeContainer } from "./developer-mode.mjs";
 
@@ -138,7 +139,7 @@ class MainBenchmarkClient {
         this._progressCompleted.value = this._finishedTestCount;
     }
 
-    didFailSuite(suite, error) {
+    didFailSuite(suite) {
         this._failedSuites.add(suite.name);
         this._finishedTestCount++;
         this._progressCompleted.value = this._finishedTestCount;
@@ -167,12 +168,13 @@ class MainBenchmarkClient {
 
         if (wasmScoreResults.isValid || webgpuScoreResults.isValid) {
             this._populateValidScores(wasmScoreResults, webgpuScoreResults);
+            this._populateDetailedResults(metrics);
+            this.showResultsDetails();
         } else {
             this._populateInvalidScore();
+            this.showResultsSummary();
         }
 
-        this._populateDetailedResults(metrics);
-        this.showResultsDetails();
         globalThis.dispatchEvent(new Event("BenchmarkDone"));
     }
 
@@ -181,7 +183,8 @@ class MainBenchmarkClient {
         this._isRunning = false;
         this._hasResults = true;
         this._metrics = Object.create(null);
-        this._populateInvalidScore();
+        const reason = error?.message?.includes(WEBGPU_UNAVAILABLE_ERROR_MESSAGE) ? WEBGPU_UNAVAILABLE_ERROR_MESSAGE : undefined;
+        this._populateInvalidScore(reason);
         this.showResultsSummary();
         throw error;
     }
@@ -210,12 +213,16 @@ class MainBenchmarkClient {
         }
     }
 
-    _populateInvalidScore() {
+    _populateInvalidScore(reason = "One or more subtests produced no duration.") {
         document.getElementById("summary").className = "invalid";
         document.getElementById("wasm-result-number").textContent = "Error";
         document.getElementById("wasm-confidence-number").textContent = "";
         document.getElementById("webgpu-result-number").textContent = "Error";
         document.getElementById("webgpu-confidence-number").textContent = "";
+        const reasonElement = document.getElementById("invalid-score-reason");
+        if (reasonElement) {
+            reasonElement.textContent = reason;
+        }
     }
 
     _computeResults(measuredValuesList, valueKey, displayUnit) {
@@ -228,7 +235,7 @@ class MainBenchmarkClient {
             return number.toPrecision(Math.max(nonDecimalDigitCount, Math.min(6, sigFig)));
         }
 
-        const values = measuredValuesList.map((v) => v[valueKey]);
+        const values = measuredValuesList.map((v) => v[valueKey]).filter((v) => isFinite(v) && v > 0);
         const sum = values.reduce((a, b) => a + b, 0);
         const arithmeticMean = sum / values.length;
         let meanSigFig = 4;

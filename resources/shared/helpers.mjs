@@ -81,3 +81,21 @@ const VALID_IDENTIFIER = /^[a-zA-Z0-9][\w .-]*$/;
 export function isValidIdentifier(name) {
     return typeof name === "string" && !(name in Object.prototype) && VALID_IDENTIFIER.test(name);
 }
+
+export const WEBGPU_UNAVAILABLE_ERROR_MESSAGE = "WebGPU is not available or enabled in this browser.";
+
+export async function ensureWebGPU() {
+    let device = null;
+    if (globalThis.navigator?.gpu) {
+        try {
+            const adapter = await navigator.gpu.requestAdapter();
+            device = await adapter?.requestDevice();
+            device?.destroy();
+        } catch {
+            device = null;
+        }
+    }
+    if (!device) {
+        throw new Error(WEBGPU_UNAVAILABLE_ERROR_MESSAGE);
+    }
+}
