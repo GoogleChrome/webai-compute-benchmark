@@ -12,6 +12,6 @@ resources/experimental/build-wasm-workloads.sh tract
 
 - Source: [tract](https://github.com/sonos/tract) [`0.22.0`](https://github.com/sonos/tract/tree/0.22.0) (patched with `tract.patch`)
 - Data: [wasm-perf/benchmarks/tract/data](https://gitlab.arm.com/runtimes/wasm-perf/-/raw/main/benchmarks/tract/data)
-- Rust Compiler: `rustc 1.99.0 (b940084d7 2026-09-28)` (`cargo 1.99.0 (b940084d7 2026-09-28)`)
+- Rust Compiler: `rustc 1.99.0 (b940084d7 2026-09-28)` (`cargo 1.99.0 (5f94df478 2026-08-27)`)
 - Emscripten: `emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 5.0.7 (263db4cffa6f9fc2ec514a70abac81362ea41849)`
-- RUSTFLAGS: `-C opt-level=2 -C target-feature=+bulk-memory -C target-feature=+extended-const -C target-feature=+multivalue -C target-feature=+mutable-globals -C target-feature=+nontrapping-fptoint -C target-feature=+relaxed-simd -C target-feature=+sign-ext -C target-feature=+simd128 -C link-arg=-sENVIRONMENT=web -C link-arg=-sMODULARIZE=1 -C link-arg=-sEXPORT_ES6=1 -C link-arg=-sALLOW_MEMORY_GROWTH=1 -C link-arg=-sFORCE_FILESYSTEM=1 -C link-arg=-sEXPORTED_RUNTIME_METHODS=FS,callMain`
+- RUSTFLAGS: `-C opt-level=2 -C target-feature=+bulk-memory -C target-feature=+extended-const -C target-feature=+multivalue -C target-feature=+mutable-globals -C target-feature=+nontrapping-fptoint -C target-feature=+relaxed-simd -C target-feature=+sign-ext -C target-feature=+simd128 -C link-arg=-sENVIRONMENT=web -C link-arg=-sMODULARIZE=1 -C link-arg=-sEXPORT_ES6=1 -C link-arg=-sINVOKE_RUN=0 -C link-arg=-sALLOW_MEMORY_GROWTH=1 -C link-arg=-sFORCE_FILESYSTEM=1 -C link-arg=-sEXPORTED_RUNTIME_METHODS=FS,callMain`

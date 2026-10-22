@@ -69,6 +69,7 @@ DEFAULT_RUSTFLAGS=(
   -C link-arg=-sENVIRONMENT=web
   -C link-arg=-sMODULARIZE=1
   -C link-arg=-sEXPORT_ES6=1
+  -C link-arg=-sINVOKE_RUN=0
   -C link-arg=-sALLOW_MEMORY_GROWTH=1
   -C link-arg=-sFORCE_FILESYSTEM=1
   -C link-arg=-sEXPORTED_RUNTIME_METHODS=FS,callMain

@@ -140,53 +140,72 @@ async function fetchUint8Array(url) {
 class TractBenchmark {
     constructor(subBenchmarks) {
         this.subBenchmarks = subBenchmarks;
-        this.wasmModules = {};
-        this.dataFiles = new Map();
+        this.modules = {};
+        this.stdout = "";
+        this.currentSubBenchmark = "";
     }
 
+    /**
+     * Compiles and instantiates each Tract Wasm module once and preloads its
+     * model/image files into MEMFS (not part of benchmark measurement). Each
+     * sub-iteration calls `callMain()` on the existing instance, reusing the
+     * same linear memory and MEMFS rather than allocating a fresh
+     * multi-hundred-MB WebAssembly.Memory and copying ~45 MB models per run.
+     */
     async init() {
-        console.log("Compiling Tract Wasm module and loading models/images (not part of benchmark measurement)...");
+        console.log("Compiling and instantiating Tract Wasm module and loading models/images (not part of benchmark measurement)...");
 
-        const runnerKeys = [...new Set(this.subBenchmarks.map(({ runnerKey }) => runnerKey))];
+        const runners = new Map();
+        for (const { runnerKey, moduleFactory } of this.subBenchmarks) {
+            if (!runners.has(runnerKey)) {
+                runners.set(runnerKey, moduleFactory);
+            }
+        }
         const dataFilenames = [...new Set(this.subBenchmarks.flatMap(({ model, image }) => [model, image]))];
+        const dataFiles = new Map();
 
         await Promise.all([
-            ...runnerKeys.map(async (runnerKey) => {
-                this.wasmModules[runnerKey] = await WebAssembly.compileStreaming(fetch(WASM_URLS[runnerKey]));
+            ...Array.from(runners.entries()).map(async ([runnerKey, moduleFactory]) => {
+                const wasmModule = await WebAssembly.compileStreaming(fetch(WASM_URLS[runnerKey]));
+                this.modules[runnerKey] = await new Promise((resolve, reject) => {
+                    moduleFactory({
+                        noInitialRun: true,
+                        print: (line) => {
+                            console.log(`  [${this.currentSubBenchmark}] ${line}`);
+                            this.stdout += `${line}\n`;
+                        },
+                        printErr: (line) => console.error(`  [${this.currentSubBenchmark}] ${line}`),
+                        instantiateWasm: instantiatePrecompiled(wasmModule, reject),
+                    }).then(resolve, reject);
+                });
             }),
             ...dataFilenames.map(async (filename) => {
                 const bytes = await fetchUint8Array(DATA_URLS[filename]);
-                this.dataFiles.set(filename, bytes);
+                dataFiles.set(filename, bytes);
             }),
         ]);
+
+        const canOwn = runners.size === 1;
+        for (const mod of Object.values(this.modules)) {
+            for (const [filename, bytes] of dataFiles.entries()) {
+                mod.FS.writeFile(`/${filename}`, bytes, { canOwn });
+            }
+        }
 
         console.log("Tract Wasm module and models loaded; starting measured benchmark runs...");
     }
 
-    async runSubBenchmark({ name, runnerKey, moduleFactory, model, image }) {
+    runSubBenchmark({ name, runnerKey, model, image }) {
         console.log(`Running ${name}...`);
-        const wasmModule = this.wasmModules[runnerKey];
-        const modelBytes = this.dataFiles.get(model);
-        const imageBytes = this.dataFiles.get(image);
+        const mod = this.modules[runnerKey];
+        this.currentSubBenchmark = name;
+        this.stdout = "";
 
-        let stdout = "";
-        await new Promise((resolve, reject) => {
-            moduleFactory({
-                arguments: [`/${model}`, `/${image}`],
-                preRun: [
-                    (mod) => {
-                        mod.FS.writeFile(`/${model}`, modelBytes);
-                        mod.FS.writeFile(`/${image}`, imageBytes);
-                    },
-                ],
-                print: (line) => {
-                    console.log(`  [${name}] ${line}`);
-                    stdout += `${line}\n`;
-                },
-                printErr: (line) => console.error(`  [${name}] ${line}`),
-                instantiateWasm: instantiatePrecompiled(wasmModule, reject),
-            }).then(resolve, reject);
-        });
+        const exitCode = mod.callMain([`/${model}`, `/${image}`]);
+        const stdout = this.stdout;
+        if (exitCode !== 0) {
+            throw new Error(`Tract ${name} exited with code ${exitCode}:\n${stdout}`);
+        }
 
         const match = stdout.match(TIME_REGEX);
         if (!match) {
