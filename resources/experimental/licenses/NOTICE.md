@@ -2,6 +2,7 @@
 - [LiteRT-LM](https://github.com/google-ai-edge/LiteRT-LM): licensed under the Apache License, Version 2.0. The full text is available in [LICENSE.apache2](LICENSE.apache2).
 - [Eigen](https://gitlab.com/libeigen/eigen): licensed under the Mozilla Public License Version 2.0. The full text is available in [LICENSE.eigen](LICENSE.eigen).
 - [ggml](https://github.com/ggml-org/ggml): licensed under the MIT License. The full text is available in [LICENSE.ggml](LICENSE.ggml).
+- [meshoptimizer](https://github.com/zeux/meshoptimizer): licensed under the MIT License. The full text is available in [LICENSE.meshoptimizer](LICENSE.meshoptimizer).
 - [tract](https://github.com/sonos/tract): licensed under the Apache License, Version 2.0. The full text is available in [LICENSE.apache2](LICENSE.apache2).
 - [wllama](https://github.com/ngxson/wllama) / [llama.cpp](https://github.com/ggml-org/llama.cpp): licensed under the MIT License. The full text is available in [LICENSE.mit](LICENSE.mit).
 - The Transformers.js model licenses are specified in the metadata header of their respective `README.md` files.

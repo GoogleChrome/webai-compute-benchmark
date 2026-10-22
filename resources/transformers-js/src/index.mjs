@@ -129,7 +129,7 @@ class BackgroundRemoval {
 
         // TODO: Initially we wanted to use briaai/RMBG-2.0 model, but it has a known issue (https://github.com/microsoft/onnxruntime/issues/21968) cause it to be not usable.
         // We should check later if the issue has been resolved or select another model. In the meanwhile, we will use Xenova/modnet.
-        this.model = await pipeline("background-removal", "Xenova/modnet", { device: this.device, dtype: "uint8" });
+        this.model = await pipeline("background-removal", "Xenova/modnet", { device: this.device, dtype: "fp16" });
     }
 
     async run() {
