@@ -185,10 +185,9 @@ class TractBenchmark {
             }),
         ]);
 
-        const canOwn = runners.size === 1;
         for (const mod of Object.values(this.modules)) {
             for (const [filename, bytes] of dataFiles.entries()) {
-                mod.FS.writeFile(`/${filename}`, bytes, { canOwn });
+                mod.FS.writeFile(`/${filename}`, bytes);
             }
         }
 
