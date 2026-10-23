@@ -1,3 +1,5 @@
+// Must be imported before any ML runtime is initialized, see workload-teardown.mjs.
+import { registerTeardown } from "speedometer-utils/workload-teardown.mjs";
 import { BenchmarkConnector } from "speedometer-utils/benchmark.mjs";
 import { createSubIteratedSuite } from "speedometer-utils/helpers.mjs";
 import { pipeline, env } from "@huggingface/transformers";
@@ -37,6 +39,10 @@ class Text2TextGeneration {
         });
         document.getElementById("output").textContent = `"${result[0].generated_text}"`;
     }
+
+    async dispose() {
+        await this.model?.dispose();
+    }
 }
 
 /*--------- Workload configurations ---------*/
@@ -68,6 +74,8 @@ export async function initializeBenchmark(modelType) {
     let benchmark;
     try {
         benchmark = modelConfigs[modelType].create();
+        // Registered before init() so a partially initialized workload is released as well.
+        registerTeardown(() => benchmark.dispose());
         await benchmark.init();
     } catch (error) {
         console.error(error);

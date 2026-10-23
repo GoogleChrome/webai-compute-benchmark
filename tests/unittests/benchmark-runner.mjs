@@ -171,6 +171,31 @@ describe("BenchmarkRunner", () => {
                     runner._resetMeasuredValues();
                 }
             });
+
+            it("should tear down every suite, including failing ones, before removing its frame", async () => {
+                const teardownRunner = new BenchmarkRunner(SUITES_FIXTURE, { ...CLIENT_FIXTURE, didFailSuite: sinon.stub() });
+                stub(SuiteRunner.prototype, "_loadFrame").callsFake(async () => null);
+                stub(SuiteRunner.prototype, "_runSuite")
+                    .onFirstCall()
+                    .rejects(new Error("Suite failed"))
+                    .onSecondCall()
+                    .callsFake(async () => null);
+                const teardownStub = stub(SuiteRunner.prototype, "teardown").callsFake(async () => null);
+                stub(teardownRunner, "_finalize").callsFake(async () => null);
+                stub(teardownRunner, "_appendFrame").callsFake(async () => null);
+                const removeFrameStub = stub(teardownRunner, "_removeFrame").callsFake(() => null);
+                stub(console, "error");
+
+                await teardownRunner.runAllSuites(0);
+
+                assert.calledOnce(teardownRunner._client.didFailSuite);
+                assert.calledTwice(teardownStub);
+                assert.calledTwice(removeFrameStub);
+                expect(teardownStub.getCall(0).calledBefore(removeFrameStub.getCall(0))).to.be(true);
+                expect(removeFrameStub.getCall(0).calledBefore(teardownStub.getCall(1))).to.be(true);
+                expect(teardownStub.getCall(1).calledBefore(removeFrameStub.getCall(1))).to.be(true);
+                expect(teardownRunner._suiteRunner).to.be(null);
+            });
         });
 
         describe("runSuite", () => {
@@ -323,6 +348,51 @@ describe("BenchmarkRunner", () => {
                 }
                 remoteRunner.suiteResults.total = 10;
                 expect(() => remoteRunner._validateSuiteResults()).to.not.throwError();
+            });
+
+            it("should not request a teardown from workloads that did not announce support for it", async () => {
+                stub(remoteRunner, "_prepareSuite").callsFake(async () => null);
+                stub(remoteRunner, "_runSuite").callsFake(async () => null);
+                await remoteRunner.run();
+                const postMessageStub = stub(frame.contentWindow, "postMessage");
+
+                await remoteRunner.teardown();
+
+                assert.notCalled(postMessageStub);
+            });
+
+            it("should request a teardown and wait until the workload completed it", async () => {
+                stub(remoteRunner, "_prepareSuite").callsFake(async () => null);
+                stub(remoteRunner, "_runSuite").callsFake(async () => null);
+                await remoteRunner.run();
+                const source = frame.contentWindow;
+                const origin = window.location.origin;
+                remoteRunner._handlePostMessage(new MessageEvent("message", { origin, source, data: { type: "teardown-ready" } }));
+                let completed = false;
+                const postMessageStub = stub(source, "postMessage").callsFake(() => {
+                    setTimeout(() => {
+                        completed = true;
+                        remoteRunner._handlePostMessage(new MessageEvent("message", { origin, source, data: { type: "teardown-complete" } }));
+                    }, 0);
+                });
+
+                await remoteRunner.teardown();
+
+                expect(completed).to.be(true);
+                assert.calledOnce(postMessageStub);
+                assert.calledWith(postMessageStub, sinon.match({ key: "benchmark-connector", type: "benchmark-teardown" }), origin);
+            });
+
+            it("should stop listening for messages even if the suite never finished", async () => {
+                const addEventListenerSpy = spy(window, "addEventListener");
+                const removeEventListenerSpy = spy(window, "removeEventListener");
+                stub(remoteRunner, "_prepareSuite").returns(new Promise(() => {}));
+                remoteRunner.run();
+                const messageHandler = addEventListenerSpy.getCalls().find((call) => call.args[0] === "message").args[1];
+
+                await remoteRunner.teardown();
+
+                assert.calledWith(removeEventListenerSpy, "message", messageHandler);
             });
         });
 

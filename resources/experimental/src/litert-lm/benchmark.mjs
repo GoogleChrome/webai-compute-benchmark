@@ -8,7 +8,9 @@
  * Experimental LiteRT-LM benchmark using WebGPU and the Gemma model.
  */
 
-import { Engine, loadLiteRtLm, SamplerType } from "@litert-lm/core";
+// Must be imported before any ML runtime is initialized, see workload-teardown.mjs.
+import { registerTeardown } from "speedometer-utils/workload-teardown.mjs";
+import { Engine, loadLiteRtLm, SamplerType, unloadLiteRtLm } from "@litert-lm/core";
 import { BenchmarkConnector } from "speedometer-utils/benchmark.mjs";
 import { fetchModelWithProgress } from "speedometer-utils/download-utils.mjs";
 import { createSubIteratedSuite } from "speedometer-utils/helpers.mjs";
@@ -62,6 +64,11 @@ class LiteRtLmBenchmark {
             await conversation.delete();
         }
     }
+
+    async dispose() {
+        await this.engine?.delete();
+        this.engine = null;
+    }
 }
 
 const appName = "LiteRT-LM";
@@ -69,6 +76,10 @@ const appVersion = "0.1.0";
 
 try {
     const benchmark = new LiteRtLmBenchmark();
+    // Registered before init() so a partially initialized workload is released as well.
+    // Teardown functions run in reverse order: unload LiteRT-LM after deleting the engine.
+    registerTeardown(() => unloadLiteRtLm());
+    registerTeardown(() => benchmark.dispose());
     await benchmark.init();
 
     /*--------- Running test suites ---------*/

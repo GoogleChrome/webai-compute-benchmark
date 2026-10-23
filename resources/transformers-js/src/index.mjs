@@ -1,3 +1,5 @@
+// Must be imported before any ML runtime is initialized, see workload-teardown.mjs.
+import { registerTeardown } from "speedometer-utils/workload-teardown.mjs";
 import { BenchmarkConnector } from "speedometer-utils/benchmark.mjs";
 import { createSubIteratedSuite, getVisualOutputCanvas } from "speedometer-utils/helpers.mjs";
 import { params } from "speedometer-utils/params.mjs";
@@ -36,6 +38,14 @@ env.backends.onnx.wasm.wasmPaths = "";
 // TODO: Model loading time is not currently included in the benchmark. We should
 // investigate if the model loading code is different for the different device types.
 
+/**
+ * Releases the ONNX Runtime sessions of the given models / pipelines, skipping
+ * the ones that were never created (e.g., because initialization failed).
+ */
+async function disposeModels(...models) {
+    await Promise.all(models.map((model) => model?.dispose()));
+}
+
 /*--------- Feature extraction workload using Xenova/UAE-Large-V1 model ---------*/
 
 class FeatureExtraction {
@@ -58,6 +68,10 @@ class FeatureExtraction {
         const embedding = Array.from(result.data);
         const output = document.getElementById("output");
         output.textContent = JSON.stringify(`${embedding.slice(0, 5)}...`, null, 2);
+    }
+
+    async dispose() {
+        await disposeModels(this.model);
     }
 }
 
@@ -87,6 +101,10 @@ class SentenceSimilarity {
         const output = document.getElementById("output");
         output.textContent = similarities;
     }
+
+    async dispose() {
+        await disposeModels(this.model);
+    }
 }
 
 /*--------- Automatic speech recognition workload using Xenova/whisper-small model ---------*/
@@ -112,6 +130,10 @@ class SpeechRecognition {
         const result = await this.model(this.audioData, { language: "en" });
         const output = document.getElementById("output");
         output.textContent = result.text;
+    }
+
+    async dispose() {
+        await disposeModels(this.model);
     }
 }
 
@@ -143,6 +165,10 @@ class BackgroundRemoval {
         } else {
             console.error("Could not get 2D context from the canvas.");
         }
+    }
+
+    async dispose() {
+        await disposeModels(this.model);
     }
 }
 
@@ -203,6 +229,10 @@ class TextReranking {
         const output = document.getElementById("output");
         output.textContent = JSON.stringify(results, null, 2);
     }
+
+    async dispose() {
+        await disposeModels(this.model);
+    }
 }
 
 /*--------- Image classification workload using AdamCodd/vit-base-nsfw-detector ---------*/
@@ -230,6 +260,10 @@ class ImageClassification {
         const result = await this.model(this.imageURL);
         const output = document.getElementById("output");
         output.textContent = `${result[0].label}: ${result[0].score}`;
+    }
+
+    async dispose() {
+        await disposeModels(this.model);
     }
 }
 
@@ -270,6 +304,10 @@ class ZeroShotImageClassification {
         const output = document.getElementById("output");
         output.textContent = JSON.stringify(Object.fromEntries(this.texts.map((text, i) => [text, text_probs[i]])), null, 2);
     }
+
+    async dispose() {
+        await disposeModels(this.text_model, this.vision_model);
+    }
 }
 
 /*--------- Text to speech workload using onnx-community/Kokoro-82M-v1.0-ONNX model ---------*/
@@ -294,6 +332,11 @@ class TextToSpeech {
         const output = document.getElementById("output");
         const durationInMs = (result.audio.length / 24000) * 1000;
         output.textContent = `Generated audio of duration ${durationInMs.toFixed(2)} ms`;
+    }
+
+    async dispose() {
+        // KokoroTTS wraps a transformers.js model.
+        await disposeModels(this.model?.model);
     }
 }
 
@@ -367,6 +410,10 @@ class MaskGeneration {
         } else {
             console.error("Could not get 2D context from the canvas.");
         }
+    }
+
+    async dispose() {
+        await disposeModels(this.model);
     }
 }
 
@@ -495,6 +542,8 @@ export async function initializeBenchmark(modelType) {
     let benchmark;
     try {
         benchmark = modelConfigs[modelType].create();
+        // Registered before init() so a partially initialized workload is released as well.
+        registerTeardown(() => benchmark.dispose());
         await benchmark.init();
     } catch (error) {
         console.error(error);

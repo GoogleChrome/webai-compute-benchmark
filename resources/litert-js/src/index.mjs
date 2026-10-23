@@ -1,8 +1,10 @@
+// Must be imported before any ML runtime is initialized, see workload-teardown.mjs.
+import { registerTeardown } from "speedometer-utils/workload-teardown.mjs";
 import { BenchmarkConnector } from "speedometer-utils/benchmark.mjs";
 import { createSubIteratedSuite, getVisualOutputCanvas } from "speedometer-utils/helpers.mjs";
 import { params } from "speedometer-utils/params.mjs";
 import * as tf from "@tensorflow/tfjs";
-import { loadAndCompile, loadLiteRt, Tensor } from "@litertjs/core";
+import { loadAndCompile, loadLiteRt, Tensor, unloadLiteRt } from "@litertjs/core";
 import origamiImage from "../../media/image.jpg";
 import handImage from "../../media/hand.jpg";
 
@@ -30,6 +32,16 @@ function processImageToTensor(image, height, width) {
         // Add batch dimension: [H, W, 3] -> [1, H, W, 3]
         return normalized.expandDims(0);
     });
+}
+
+/**
+ * Deletes the given LiteRT.js objects (models, tensors), skipping the ones that
+ * were never created (e.g., because initialization failed).
+ */
+function deleteLiteRtObjects(...objects) {
+    for (const object of objects) {
+        object?.delete();
+    }
 }
 
 /*--------- Image segmentation workload using qualcomm/MediaPipe-Selfie-Segmentation_float model ---------*/
@@ -127,6 +139,10 @@ class ImageSegmentation {
         const [maskTensor] = await this.model.run([this.litertImageTensor]);
         await this.visualizeOutput(maskTensor, this.originalImage);
     }
+
+    dispose() {
+        deleteLiteRtObjects(this.litertImageTensor, this.model);
+    }
 }
 
 /*--------- Image classification workload using qualcomm/MobileNet-v3-Small model ---------*/
@@ -206,6 +222,10 @@ class ImageClassification {
         cpuOutputTensor.delete();
 
         this.displayTop5Results(probabilities);
+    }
+
+    dispose() {
+        deleteLiteRtObjects(this.litertImageTensor, this.model);
     }
 }
 
@@ -333,6 +353,10 @@ class HandDetection {
 
         await this.drawHandLandmarks(landmarkData);
     }
+
+    dispose() {
+        deleteLiteRtObjects(this.litertImageTensor, this.model);
+    }
 }
 
 /*--------- Workload configurations ---------*/
@@ -388,6 +412,10 @@ export async function initializeBenchmark(modelType) {
     let benchmark;
     try {
         benchmark = modelConfigs[modelType].create();
+        // Registered before init() so a partially initialized workload is released as well.
+        // Teardown functions run in reverse order: unload LiteRT.js after deleting the model.
+        registerTeardown(() => unloadLiteRt());
+        registerTeardown(() => benchmark.dispose());
         await benchmark.init();
     } catch (error) {
         console.error(error);
