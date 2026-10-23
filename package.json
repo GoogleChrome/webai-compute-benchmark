@@ -23,6 +23,7 @@
         "pretty:check": "prettier --check ./",
         "pretty:fix": "prettier --write ./",
         "fix": "npm run lint:fix && npm run pretty:fix",
+        "test:node": "mocha tests/unittests/bump-version.mjs",
         "test:chrome": "node tests/run-unittests.mjs --browser chrome",
         "test:firefox": "node tests/run-unittests.mjs --browser firefox",
         "test:safari": "node tests/run-unittests.mjs --browser safari",
