@@ -219,8 +219,10 @@ export class RemoteSuiteRunner extends SuiteRunner {
     async teardown() {
         await super.teardown();
         // run() never returns if the workload reported an error, so its
-        // listener might still be registered.
+        // listener and subscriptions might still be registered. Drop them, so a
+        // late "suite-complete" can't resume the failed suite during teardown.
         this._stopListening();
+        this.postMessageCallbacks?.clear();
         const contentWindow = this.frame?.contentWindow;
         if (!this.#workloadSupportsTeardown || !contentWindow) {
             return;
@@ -234,7 +236,7 @@ export class RemoteSuiteRunner extends SuiteRunner {
             const timeout = new Promise((resolve) => {
                 timeoutId = setTimeout(() => resolve(false), WORKLOAD_TEARDOWN_TIMEOUT_MS);
             });
-            contentWindow.postMessage({ id: this.appId, key: "benchmark-connector", type: "benchmark-teardown" }, window.location.origin);
+            contentWindow.postMessage({ key: "benchmark-connector", type: "benchmark-teardown" }, window.location.origin);
             if (!(await Promise.race([teardownComplete, timeout]))) {
                 console.warn(`Workload ${this.suite.name} did not finish its teardown within ${WORKLOAD_TEARDOWN_TIMEOUT_MS}ms.`);
             }
