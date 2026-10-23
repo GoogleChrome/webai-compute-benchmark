@@ -170,7 +170,7 @@ describe("bump-version", () => {
         });
 
         it("should throw with branch instructions when package.json version differs from README.md", () => {
-            expect(() => verifyReadmeInSync(SAMPLE_README, "0.4.0", SAMPLE_LIBRARIES)).to.throwError(/git branch version-0\.3\.0 origin\/main/);
+            expect(() => verifyReadmeInSync(SAMPLE_README, "0.4.0", SAMPLE_LIBRARIES)).to.throwError(/git branch version-0\.3\.0 FETCH_HEAD/);
         });
 
         it("should throw with version bump and branch instructions when a library version differs from README.md", () => {
@@ -179,17 +179,23 @@ describe("bump-version", () => {
                 { name: "LiteRT.js", version: "2.4.0" },
                 { name: "LiteRT-LM", version: "0.15.0" },
             ];
-            expect(() => verifyReadmeInSync(SAMPLE_README, "0.3.0", mismatchedLibraries)).to.throwError(/Because Transformers\.js was updated, please bump the benchmark version[\s\S]*git branch version-0\.3\.0 origin\/main/);
+            expect(() => verifyReadmeInSync(SAMPLE_README, "0.3.0", mismatchedLibraries)).to.throwError(/Because Transformers\.js was updated, please bump the benchmark version[\s\S]*git branch version-0\.3\.0 FETCH_HEAD/);
         });
     });
 
     describe("verifyVersionBranchesExist", () => {
-        it("should pass when all version-* branches in README.md exist on origin", () => {
+        it("should pass when all version-* branches in README.md exist on the remote", () => {
             expect(() => verifyVersionBranchesExist(SAMPLE_README, ["version-0.2.0", "version-0.1.0"])).to.not.throwError();
         });
 
-        it("should throw with branch creation instructions when a version-* branch is missing on origin", () => {
-            expect(() => verifyVersionBranchesExist(SAMPLE_README, ["version-0.1.0"])).to.throwError(/Branch "version-0\.2\.0" is listed in README\.md[\s\S]*git branch version-0\.2\.0 origin\/main/);
+        it("should throw with branch creation instructions using default remote URL when a version-* branch is missing", () => {
+            expect(() => verifyVersionBranchesExist(SAMPLE_README, ["version-0.1.0"])).to.throwError(
+                /Branch "version-0\.2\.0" is listed in README\.md[\s\S]*git fetch https:\/\/github\.com\/GoogleChrome\/webai-compute-benchmark\.git main[\s\S]*git branch version-0\.2\.0 FETCH_HEAD/
+            );
+        });
+
+        it("should support a custom remote name or URL", () => {
+            expect(() => verifyVersionBranchesExist(SAMPLE_README, ["version-0.1.0"], "upstream")).to.throwError(/does not exist on upstream[\s\S]*git fetch upstream main[\s\S]*git push upstream version-0\.2\.0/);
         });
     });
 });

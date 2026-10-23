@@ -10,8 +10,8 @@
  * version-* branches.
  *
  * Usage:
- *   node script/bump-version.mjs [major|minor|patch|<newVersion>] [--changes "Summary of changes"]
- *   node script/bump-version.mjs --check
+ *   node script/bump-version.mjs [major|minor|patch|<newVersion>] [--changes "Summary of changes"] [--remote <url-or-name>]
+ *   node script/bump-version.mjs --check [--remote <url-or-name>]
  */
 
 import fs from "node:fs";
@@ -21,6 +21,7 @@ import { getPackageVersion, logError, logInfo, sh } from "./helper.mjs";
 
 const PACKAGE_JSON_PATH = "package.json";
 const README_PATH = "README.md";
+export const DEFAULT_REMOTE_URL = "https://github.com/GoogleChrome/webai-compute-benchmark.git";
 
 // Key libraries recorded under each entry in README.md's "## Version Branches" section,
 // along with the lockfile where their exact installed version is resolved.
@@ -45,9 +46,9 @@ const TRACKED_LIBRARIES = [
 /**
  * Formats instructions for creating and pushing the frozen branch for a previous version.
  */
-function formatBranchInstructions(previousVersion) {
+function formatBranchInstructions(previousVersion, remote = DEFAULT_REMOTE_URL) {
     const branchName = `version-${previousVersion}`;
-    return [`Create and push the "${branchName}" branch pointing to main:`, "    git fetch origin main", `    git branch ${branchName} origin/main`, `    git push origin ${branchName}`].join("\n");
+    return [`Create and push the "${branchName}" branch pointing to main:`, `    git fetch ${remote} main`, `    git branch ${branchName} FETCH_HEAD`, `    git push ${remote} ${branchName}`].join("\n");
 }
 
 /**
@@ -237,7 +238,7 @@ function formatMainBlock(version, libraries, changesSummary) {
  *   - If targetVersion is newer, renames "- **main (v<old>)**" to "- **version-<old>**"
  *     and inserts a new "- **main (v<targetVersion>)**" entry right above it.
  */
-export function updateReadmeContent(readmeContent, targetVersion, currentLibraries, explicitChanges) {
+export function updateReadmeContent(readmeContent, targetVersion, currentLibraries, explicitChanges, remote = DEFAULT_REMOTE_URL) {
     const mainEntry = parseMainVersionEntry(readmeContent);
     assertNoDowngrades(mainEntry.version, targetVersion, mainEntry.libraries, currentLibraries);
 
@@ -248,7 +249,7 @@ export function updateReadmeContent(readmeContent, targetVersion, currentLibrari
             throw new Error(
                 `Tracked library version(s) changed (${summary}), so the benchmark version must be bumped.\n` +
                     `Run: node script/bump-version.mjs <major|minor|patch> --changes "<summary of changes>"\n` +
-                    `Then ${formatBranchInstructions(mainEntry.version)}`
+                    `Then ${formatBranchInstructions(mainEntry.version, remote)}`
             );
         }
         const updatedMainBlock = formatMainBlock(targetVersion, currentLibraries, mainEntry.existingChanges);
@@ -266,7 +267,7 @@ export function updateReadmeContent(readmeContent, targetVersion, currentLibrari
  * Checks that README.md's "- **main (vX.Y.Z)**" entry matches both package.json's version
  * and the resolved library versions in workspace lockfiles. Throws an error with instructions if out of sync.
  */
-export function verifyReadmeInSync(readmeContent, packageVersion, currentLibraries) {
+export function verifyReadmeInSync(readmeContent, packageVersion, currentLibraries, remote = DEFAULT_REMOTE_URL) {
     const mainEntry = parseMainVersionEntry(readmeContent);
     assertNoDowngrades(mainEntry.version, packageVersion, mainEntry.libraries, currentLibraries);
 
@@ -277,7 +278,7 @@ export function verifyReadmeInSync(readmeContent, packageVersion, currentLibrari
                 "  1. Update README.md by running:\n" +
                 '       node script/bump-version.mjs --changes "<summary of changes>"\n' +
                 "  2. Commit the updated README.md.\n" +
-                `  3. ${formatBranchInstructions(mainEntry.version)}`
+                `  3. ${formatBranchInstructions(mainEntry.version, remote)}`
         );
     }
 
@@ -290,32 +291,32 @@ export function verifyReadmeInSync(readmeContent, packageVersion, currentLibrari
                     "  1. Run:\n" +
                     '       node script/bump-version.mjs <major|minor|patch> --changes "<summary of changes>"\n' +
                     "  2. Commit the updated package.json and README.md.\n" +
-                    `  3. ${formatBranchInstructions(mainEntry.version)}`
+                    `  3. ${formatBranchInstructions(mainEntry.version, remote)}`
             );
         }
     }
 }
 
 /**
- * Verifies that every "- **version-X.Y.Z**" branch listed in README.md exists on origin.
+ * Verifies that every "- **version-X.Y.Z**" branch listed in README.md exists on the target remote.
  */
-export function verifyVersionBranchesExist(readmeContent, remoteBranches) {
+export function verifyVersionBranchesExist(readmeContent, remoteBranches, remote = DEFAULT_REMOTE_URL) {
     const remoteBranchSet = new Set(remoteBranches);
     const listedBranches = parseVersionBranches(readmeContent);
 
     for (const branchName of listedBranches) {
         if (!remoteBranchSet.has(branchName)) {
             const version = branchName.replace(/^version-/, "");
-            throw new Error(`Branch "${branchName}" is listed in README.md under "## Version Branches", but does not exist on origin.\n\n` + `Before merging this PR, please ${formatBranchInstructions(version)}`);
+            throw new Error(`Branch "${branchName}" is listed in README.md under "## Version Branches", but does not exist on ${remote}.\n\n` + `Before merging this PR, please ${formatBranchInstructions(version, remote)}`);
         }
     }
 }
 
 /**
- * Fetches all "version-*" branch names currently present on origin.
+ * Fetches all "version-*" branch names currently present on the target remote.
  */
-async function getRemoteVersionBranches() {
-    const output = (await sh(["git", "ls-remote", "--heads", "origin", "refs/heads/version-*"])).stdoutString.trim();
+async function getRemoteVersionBranches(remote = DEFAULT_REMOTE_URL) {
+    const output = (await sh(["git", "ls-remote", "--heads", remote, "refs/heads/version-*"])).stdoutString.trim();
     if (!output) {
         return [];
     }
@@ -329,7 +330,7 @@ async function getRemoteVersionBranches() {
  * Synchronizes README.md (and optionally package.json) with the target version
  * and resolved library versions from lockfiles. Returns true if README.md changed.
  */
-export function syncReadmeWithPackageVersion({ versionArg, explicitChanges } = {}) {
+export function syncReadmeWithPackageVersion({ versionArg, explicitChanges, remote = DEFAULT_REMOTE_URL } = {}) {
     const packageJson = JSON.parse(fs.readFileSync(PACKAGE_JSON_PATH, "utf8"));
     const currentLibraries = getCurrentLibraryVersions();
     const readmeContent = fs.readFileSync(README_PATH, "utf8");
@@ -342,12 +343,12 @@ export function syncReadmeWithPackageVersion({ versionArg, explicitChanges } = {
         logInfo(`Updated ${PACKAGE_JSON_PATH} version to ${targetVersion}.`);
     }
 
-    const updatedReadme = updateReadmeContent(readmeContent, targetVersion, currentLibraries, explicitChanges);
+    const updatedReadme = updateReadmeContent(readmeContent, targetVersion, currentLibraries, explicitChanges, remote);
     if (updatedReadme !== readmeContent) {
         fs.writeFileSync(README_PATH, updatedReadme);
         logInfo(`Updated ${README_PATH} for main (v${targetVersion}).`);
         if (previousMainVersion !== targetVersion) {
-            logInfo(`\nReminder — before merging this version bump, ${formatBranchInstructions(previousMainVersion)}`);
+            logInfo(`\nReminder — before merging this version bump, ${formatBranchInstructions(previousMainVersion, remote)}`);
         }
         return true;
     }
@@ -360,6 +361,7 @@ async function main() {
         options: {
             changes: { type: "string", short: "c" },
             check: { type: "boolean", default: false },
+            remote: { type: "string", short: "r", default: DEFAULT_REMOTE_URL },
         },
         allowPositionals: true,
     });
@@ -368,10 +370,10 @@ async function main() {
         const packageJson = JSON.parse(fs.readFileSync(PACKAGE_JSON_PATH, "utf8"));
         const currentLibraries = getCurrentLibraryVersions();
         const readmeContent = fs.readFileSync(README_PATH, "utf8");
-        verifyReadmeInSync(readmeContent, packageJson.version, currentLibraries);
+        verifyReadmeInSync(readmeContent, packageJson.version, currentLibraries, values.remote);
 
-        const remoteBranches = await getRemoteVersionBranches();
-        verifyVersionBranchesExist(readmeContent, remoteBranches);
+        const remoteBranches = await getRemoteVersionBranches(values.remote);
+        verifyVersionBranchesExist(readmeContent, remoteBranches, values.remote);
 
         logInfo(`Verified ${README_PATH} and remote version branches match package.json version v${packageJson.version}.`);
         return;
@@ -380,6 +382,7 @@ async function main() {
     syncReadmeWithPackageVersion({
         versionArg: positionals[0],
         explicitChanges: values.changes,
+        remote: values.remote,
     });
 }
 
