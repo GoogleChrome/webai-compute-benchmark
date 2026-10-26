@@ -73,8 +73,7 @@ jobs:
                   path: |
                       resources/transformers-js/models
                       resources/litert-js/models
-                      resources/experimental/models
-                  key: ${{ runner.os }}-models-${{ hashFiles('**/download-models.mjs', '.gitattributes') }}
+                  key: ${{ runner.os }}-models-${{ hashFiles('**/download-models.mjs') }}
                   restore-keys: |
                       ${{ runner.os }}-models-
 

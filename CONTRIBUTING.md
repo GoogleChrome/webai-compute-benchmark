@@ -33,14 +33,12 @@ To propose a new workload, please add it to the `resources/experimental` directo
 
 ### Adding Experimental Workloads
 
-- Update the `description` and `dependencies` in `resources/experimental/package.json`.
-- Inside `resources/experimental/src/index.mjs`, add a new async function and `ModelConfig` for your workload similar to the existing example.
-- Adjust the code inside `resources/experimental/src/index.html` if needed.
-- Update `resources/experimental/src/download-models.mjs` to download the model. You can refer to `resources/transformers-js/src/download-models.mjs` and `resources/litert-js/src/download-models.mjs` as examples.
-- Add licensing information of the new model in `resources/experimental/license/NOTICE.md` and add any required license file in `resources/experimental/license/`.
-- Add `<your-new-workload-name>.mjs` inside `resources/experimental/src`, similar to the existing ones.
-- Add an entry and a plugin for the new workload in `resources/experimental/webpack.common.js`.
-- Update `.gitignore` if needed.
+- Add any required dependencies in `resources/experimental/package.json`.
+- Create a subdirectory `resources/experimental/src/<workload>/` containing your benchmark entry point(s) (e.g. `benchmark.mjs`), similar to the existing workloads. If the workload compiles C/C++ or Rust to WebAssembly, include a `build-wasm.sh` script, check in the prebuilt output under `resources/experimental/src/<workload>/build/`, and register the workload in `resources/experimental/build-wasm-workloads.sh` (see [`resources/experimental/README.md`](resources/experimental/README.md)).
+- Ensure that models are self-contained and not loaded remotely from a CDN or the Hugging Face Hub at runtime. Place model files under `resources/experimental/models/<workload>/` and track large binary files with Git LFS in `.gitattributes`.
+- Add licensing information for the library and/or model in `resources/experimental/licenses/NOTICE.md` and add any required license file in `resources/experimental/licenses/`.
+- Add an entry and an `HtmlWebpackPlugin` (using `src/console-runner.html` as the template) for the new workload in `resources/experimental/webpack.common.js`.
+- Update `.gitignore` or `.gitattributes` if needed.
 - Run `npm run build` in the repository root directory. Alternatively, you can run `npm install` and `npm run build` inside `resources/experimental`.
 - Add the workload to `resources/default-tests.mjs` with (optionally) the `Experimental-` prefix and `experimental` tag, analogous to the existing workloads.
 - Serve the overall runner via `npm run dev` in the repository root directory.
