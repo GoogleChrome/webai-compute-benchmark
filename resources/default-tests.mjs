@@ -192,6 +192,18 @@ export const defaultSuites = [
         type: "remote",
     },
     {
+        name: "Experimental-Eigen-Eig33-wasm",
+        url: "resources/experimental/dist/eigen-eig33.html",
+        tags: ["experimental", "eigen", "wasm", "wasm-compute-kernels"],
+        type: "remote",
+    },
+    {
+        name: "Experimental-Eigen-Geometry-wasm",
+        url: "resources/experimental/dist/eigen-geometry.html",
+        tags: ["experimental", "eigen", "wasm", "wasm-compute-kernels"],
+        type: "remote",
+    },
+    {
         name: "Experimental-GGML-wasm",
         url: "resources/experimental/dist/ggml.html",
         tags: ["experimental", "ggml", "wasm", "wasm-compute-kernels"],
