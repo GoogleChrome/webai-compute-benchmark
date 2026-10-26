@@ -18,7 +18,7 @@
     "author": "",
     "license": "ISC",
     "dependencies": {
-        "@huggingface/transformers": "4.0.1",
+        "@huggingface/transformers": "4.3.1",
         "@litert-lm/core": "^0.15.0",
         "@wllama/wllama": "^3.8.1",
         "html-webpack-plugin": "^5.6.4",
