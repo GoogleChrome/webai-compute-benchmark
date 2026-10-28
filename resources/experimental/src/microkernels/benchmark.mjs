@@ -49,7 +49,7 @@ function instantiatePrecompiled(wasmModule, onError) {
 
 function parseSingleVectorTime(regex, label, stdout) {
     if (/^Failed /m.test(stdout)) {
-        console.warn(`microkernels "${label}" reported a validation failure:\n${stdout}`);
+        throw new Error(`microkernels "${label}" reported a validation failure:\n${stdout}`);
     }
     const match = stdout.match(regex);
     if (!match) {
