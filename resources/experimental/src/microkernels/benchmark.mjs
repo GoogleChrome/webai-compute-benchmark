@@ -9,8 +9,8 @@
  */
 
 import MicrokernelsModule from "./build/microkernels.mjs";
-import { AsyncBenchmarkStep, AsyncBenchmarkSuite, BenchmarkConnector } from "speedometer-utils/benchmark.mjs";
-import { forceLayout } from "speedometer-utils/helpers.mjs";
+import { AsyncBenchmarkSuite, BenchmarkConnector } from "speedometer-utils/benchmark.mjs";
+import { createSubIteratedSteps, instantiatePrecompiled } from "speedometer-utils/helpers.mjs";
 import { params } from "speedometer-utils/params.mjs";
 
 const microkernelsUrl = new URL("./build/microkernels.wasm", import.meta.url);
@@ -34,15 +34,6 @@ const MAC_SUB_BENCHMARK_NAMES = ["1d", "2d", "3d", "4d"];
 
 const MAC_VECTOR_TIME_REGEX = /^total mac vector run time:\s*([0-9]*\.?[0-9]+(?:[eE][-+]?[0-9]+)?)/m;
 const CONVERT_VECTOR_TIME_REGEX = /^total convert vector run time:\s*([0-9]*\.?[0-9]+(?:[eE][-+]?[0-9]+)?)/m;
-
-function instantiatePrecompiled(wasmModule, onError) {
-    return (imports, successCallback) => {
-        WebAssembly.instantiate(wasmModule, imports).then((instance) => {
-            successCallback(instance, wasmModule);
-        }, onError);
-        return {};
-    };
-}
 
 function parseSingleVectorTime(regex, label, stdout) {
     if (/^Failed /m.test(stdout)) {
@@ -116,28 +107,6 @@ class MicrokernelsBenchmark {
             total: parseConvertOutput(stdout),
         };
     }
-}
-
-function createSubIteratedSteps(runFn, subIterationCount) {
-    return Array.from({ length: subIterationCount }, (_, i) => {
-        let parsedResult = null;
-        const step = new AsyncBenchmarkStep(
-            `sub-iter-${i + 1}`,
-            async () => {
-                forceLayout();
-                parsedResult = await runFn();
-                forceLayout();
-            },
-            { measureAsync: false }
-        );
-        return {
-            name: step.name,
-            async runAndRecord(stepParams, suite, recordCallback) {
-                await step.runAndRecord(stepParams, suite, recordCallback);
-                return parsedResult;
-            },
-        };
-    });
 }
 
 function createMicrokernelsSuite(benchmark, suiteName, subIterationCount) {
