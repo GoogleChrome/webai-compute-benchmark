@@ -200,13 +200,13 @@ export const defaultSuites = [
     {
         name: "Experimental-Microkernels-MAC-wasm",
         url: "resources/experimental/dist/microkernels-mac.html",
-        tags: ["experimental", "microkernels", "wasm", "wasm-compute-kernels"],
+        tags: ["experimental", "wasm", "wasm-compute-kernels"],
         type: "remote",
     },
     {
         name: "Experimental-Microkernels-Convert-wasm",
         url: "resources/experimental/dist/microkernels-convert.html",
-        tags: ["experimental", "microkernels", "wasm", "wasm-compute-kernels"],
+        tags: ["experimental", "wasm", "wasm-compute-kernels"],
         type: "remote",
     },
     {
