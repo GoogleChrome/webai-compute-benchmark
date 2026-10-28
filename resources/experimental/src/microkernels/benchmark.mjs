@@ -110,29 +110,26 @@ class MicrokernelsBenchmark {
 }
 
 function createMicrokernelsSuite(benchmark, suiteName, subIterationCount) {
-    if (suiteName === "mac") {
-        // TODO(ryandiaz) We may want to report the total as a geomean
-        // so one sub benchmark doesn't dominate.
-        const steps = MAC_SUB_BENCHMARK_NAMES.map((name) => {
-            const subSuite = new AsyncBenchmarkSuite(
-                name,
-                createSubIteratedSteps(() => benchmark.runMacSubBenchmark(name), subIterationCount)
-            );
-            return {
-                name,
-                async runAndRecord(stepParams, _parentSuite, _parentRecord, onProgress) {
-                    const { result } = await subSuite.runAndRecord(stepParams, onProgress);
-                    return result;
-                },
-            };
-        });
-        return new AsyncBenchmarkSuite("default", steps);
-    }
+    const subBenchmarkNames = suiteName === "mac" ? MAC_SUB_BENCHMARK_NAMES : ["1d"];
+    const runSubBenchmark = (name) =>
+        suiteName === "mac" ? benchmark.runMacSubBenchmark(name) : benchmark.runConvertSubBenchmark();
 
-    return new AsyncBenchmarkSuite(
-        "default",
-        createSubIteratedSteps(() => benchmark.runConvertSubBenchmark(), subIterationCount)
-    );
+    // TODO(ryandiaz): We may want to report the total as a geomean
+    // so one sub-benchmark doesn't dominate.
+    const steps = subBenchmarkNames.map((name) => {
+        const subSuite = new AsyncBenchmarkSuite(
+            name,
+            createSubIteratedSteps(() => runSubBenchmark(name), subIterationCount)
+        );
+        return {
+            name,
+            async runAndRecord(stepParams, _parentSuite, _parentRecord, onProgress) {
+                const { result } = await subSuite.runAndRecord(stepParams, onProgress);
+                return result;
+            },
+        };
+    });
+    return new AsyncBenchmarkSuite("default", steps);
 }
 
 const VALID_SUITES = new Set(["mac", "convert"]);
