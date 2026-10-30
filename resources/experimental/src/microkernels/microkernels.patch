@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 diff --git a/convert.h b/convert.h
-index feb9388..4a9ea13 100644
+index feb9388..3205ea7 100644
 --- a/convert.h
 +++ b/convert.h
 @@ -3,6 +3,8 @@
@@ -13,7 +13,7 @@ index feb9388..4a9ea13 100644
  #include "util.h"
  
  template <typename OutTy, typename InTy>
-@@ -39,7 +41,15 @@ bool init_and_run_convert_1d(double& total_vector_time, double& total_scalar_tim
+@@ -39,12 +41,21 @@ bool init_and_run_convert_1d(double& total_vector_time, double& total_scalar_tim
    InTy *in = new InTy[N];
    OutTy *out = new OutTy[N];
    for (unsigned i = 0; i < N; ++i) {
@@ -30,6 +30,12 @@ index feb9388..4a9ea13 100644
    }
    Result res = convert_1d<OutTy, InTy>(out, in, N);
    total_vector_time += res.vector_msec;
+   total_scalar_time += res.scalar_msec;
+   delete[] in;
++  delete[] out;
+   return res.success;
+ }
+ 
 diff --git a/mac.h b/mac.h
 index bd609b6..10a6bf8 100644
 --- a/mac.h
@@ -196,3 +202,15 @@ index bd609b6..10a6bf8 100644
      b[i].x = static_cast<InTyB>(fast_rand());
      b[i].y = static_cast<InTyB>(fast_rand());
      b[i].z = static_cast<InTyB>(fast_rand());
+diff --git a/main.cc b/main.cc
+index 1630ea0..8d8fd97 100644
+--- a/main.cc
++++ b/main.cc
+@@ -200,6 +200,7 @@ int main(int argc, char** argv) {
+     if (run_mac_kernels<1>(N) == FAIL) {
+       std::cout << "Failed mac 1d kernels" << std::endl;
+     }
++  } else if (benchmark == "convert") {
+     if (run_convert_kernels(N) == FAIL) {
+       std::cout << "Failed convert kernels" << std::endl;
+     }

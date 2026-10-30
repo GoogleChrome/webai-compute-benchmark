@@ -72,8 +72,7 @@ class MicrokernelsBenchmark {
 
     /**
      * Runs a single CLI sub-benchmark in a fresh module instance, so that each
-     * run starts with a clean linear memory (the 1d convert kernels do not
-     * free their output buffers).
+     * run starts with a clean linear memory.
      */
     async runCliArg(arg) {
         console.log(`Running microkernels (${this.suiteName}) ${arg}...`);
@@ -101,7 +100,7 @@ class MicrokernelsBenchmark {
     }
 
     async runConvertSubBenchmark() {
-        const stdout = await this.runCliArg("1d");
+        const stdout = await this.runCliArg("convert");
         return {
             tests: {},
             total: parseConvertOutput(stdout),
