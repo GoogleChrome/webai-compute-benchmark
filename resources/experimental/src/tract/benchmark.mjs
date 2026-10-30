@@ -11,8 +11,8 @@
 import OnnxMobilenetModule from "./build/example-onnx-mobilenet-v2.mjs";
 import PytorchResnetModule from "./build/example-pytorch-resnet.mjs";
 import TfliteMobilenetModule from "./build/example-tflite-mobilenet-v3.mjs";
-import { AsyncBenchmarkStep, AsyncBenchmarkSuite, BenchmarkConnector } from "speedometer-utils/benchmark.mjs";
-import { forceLayout } from "speedometer-utils/helpers.mjs";
+import { AsyncBenchmarkSuite, BenchmarkConnector } from "speedometer-utils/benchmark.mjs";
+import { createSubIteratedSteps, instantiatePrecompiled } from "speedometer-utils/helpers.mjs";
 import { params } from "speedometer-utils/params.mjs";
 
 const WASM_URLS = {
@@ -120,15 +120,6 @@ const MODEL_SUITES = {
     ],
 };
 
-function instantiatePrecompiled(wasmModule, onError) {
-    return (imports, successCallback) => {
-        WebAssembly.instantiate(wasmModule, imports).then((instance) => {
-            successCallback(instance, wasmModule);
-        }, onError);
-        return {};
-    };
-}
-
 async function fetchUint8Array(url) {
     const response = await fetch(url);
     if (!response.ok) {
@@ -224,34 +215,14 @@ class TractBenchmark {
     }
 }
 
-function createTractSubSuite(benchmark, subBenchmark, subIterationCount) {
-    const steps = Array.from({ length: subIterationCount }, (_, i) => {
-        let parsedResult = null;
-        const step = new AsyncBenchmarkStep(
-            `sub-iter-${i + 1}`,
-            async () => {
-                forceLayout();
-                parsedResult = await benchmark.runSubBenchmark(subBenchmark);
-                forceLayout();
-            },
-            { measureAsync: false }
-        );
-        return {
-            name: step.name,
-            async runAndRecord(stepParams, suite, recordCallback) {
-                await step.runAndRecord(stepParams, suite, recordCallback);
-                return parsedResult;
-            },
-        };
-    });
-    return new AsyncBenchmarkSuite(subBenchmark.name, steps);
-}
-
 // TODO(ryandiaz) We may want to report the total as a geomean
 // so one sub benchmark doesn't dominate.
 function createSuiteSteps(benchmark, subBenchmarks, subIterationCount) {
     return subBenchmarks.map((subBenchmark) => {
-        const subSuite = createTractSubSuite(benchmark, subBenchmark, subIterationCount);
+        const subSuite = new AsyncBenchmarkSuite(
+            subBenchmark.name,
+            createSubIteratedSteps(() => benchmark.runSubBenchmark(subBenchmark), subIterationCount)
+        );
         return {
             name: subBenchmark.name,
             async runAndRecord(stepParams, _parentSuite, _parentRecord, onProgress) {

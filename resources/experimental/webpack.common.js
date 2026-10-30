@@ -16,6 +16,8 @@ module.exports = {
         "eigen-geometry": "./src/eigen/geometry.mjs",
         ggml: "./src/ggml/benchmark.mjs",
         meshoptimizer: "./src/meshoptimizer/benchmark.mjs",
+        "microkernels-mac": "./src/microkernels/mac.mjs",
+        "microkernels-convert": "./src/microkernels/convert.mjs",
         "ncnn-resnet50-int8": "./src/ncnn/resnet50-int8.mjs",
         "ncnn-efficientnetv2-b0": "./src/ncnn/efficientnetv2-b0.mjs",
         "ncnn-yolov4-tiny": "./src/ncnn/yolov4-tiny.mjs",
@@ -61,6 +63,18 @@ module.exports = {
             template: path.resolve(__dirname, "src", "console-runner.html"),
             filename: "meshoptimizer.html",
             chunks: ["meshoptimizer"],
+        }),
+        new HtmlWebpackPlugin({
+            title: "Experimental Microkernels MAC Runner",
+            template: path.resolve(__dirname, "src", "console-runner.html"),
+            filename: "microkernels-mac.html",
+            chunks: ["microkernels-mac"],
+        }),
+        new HtmlWebpackPlugin({
+            title: "Experimental Microkernels Convert Runner",
+            template: path.resolve(__dirname, "src", "console-runner.html"),
+            filename: "microkernels-convert.html",
+            chunks: ["microkernels-convert"],
         }),
         new HtmlWebpackPlugin({
             title: "Experimental NCNN ResNet50-INT8 Runner",

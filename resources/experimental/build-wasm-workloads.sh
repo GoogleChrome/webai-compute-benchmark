@@ -24,6 +24,7 @@ DEFAULT_WORKLOADS=(
   eigen
   ggml
   meshoptimizer
+  microkernels
   ncnn
   tract
 )

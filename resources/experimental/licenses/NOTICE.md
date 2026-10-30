@@ -3,6 +3,7 @@
 - [Eigen](https://gitlab.com/libeigen/eigen): licensed under the Mozilla Public License Version 2.0. The full text is available in [LICENSE.eigen](LICENSE.eigen).
 - [ggml](https://github.com/ggml-org/ggml): licensed under the MIT License. The full text is available in [LICENSE.ggml](LICENSE.ggml).
 - [meshoptimizer](https://github.com/zeux/meshoptimizer): licensed under the MIT License. The full text is available in [LICENSE.meshoptimizer](LICENSE.meshoptimizer).
+- [wasm-perf microkernels](https://gitlab.arm.com/runtimes/wasm-perf/-/tree/main/benchmarks/microkernels): licensed under the BSD 3-Clause License. The full text is available in [LICENSE.wasm-perf](LICENSE.wasm-perf).
 - [ncnn](https://github.com/Tencent/ncnn): licensed under the BSD 3-Clause License, except for bundled third-party components. The full text is available in [LICENSE.ncnn](LICENSE.ncnn).
 - [tract](https://github.com/sonos/tract): licensed under the Apache License, Version 2.0. The full text is available in [LICENSE.apache2](LICENSE.apache2).
 - [wllama](https://github.com/ngxson/wllama) / [llama.cpp](https://github.com/ggml-org/llama.cpp): licensed under the MIT License. The full text is available in [LICENSE.mit](LICENSE.mit).

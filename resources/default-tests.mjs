@@ -210,6 +210,18 @@ export const defaultSuites = [
         type: "remote",
     },
     {
+        name: "Experimental-Microkernels-MAC-wasm",
+        url: "resources/experimental/dist/microkernels-mac.html",
+        tags: ["experimental", "wasm", "wasm-compute-kernels"],
+        type: "remote",
+    },
+    {
+        name: "Experimental-Microkernels-Convert-wasm",
+        url: "resources/experimental/dist/microkernels-convert.html",
+        tags: ["experimental", "wasm", "wasm-compute-kernels"],
+        type: "remote",
+    },
+    {
         name: "Experimental-NCNN-ResNet50-INT8-wasm",
         url: "resources/experimental/dist/ncnn-resnet50-int8.html",
         tags: ["experimental", "ncnn", "wasm", "wasm-compute-kernels"],

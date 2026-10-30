@@ -24,6 +24,46 @@ export function createSubIteratedSuite(benchmark, subIterationCount) {
     return new AsyncBenchmarkSuite("default", steps);
 }
 
+/**
+ * Creates `subIterationCount` async benchmark steps (`sub-iter-1` .. `sub-iter-N`)
+ * that return the `{ tests, total }` result produced by `runFn()` instead of the
+ * outer JS step duration, for workloads that report internal Wasm timings.
+ */
+export function createSubIteratedSteps(runFn, subIterationCount) {
+    return Array.from({ length: subIterationCount }, (_, i) => {
+        let parsedResult = null;
+        const step = new AsyncBenchmarkStep(
+            `sub-iter-${i + 1}`,
+            async () => {
+                forceLayout();
+                parsedResult = await runFn();
+                forceLayout();
+            },
+            { measureAsync: false }
+        );
+        return {
+            name: step.name,
+            async runAndRecord(stepParams, suite, recordCallback) {
+                await step.runAndRecord(stepParams, suite, recordCallback);
+                return parsedResult;
+            },
+        };
+    });
+}
+
+/**
+ * Emscripten `instantiateWasm` callback factory that instantiates an already-compiled
+ * `WebAssembly.Module`, avoiding repeated compilation inside measured runs.
+ */
+export function instantiatePrecompiled(wasmModule, onError) {
+    return (imports, successCallback) => {
+        WebAssembly.instantiate(wasmModule, imports).then((instance) => {
+            successCallback(instance, wasmModule);
+        }, onError);
+        return {};
+    };
+}
+
 export async function getVisualOutputCanvas(width, height) {
     const output = document.getElementById("output");
     output.classList.add("visual-output");
