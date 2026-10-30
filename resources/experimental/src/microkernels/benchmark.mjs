@@ -15,8 +15,9 @@ import { params } from "speedometer-utils/params.mjs";
 
 const microkernelsUrl = new URL("./build/microkernels.wasm", import.meta.url);
 
-//Loop count `N` passed to every sub-benchmark
-const LOOP_COUNT = 1000000;
+// Loop count `N` passed to each suite's sub-benchmarks
+const MAC_LOOP_COUNT = 5000000;
+const CONVERT_LOOP_COUNT = 10000000;
 
 /**
  * `microkernels/src/main.cc` times auto-vectorized kernels over arrays of
@@ -74,12 +75,12 @@ class MicrokernelsBenchmark {
      * Runs a single CLI sub-benchmark in a fresh module instance, so that each
      * run starts with a clean linear memory.
      */
-    async runCliArg(arg) {
-        console.log(`Running microkernels (${this.suiteName}) ${arg}...`);
+    async runCliArg(loopCount, arg) {
+        console.log(`Running microkernels (${this.suiteName}) ${arg} (N=${loopCount})...`);
         let stdout = "";
         await new Promise((resolve, reject) => {
             MicrokernelsModule({
-                arguments: [String(LOOP_COUNT), arg],
+                arguments: [String(loopCount), arg],
                 print: (line) => {
                     console.log(`  [${this.suiteName}:${arg}] ${line}`);
                     stdout += `${line}\n`;
@@ -92,7 +93,7 @@ class MicrokernelsBenchmark {
     }
 
     async runMacSubBenchmark(name) {
-        const stdout = await this.runCliArg(name);
+        const stdout = await this.runCliArg(MAC_LOOP_COUNT, name);
         return {
             tests: {},
             total: parseMacOutput(name, stdout),
@@ -100,7 +101,7 @@ class MicrokernelsBenchmark {
     }
 
     async runConvertSubBenchmark() {
-        const stdout = await this.runCliArg("convert");
+        const stdout = await this.runCliArg(CONVERT_LOOP_COUNT, "convert");
         return {
             tests: {},
             total: parseConvertOutput(stdout),

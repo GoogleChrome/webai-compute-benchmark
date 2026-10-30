@@ -72,8 +72,8 @@ else
   CXXFLAGS_ARR=("${DEFAULT_CXXFLAGS[@]}")
 fi
 
-# Each sub-benchmark allocates its input/output buffers (up to ~64 MB for the
-# 4D double kernels with N = 1,000,000) on the heap, so memory growth is
+# Each sub-benchmark allocates its input/output buffers (up to ~320 MB for the
+# 4D double kernels with N = 5,000,000) on the heap, so memory growth is
 # required. benchmark.mjs instantiates a fresh module per run, passing the loop
 # count and sub-benchmark name via `Module.arguments`.
 EM_LDFLAGS=(
