@@ -28,7 +28,7 @@ const MODELS_TO_DOWNLOAD = [
     {
         id: "Xenova/modnet",
         task: "background-removal",
-        dtype: "uint8",
+        dtype: "fp16",
     },
     {
         id: "mixedbread-ai/mxbai-rerank-base-v1",

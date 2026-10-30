@@ -1,3 +1,5 @@
+// Must be imported before any ML runtime is initialized, see workload-teardown.mjs.
+import { registerTeardown } from "speedometer-utils/workload-teardown.mjs";
 import Gemma from "./build/gemma_cpp_js.mjs";
 import { BenchmarkConnector } from "speedometer-utils/benchmark.mjs";
 import { createDownloadProgressLogger } from "speedometer-utils/download-utils.mjs";
@@ -28,6 +30,10 @@ class GemmaBenchmark {
         console.timeEnd("gemma-generation");
         console.log(result);
     }
+    dispose() {
+        this.model?.delete();
+        this.model = null;
+    }
 }
 
 const appName = "Gemma";
@@ -36,6 +42,8 @@ const appVersion = "0.1.0";
 let benchmark;
 try {
     benchmark = new GemmaBenchmark();
+    // Registered before init() so a partially initialized workload is released as well.
+    registerTeardown(() => benchmark.dispose());
     await benchmark.init();
 } catch (error) {
     console.error(error.message);

@@ -1,18 +1,17 @@
 import { STEP_RUNNER_LOOKUP } from "./shared/step-runner.mjs";
 import { isValidUrl } from "./shared/params.mjs";
-import { WarmupSuite } from "./benchmark-runner.mjs";
 import { isValidIdentifier } from "./shared/helpers.mjs";
 
 export class SuiteRunner {
     #frame;
-    #page;
     #params;
     #suite;
     #client;
     #suiteResults;
     #prepareTime = 0;
+    #stopForwardingFrameErrors = null;
 
-    constructor(frame, page, params, suite, client, measuredValues) {
+    constructor(frame, params, suite, client, measuredValues) {
         if (!isValidIdentifier(suite?.name)) {
             throw new Error(`Invalid suite.name=${suite?.name}, expected valid identifier.`);
         }
@@ -26,7 +25,6 @@ export class SuiteRunner {
             measuredValues.steps[suite.name] = this.#suiteResults;
         }
         this.#frame = frame;
-        this.#page = page;
         this.#client = client;
         this.#suite = suite;
         this.#params = params;
@@ -34,10 +32,6 @@ export class SuiteRunner {
 
     get frame() {
         return this.#frame;
-    }
-
-    get page() {
-        return this.#page;
     }
 
     get params() {
@@ -57,12 +51,22 @@ export class SuiteRunner {
     }
 
     get stepRunnerType() {
-        return (this.#suite.type ?? this.params.useAsyncSteps) ? "async" : "default";
+        return this.#suite.type ? "async" : "default";
     }
 
     async run() {
         await this._prepareSuite();
         await this._runSuite();
+    }
+
+    /**
+     * Called by the BenchmarkRunner once the suite is done, whether it succeeded
+     * or failed, right before the frame is removed.
+     */
+    async teardown() {
+        // Errors raised while the workload shuts down don't affect the results.
+        this.#stopForwardingFrameErrors?.();
+        this.#stopForwardingFrameErrors = null;
     }
 
     async _prepareSuite() {
@@ -72,7 +76,7 @@ export class SuiteRunner {
 
         performance.mark(suitePrepareStartLabel);
         await this._loadFrame();
-        await this.#suite.prepare(this.#page);
+        await this.#suite.prepare();
         performance.mark(suitePrepareEndLabel);
 
         const entry = performance.measure(`suite-${suiteName}-prepare`, suitePrepareStartLabel, suitePrepareEndLabel);
@@ -92,7 +96,7 @@ export class SuiteRunner {
 
             const stepRunnerType = this.stepRunnerType;
             const stepRunnerClass = STEP_RUNNER_LOOKUP[stepRunnerType];
-            const stepRunner = new stepRunnerClass(this.#frame, this.#page, this.#params, this.#suite, step, this._recordStepResults, stepRunnerType);
+            const stepRunner = new stepRunnerClass(this.#frame, null, this.#params, this.#suite, step, this._recordStepResults, stepRunnerType);
             await stepRunner.runStep();
         }
         performance.mark(suiteEndLabel);
@@ -121,7 +125,7 @@ export class SuiteRunner {
             frame.onload = () => {
                 const contentWindow = frame.contentWindow;
                 if (contentWindow) {
-                    contentWindow.addEventListener("error", (e) => {
+                    const forwardError = (e) => {
                         window.dispatchEvent(
                             new ErrorEvent("error", {
                                 message: e.message,
@@ -131,15 +135,21 @@ export class SuiteRunner {
                                 error: e.error,
                             })
                         );
-                    });
-                    contentWindow.addEventListener("unhandledrejection", (e) => {
+                    };
+                    const forwardRejection = (e) => {
                         window.dispatchEvent(
                             new PromiseRejectionEvent("unhandledrejection", {
                                 promise: e.promise,
                                 reason: e.reason,
                             })
                         );
-                    });
+                    };
+                    contentWindow.addEventListener("error", forwardError);
+                    contentWindow.addEventListener("unhandledrejection", forwardRejection);
+                    this.#stopForwardingFrameErrors = () => {
+                        contentWindow.removeEventListener("error", forwardError);
+                        contentWindow.removeEventListener("unhandledrejection", forwardRejection);
+                    };
                 }
                 resolve();
             };
@@ -154,11 +164,6 @@ export class SuiteRunner {
     }
 
     _recordStepResults = async (step, syncTime, asyncTime) => {
-        // Skip reporting updates for the warmup suite.
-        if (this.#suite === WarmupSuite) {
-            return;
-        }
-
         let total = syncTime + asyncTime;
         this.#suiteResults.steps[step.name] = {
             tests: { Sync: syncTime, Async: asyncTime },
@@ -175,9 +180,15 @@ export class SuiteRunner {
     }
 }
 
+// How long to wait for a workload to release its resources (see
+// shared/workload-teardown.mjs) before removing its frame anyway.
+const WORKLOAD_TEARDOWN_TIMEOUT_MS = 10000;
+
 export class RemoteSuiteRunner extends SuiteRunner {
     #appId;
     #prepareTime;
+    #messageHandler = null;
+    #workloadSupportsTeardown = false;
 
     get appId() {
         return this.#appId;
@@ -189,15 +200,63 @@ export class RemoteSuiteRunner extends SuiteRunner {
 
     async run() {
         this.postMessageCallbacks = new Map();
-        const handler = this._handlePostMessage.bind(this);
-        window.addEventListener("message", handler);
+        this._startListening();
+        // Workloads using shared/workload-teardown.mjs announce that they can
+        // release their resources on request, see teardown().
+        this._startSubscription("teardown-ready", () => {
+            this.#workloadSupportsTeardown = true;
+        });
 
         // FIXME: use this._suite in all SuiteRunner methods directly.
         try {
             await this._prepareSuite();
             await this._runSuite();
         } finally {
-            window.removeEventListener("message", handler);
+            this._stopListening();
+        }
+    }
+
+    async teardown() {
+        await super.teardown();
+        // run() never returns if the workload reported an error, so its
+        // listener and subscriptions might still be registered. Drop them, so a
+        // late "suite-complete" can't resume the failed suite during teardown.
+        this._stopListening();
+        this.postMessageCallbacks?.clear();
+        const contentWindow = this.frame?.contentWindow;
+        if (!this.#workloadSupportsTeardown || !contentWindow) {
+            return;
+        }
+        // Removing the frame isn't enough to reliably free the memory used by the
+        // workload, so ask it to release its resources explicitly first.
+        this._startListening();
+        let timeoutId;
+        try {
+            const teardownComplete = this._subscribeOnce("teardown-complete").then(() => true);
+            const timeout = new Promise((resolve) => {
+                timeoutId = setTimeout(() => resolve(false), WORKLOAD_TEARDOWN_TIMEOUT_MS);
+            });
+            contentWindow.postMessage({ key: "benchmark-connector", type: "benchmark-teardown" }, window.location.origin);
+            if (!(await Promise.race([teardownComplete, timeout]))) {
+                console.warn(`Workload ${this.suite.name} did not finish its teardown within ${WORKLOAD_TEARDOWN_TIMEOUT_MS}ms.`);
+            }
+        } finally {
+            clearTimeout(timeoutId);
+            this._stopListening();
+        }
+    }
+
+    _startListening() {
+        if (!this.#messageHandler) {
+            this.#messageHandler = this._handlePostMessage.bind(this);
+            window.addEventListener("message", this.#messageHandler);
+        }
+    }
+
+    _stopListening() {
+        if (this.#messageHandler) {
+            window.removeEventListener("message", this.#messageHandler);
+            this.#messageHandler = null;
         }
     }
 
@@ -212,7 +271,7 @@ export class RemoteSuiteRunner extends SuiteRunner {
         const appReadyPromise = this._subscribeOnce("app-ready");
         await this._loadFrame(this.suite);
         const response = await appReadyPromise;
-        await this.suite.prepare?.(this.page);
+        await this.suite.prepare?.();
         // Capture appId to pass along with messages.
         this.appId = response?.appId;
 

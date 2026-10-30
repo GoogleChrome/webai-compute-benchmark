@@ -1,6 +1,7 @@
 import { BenchmarkRunner, geomeanToScore } from "../../resources/benchmark-runner.mjs";
 import { SuiteRunner, RemoteSuiteRunner } from "../../resources/suite-runner.mjs";
 import { StepRunner } from "../../resources/shared/step-runner.mjs";
+import { ensureWebGPU, WEBGPU_UNAVAILABLE_ERROR_MESSAGE } from "../../resources/shared/helpers.mjs";
 import { defaultParams } from "../../resources/shared/params.mjs";
 
 function STEP_FIXTURE(name) {
@@ -13,14 +14,14 @@ function STEP_FIXTURE(name) {
 const SUITES_FIXTURE = [
     {
         name: "Suite 1",
-        async prepare(page) {},
+        async prepare() {},
         enabled: true,
         tags: ["webgpu"],
         steps: [STEP_FIXTURE("Test 1"), STEP_FIXTURE("Test 2"), STEP_FIXTURE("Test 3")],
     },
     {
         name: "Suite 2",
-        async prepare(page) {},
+        async prepare() {},
         enabled: true,
         tags: ["wasm"],
         steps: [STEP_FIXTURE("Test 1")],
@@ -170,6 +171,31 @@ describe("BenchmarkRunner", () => {
                     runner._resetMeasuredValues();
                 }
             });
+
+            it("should tear down every suite, including failing ones, before removing its frame", async () => {
+                const teardownRunner = new BenchmarkRunner(SUITES_FIXTURE, { ...CLIENT_FIXTURE, didFailSuite: sinon.stub() });
+                stub(SuiteRunner.prototype, "_loadFrame").callsFake(async () => null);
+                stub(SuiteRunner.prototype, "_runSuite")
+                    .onFirstCall()
+                    .rejects(new Error("Suite failed"))
+                    .onSecondCall()
+                    .callsFake(async () => null);
+                const teardownStub = stub(SuiteRunner.prototype, "teardown").callsFake(async () => null);
+                stub(teardownRunner, "_finalize").callsFake(async () => null);
+                stub(teardownRunner, "_appendFrame").callsFake(async () => null);
+                const removeFrameStub = stub(teardownRunner, "_removeFrame").callsFake(() => null);
+                stub(console, "error");
+
+                await teardownRunner.runAllSuites(0);
+
+                assert.calledOnce(teardownRunner._client.didFailSuite);
+                assert.calledTwice(teardownStub);
+                assert.calledTwice(removeFrameStub);
+                expect(teardownStub.getCall(0).calledBefore(removeFrameStub.getCall(0))).to.be(true);
+                expect(removeFrameStub.getCall(0).calledBefore(teardownStub.getCall(1))).to.be(true);
+                expect(teardownStub.getCall(1).calledBefore(removeFrameStub.getCall(1))).to.be(true);
+                expect(teardownRunner._suiteRunner).to.be(null);
+            });
         });
 
         describe("runSuite", () => {
@@ -217,7 +243,7 @@ describe("BenchmarkRunner", () => {
                 runner._suite = suite;
                 await runner._appendFrame();
                 performanceMarkSpy = spy(window.performance, "mark");
-                const suiteRunner = new SuiteRunner(runner._frame, runner._page, params, suite, runner._client, runner._measuredValues);
+                const suiteRunner = new SuiteRunner(runner._frame, params, suite, runner._client, runner._measuredValues);
                 await suiteRunner._runSuite();
             });
 
@@ -247,11 +273,7 @@ describe("BenchmarkRunner", () => {
 
                 const params = { measurementMethod: "raf" };
 
-                let originalEnabledState;
                 before(async () => {
-                    originalEnabledState = SUITES_FIXTURE[0].enabled;
-                    SUITES_FIXTURE[0].enabled = false;
-
                     stub(runner, "_measuredValues").value({
                         steps: {},
                     });
@@ -265,14 +287,10 @@ describe("BenchmarkRunner", () => {
                     performanceNowStub.onSecondCall().returns(asyncEnd);
 
                     // instantiate recorded test results
-                    const suiteRunner = new SuiteRunner(runner._frame, runner._page, params, suite, runner._client, runner._measuredValues);
+                    const suiteRunner = new SuiteRunner(runner._frame, params, suite, runner._client, runner._measuredValues);
                     await suiteRunner._runSuite();
 
                     await runner._finalize();
-                });
-
-                after(() => {
-                    SUITES_FIXTURE[0].enabled = originalEnabledState;
                 });
 
                 it("should calculate measured test values correctly", () => {
@@ -300,8 +318,8 @@ describe("BenchmarkRunner", () => {
 
             beforeEach(async () => {
                 frame = await runner._appendFrame();
-                const suite = { name: "Remote Suite", url: "resources/warmup/index.html", type: "remote" };
-                remoteRunner = new RemoteSuiteRunner(frame, runner._page, defaultParams, suite, runner._client, { steps: {} });
+                const suite = { name: "Remote Suite", url: "resources/transformers-js/dist/feature-extraction-cpu.html", type: "remote" };
+                remoteRunner = new RemoteSuiteRunner(frame, defaultParams, suite, runner._client, { steps: {} });
                 remoteRunner.postMessageCallbacks = new Map();
             });
 
@@ -330,6 +348,190 @@ describe("BenchmarkRunner", () => {
                 }
                 remoteRunner.suiteResults.total = 10;
                 expect(() => remoteRunner._validateSuiteResults()).to.not.throwError();
+            });
+
+            it("should not request a teardown from workloads that did not announce support for it", async () => {
+                stub(remoteRunner, "_prepareSuite").callsFake(async () => null);
+                stub(remoteRunner, "_runSuite").callsFake(async () => null);
+                await remoteRunner.run();
+                const postMessageStub = stub(frame.contentWindow, "postMessage");
+
+                await remoteRunner.teardown();
+
+                assert.notCalled(postMessageStub);
+            });
+
+            it("should request a teardown and wait until the workload completed it", async () => {
+                stub(remoteRunner, "_prepareSuite").callsFake(async () => null);
+                stub(remoteRunner, "_runSuite").callsFake(async () => null);
+                await remoteRunner.run();
+                const source = frame.contentWindow;
+                const origin = window.location.origin;
+                remoteRunner._handlePostMessage(new MessageEvent("message", { origin, source, data: { type: "teardown-ready" } }));
+                let completed = false;
+                const postMessageStub = stub(source, "postMessage").callsFake(() => {
+                    setTimeout(() => {
+                        completed = true;
+                        remoteRunner._handlePostMessage(new MessageEvent("message", { origin, source, data: { type: "teardown-complete" } }));
+                    }, 0);
+                });
+
+                await remoteRunner.teardown();
+
+                expect(completed).to.be(true);
+                assert.calledOnce(postMessageStub);
+                assert.calledWith(postMessageStub, sinon.match({ key: "benchmark-connector", type: "benchmark-teardown" }), origin);
+            });
+
+            it("should stop listening for messages even if the suite never finished", async () => {
+                const addEventListenerSpy = spy(window, "addEventListener");
+                const removeEventListenerSpy = spy(window, "removeEventListener");
+                stub(remoteRunner, "_prepareSuite").returns(new Promise(() => {}));
+                remoteRunner.run();
+                const messageHandler = addEventListenerSpy.getCalls().find((call) => call.args[0] === "message").args[1];
+
+                await remoteRunner.teardown();
+
+                assert.calledWith(removeEventListenerSpy, "message", messageHandler);
+            });
+        });
+
+        describe("ensureWebGPU", () => {
+            let originalGpuDescriptor;
+
+            beforeEach(() => {
+                originalGpuDescriptor = Object.getOwnPropertyDescriptor(navigator, "gpu");
+            });
+
+            afterEach(() => {
+                if (originalGpuDescriptor) {
+                    Object.defineProperty(navigator, "gpu", originalGpuDescriptor);
+                } else {
+                    delete navigator.gpu;
+                }
+            });
+
+            it("should throw when navigator.gpu is unavailable", async () => {
+                Object.defineProperty(navigator, "gpu", { value: undefined, configurable: true });
+                let caughtError;
+                try {
+                    await ensureWebGPU();
+                } catch (error) {
+                    caughtError = error;
+                }
+                expect(caughtError).to.be.an(Error);
+                expect(caughtError.message).to.be(WEBGPU_UNAVAILABLE_ERROR_MESSAGE);
+            });
+        });
+
+        describe("runMultipleIterations", () => {
+            let originalGpuDescriptor;
+
+            beforeEach(() => {
+                originalGpuDescriptor = Object.getOwnPropertyDescriptor(navigator, "gpu");
+            });
+
+            afterEach(() => {
+                if (originalGpuDescriptor) {
+                    Object.defineProperty(navigator, "gpu", originalGpuDescriptor);
+                } else {
+                    delete navigator.gpu;
+                }
+            });
+
+            it("should fail fast if WebGPU is requested and unavailable", async () => {
+                Object.defineProperty(navigator, "gpu", { value: undefined, configurable: true });
+                const handleErrorSpy = sinon.spy();
+                const testClient = { handleError: handleErrorSpy };
+                const testRunner = new BenchmarkRunner(
+                    [
+                        { name: "WebGPU Suite", enabled: true, tags: ["webgpu"] },
+                        { name: "Wasm Suite", enabled: true, tags: ["wasm"] },
+                    ],
+                    testClient
+                );
+                const runMultipleStub = stub(testRunner, "_runMultipleIterations").callsFake(async () => {});
+
+                await testRunner.runMultipleIterations(1);
+
+                assert.calledOnce(handleErrorSpy);
+                expect(handleErrorSpy.firstCall.args[0].message).to.equal(WEBGPU_UNAVAILABLE_ERROR_MESSAGE);
+                assert.notCalled(runMultipleStub);
+            });
+
+            it("should not fail fast if no WebGPU benchmark was requested", async () => {
+                Object.defineProperty(navigator, "gpu", { value: undefined, configurable: true });
+                const handleErrorSpy = sinon.spy();
+                const testClient = { handleError: handleErrorSpy };
+                const testRunner = new BenchmarkRunner(
+                    [
+                        { name: "WebGPU Suite", enabled: false, tags: ["webgpu"] },
+                        { name: "Wasm Suite", enabled: true, tags: ["wasm"] },
+                    ],
+                    testClient
+                );
+                const runMultipleStub = stub(testRunner, "_runMultipleIterations").callsFake(async () => {});
+
+                await testRunner.runMultipleIterations(1);
+
+                assert.notCalled(handleErrorSpy);
+                assert.calledOnce(runMultipleStub);
+            });
+        });
+
+        describe("error handling in runAllSuites", () => {
+            it("should continue running when a workload fails", async () => {
+                const didFailSuiteSpy = sinon.spy();
+                const testClient = { didFailSuite: didFailSuiteSpy };
+                const testRunner = new BenchmarkRunner(
+                    [
+                        { name: "Failing Suite", enabled: true, tags: ["wasm"], prepare: async () => {} },
+                        { name: "Passing Suite", enabled: true, tags: ["wasm"], prepare: async () => {} },
+                    ],
+                    testClient
+                );
+                stub(testRunner, "_appendFrame").callsFake(async () => null);
+                stub(testRunner, "_removeFrame").callsFake(() => null);
+                const finalizeStub = stub(testRunner, "_finalize").callsFake(async () => null);
+
+                let first = true;
+                stub(testRunner, "runSuite").callsFake(async () => {
+                    if (first) {
+                        first = false;
+                        throw new Error("Random workload failure");
+                    }
+                });
+
+                await testRunner.runAllSuites(0);
+                assert.calledOnce(didFailSuiteSpy);
+                assert.calledOnce(finalizeStub);
+                expect(testRunner._measuredValues.steps["Failing Suite"].total).to.equal(0);
+            });
+
+            it("should not call _finalize if an unhandled error escapes the suite loop, while still releasing wakeLock", async () => {
+                const testRunner = new BenchmarkRunner([{ name: "Suite 1", enabled: true, tags: ["wasm"], prepare: async () => {} }], {
+                    didFailSuite: () => {
+                        throw new Error("Client failure");
+                    },
+                });
+                stub(testRunner, "_appendFrame").callsFake(async () => null);
+                stub(testRunner, "_removeFrame").callsFake(() => null);
+                const finalizeStub = stub(testRunner, "_finalize").callsFake(async () => null);
+                const wakeLockReleaseSpy = spy(testRunner._wakeLock, "release");
+                stub(testRunner, "runSuite").callsFake(async () => {
+                    throw new Error("Workload failure");
+                });
+
+                let caughtError;
+                try {
+                    await testRunner.runAllSuites(0);
+                } catch (error) {
+                    caughtError = error;
+                }
+                expect(caughtError).to.be.an(Error);
+                expect(caughtError.message).to.equal("Client failure");
+                assert.notCalled(finalizeStub);
+                assert.calledOnce(wakeLockReleaseSpy);
             });
         });
     });

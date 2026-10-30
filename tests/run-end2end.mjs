@@ -49,7 +49,13 @@ async function testPage(url) {
 
         const client = globalThis.benchmarkClient;
         let suiteStart;
-        client.willStartSuite = (suite, iteration) => {
+        const origStartSuite = client.willStartSuite.bind(client);
+        client.willStartSuite = async (suite, iteration) => {
+            await origStartSuite(suite, iteration);
+            const infoLabel = document.getElementById("info-label").textContent;
+            if (infoLabel !== suite.name) {
+                push({ error: `Expected #info-label to be "${suite.name}", got "${infoLabel}"` });
+            }
             suiteStart = performance.now();
             const totalIterations = client.stepCount / client.suitesCount;
             push({ log: `    [${iteration + 1}/${totalIterations}] ${suite.name}` });

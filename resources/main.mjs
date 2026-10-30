@@ -1,6 +1,7 @@
 import { BenchmarkRunner } from "./benchmark-runner.mjs";
 import * as Statistics from "./statistics.mjs";
 import { renderMetricView } from "./metric-ui.mjs";
+import { WEBGPU_UNAVAILABLE_ERROR_MESSAGE } from "./shared/helpers.mjs";
 import { defaultParams, params } from "./shared/params.mjs";
 import { createDeveloperModeContainer } from "./developer-mode.mjs";
 
@@ -16,8 +17,6 @@ class MainBenchmarkClient {
     _hasResults = false;
     _developerModeContainer = null;
     _metrics = Object.create(null);
-    _steppingPromise = null;
-    _steppingResolver = null;
     _benchmarkConfiguratorPromise = null;
     _failedSuites = new Set();
 
@@ -33,41 +32,9 @@ class MainBenchmarkClient {
     }
 
     start() {
-        if (this._isStepping()) {
-            this._clearStepping();
-        } else if (this._startBenchmark()) {
+        if (this._startBenchmark()) {
             this._showSection("#running");
         }
-    }
-
-    step() {
-        const currentSteppingResolver = this._steppingResolver;
-        this._steppingPromise = new Promise((resolve) => {
-            this._steppingResolver = resolve;
-        });
-        if (this._isStepping()) {
-            currentSteppingResolver();
-        }
-        if (!this._isRunning) {
-            this._startBenchmark();
-            this._showSection("#running");
-        }
-    }
-
-    _clearStepping() {
-        const currentSteppingResolver = this._steppingResolver;
-        this._steppingPromise = null;
-        this._steppingResolver = null;
-        currentSteppingResolver();
-    }
-
-    async _awaitNextStep(suite, test) {
-        console.log(`Next Step: ${suite.name} ${test.name}`, { suite, test });
-        await this._steppingPromise;
-    }
-
-    _isStepping() {
-        return this._steppingResolver !== null;
     }
 
     async _startBenchmark() {
@@ -91,9 +58,7 @@ class MainBenchmarkClient {
             );
             return false;
         }
-        if (!this._isStepping()) {
-            this._developerModeContainer?.remove();
-        }
+        this._developerModeContainer?.remove();
         this._progressCompleted = document.getElementById("progress-completed");
         if (params.iterationCount < 50) {
             const progressNode = document.getElementById("progress");
@@ -125,12 +90,9 @@ class MainBenchmarkClient {
         frame.style.transform = "translate(-50%, -50%)";
     }
 
-    async willRunTest(suite, test) {
+    async willStartSuite(suite) {
         document.getElementById("info-label").textContent = suite.name;
         document.getElementById("info-progress").textContent = `${this._finishedTestCount} / ${this.stepCount}`;
-        if (this._steppingPromise) {
-            await this._awaitNextStep(suite, test);
-        }
     }
 
     didFinishSuite() {
@@ -138,7 +100,7 @@ class MainBenchmarkClient {
         this._progressCompleted.value = this._finishedTestCount;
     }
 
-    didFailSuite(suite, error) {
+    didFailSuite(suite) {
         this._failedSuites.add(suite.name);
         this._finishedTestCount++;
         this._progressCompleted.value = this._finishedTestCount;
@@ -167,12 +129,13 @@ class MainBenchmarkClient {
 
         if (wasmScoreResults.isValid || webgpuScoreResults.isValid) {
             this._populateValidScores(wasmScoreResults, webgpuScoreResults);
+            this._populateDetailedResults(metrics);
+            this.showResultsDetails();
         } else {
             this._populateInvalidScore();
+            this.showResultsSummary();
         }
 
-        this._populateDetailedResults(metrics);
-        this.showResultsDetails();
         globalThis.dispatchEvent(new Event("BenchmarkDone"));
     }
 
@@ -181,7 +144,8 @@ class MainBenchmarkClient {
         this._isRunning = false;
         this._hasResults = true;
         this._metrics = Object.create(null);
-        this._populateInvalidScore();
+        const reason = error?.message?.includes(WEBGPU_UNAVAILABLE_ERROR_MESSAGE) ? WEBGPU_UNAVAILABLE_ERROR_MESSAGE : undefined;
+        this._populateInvalidScore(reason);
         this.showResultsSummary();
         throw error;
     }
@@ -210,12 +174,16 @@ class MainBenchmarkClient {
         }
     }
 
-    _populateInvalidScore() {
+    _populateInvalidScore(reason = "One or more subtests produced no duration.") {
         document.getElementById("summary").className = "invalid";
         document.getElementById("wasm-result-number").textContent = "Error";
         document.getElementById("wasm-confidence-number").textContent = "";
         document.getElementById("webgpu-result-number").textContent = "Error";
         document.getElementById("webgpu-confidence-number").textContent = "";
+        const reasonElement = document.getElementById("invalid-score-reason");
+        if (reasonElement) {
+            reasonElement.textContent = reason;
+        }
     }
 
     _computeResults(measuredValuesList, valueKey, displayUnit) {
@@ -228,7 +196,7 @@ class MainBenchmarkClient {
             return number.toPrecision(Math.max(nonDecimalDigitCount, Math.min(6, sigFig)));
         }
 
-        const values = measuredValuesList.map((v) => v[valueKey]);
+        const values = measuredValuesList.map((v) => v[valueKey]).filter((v) => isFinite(v) && v > 0);
         const sum = values.reduce((a, b) => a + b, 0);
         const arithmeticMean = sum / values.length;
         let meanSigFig = 4;
@@ -254,17 +222,6 @@ class MainBenchmarkClient {
             formattedMeanAndDelta: formattedMean + (formattedDelta ? ` \xb1 ${formattedDelta} (${formattedPercentDelta})` : ""),
             isValid: values.length > 0 && isFinite(sum) && sum > 0,
         };
-    }
-
-    _addDetailedResultsRow(table, iterationNumber, value) {
-        const row = document.createElement("tr");
-        const th = document.createElement("th");
-        th.textContent = `Iteration ${iterationNumber + 1}`;
-        const td = document.createElement("td");
-        td.textContent = value;
-        row.appendChild(th);
-        row.appendChild(td);
-        table.appendChild(row);
     }
 
     _populateDetailedResults(metrics) {

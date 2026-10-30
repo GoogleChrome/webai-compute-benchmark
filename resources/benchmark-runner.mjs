@@ -1,285 +1,13 @@
 import { Metric } from "./metric.mjs";
 import { params } from "./shared/params.mjs";
-import { forceLayout, isValidIdentifier } from "./shared/helpers.mjs";
+import { isValidIdentifier, ensureWebGPU } from "./shared/helpers.mjs";
 import { SUITE_RUNNER_LOOKUP } from "./suite-runner.mjs";
 
 const performance = globalThis.performance;
 
-export class BenchmarkTestStep {
-    constructor(testName, testFunction) {
-        if (!isValidIdentifier(testName)) {
-            throw new Error(`Invalid testName=${testName}, expected valid identifier.`);
-        }
-        this.name = testName;
-        this.run = testFunction;
-    }
-}
-
-function getParent(lookupStartNode, path) {
-    const parent = path.reduce((root, selector) => {
-        const node = root.querySelector(selector);
-        return node.shadowRoot ?? node;
-    }, lookupStartNode);
-
-    return parent;
-}
-
-class Page {
-    constructor(frame) {
-        this._frame = frame;
-    }
-
-    getLocalStorage() {
-        return this._frame.contentWindow.localStorage;
-    }
-
-    layout() {
-        const body = this._frame ? this._frame.contentDocument.body : document.body;
-        const value = forceLayout(body, params.layoutMode);
-        body._leakedLayoutValue = value; // Prevent dead code elimination.
-    }
-
-    async waitForElement(selector) {
-        return new Promise((resolve) => {
-            const resolveIfReady = () => {
-                const element = this.querySelector(selector);
-                let callback = resolveIfReady;
-                if (element) {
-                    callback = () => resolve(element);
-                }
-                window.requestAnimationFrame(callback);
-            };
-            resolveIfReady();
-        });
-    }
-
-    /**
-     * Returns the first element within the document that matches the specified selector, or group of selectors.
-     * If no matches are found, null is returned.
-     *
-     * An optional path param is added to be able to target elements within a shadow DOM or nested shadow DOMs.
-     *
-     * @example
-     * // DOM structure: <todo-app> -> #shadow-root -> <todo-list> -> #shadow-root -> <todo-item>
-     * // return PageElement(<todo-item>)
-     * querySelector("todo-item", ["todo-app", "todo-list"]);
-     *
-     * @param {string} selector A string containing one or more selectors to match.
-     * @param {string[]} [path] An array containing a path to the parent element.
-     * @returns PageElement | null
-     */
-    querySelector(selector, path = []) {
-        const lookupStartNode = this._frame.contentDocument;
-        const element = getParent(lookupStartNode, path).querySelector(selector);
-
-        if (element === null) {
-            return null;
-        }
-        return this._wrapElement(element);
-    }
-
-    /**
-     * Returns all elements within the document that matches the specified selector, or group of selectors.
-     * If no matches are found, null is returned.
-     *
-     * An optional path param is added to be able to target elements within a shadow DOM or nested shadow DOMs.
-     *
-     * @example
-     * // DOM structure: <todo-app> -> #shadow-root -> <todo-list> -> #shadow-root -> <todo-item>
-     * // return [PageElement(<todo-item>), PageElement(<todo-item>)]
-     * querySelectorAll("todo-item", ["todo-app", "todo-list"]);
-     *
-     * @param {string} selector A string containing one or more selectors to match.
-     * @param {string[]} [path] An array containing a path to the parent element.
-     * @returns array
-     */
-    querySelectorAll(selector, path = []) {
-        const lookupStartNode = this._frame.contentDocument;
-        const elements = Array.from(getParent(lookupStartNode, path).querySelectorAll(selector));
-        for (let i = 0; i < elements.length; i++) {
-            elements[i] = this._wrapElement(elements[i]);
-        }
-        return elements;
-    }
-
-    getElementById(id) {
-        const element = this._frame.contentDocument.getElementById(id);
-        if (element === null) {
-            return null;
-        }
-        return this._wrapElement(element);
-    }
-
-    call(functionName) {
-        this._frame.contentWindow[functionName]();
-        return null;
-    }
-
-    callAsync(functionName) {
-        setTimeout(() => {
-            this._frame.contentWindow[functionName]();
-        }, 0);
-    }
-
-    callToGetElement(functionName) {
-        return this._wrapElement(this._frame.contentWindow[functionName]());
-    }
-
-    _wrapElement(element) {
-        return new PageElement(element);
-    }
-}
-
-const NATIVE_OPTIONS = {
-    bubbles: true,
-    cancellable: true,
-};
-
-class PageElement {
-    #node;
-
-    constructor(node) {
-        this.#node = node;
-    }
-
-    setValue(value) {
-        this.#node.value = value;
-    }
-
-    click() {
-        this.#node.click();
-    }
-
-    focus() {
-        this.#node.focus();
-    }
-
-    getElementByMethod(name) {
-        return new PageElement(this.#node[name]());
-    }
-
-    dispatchEvent(eventName, options = NATIVE_OPTIONS, eventType = Event) {
-        if (eventName === "submit") // FIXME FireFox doesn't like `new Event('submit')
-        {
-            this._dispatchSubmitEvent();
-        } else {
-            this.#node.dispatchEvent(new eventType(eventName, options));
-        }
-    }
-
-    _dispatchSubmitEvent() {
-        const submitEvent = document.createEvent("Event");
-        submitEvent.initEvent("submit", true, true);
-        this.#node.dispatchEvent(submitEvent);
-    }
-
-    enter(type, options = undefined) {
-        const ENTER_KEY_CODE = 13;
-        return this.dispatchKeyEvent(type, ENTER_KEY_CODE, "Enter", options);
-    }
-
-    dispatchKeyEvent(type, keyCode, key, options) {
-        let eventOptions = { bubbles: true, cancelable: true, keyCode, which: keyCode, key };
-        if (options !== undefined) {
-            eventOptions = Object.assign(eventOptions, options);
-        }
-        const event = new KeyboardEvent(type, eventOptions);
-        this.#node.dispatchEvent(event);
-    }
-
-    dispatchMouseEvent(type, offsetX, offsetY, options) {
-        const boundingRect = this.#node.getBoundingClientRect();
-        const clientX = offsetX + boundingRect.x;
-        const clientY = offsetY + boundingRect.y;
-        const contentWindow = this.#node.ownerDocument.defaultView;
-        const screenX = clientX + contentWindow.screenX;
-        const screenY = clientY + contentWindow.screenY;
-        let eventOptions = { bubbles: true, cancelable: true, clientX, clientY, screenX, screenY };
-        if (options !== undefined) {
-            eventOptions = Object.assign(eventOptions, options);
-        }
-        const event = new contentWindow.MouseEvent(type, eventOptions);
-        this.#node.dispatchEvent(event);
-    }
-
-    /**
-     * Returns the first element found in a node of a PageElement that matches the specified selector, or group of selectors. If a shadow DOM is present in the node, the shadow DOM is used to query.
-     * If no matches are found, null is returned.
-     *
-     * @param {string} selector A string containing one or more selectors to match.
-     * @param {string[]} [path] An array containing a path to the parent element.
-     * @returns PageElement | null
-     */
-    querySelectorInShadowRoot(selector, path = []) {
-        const lookupStartNode = this.#node.shadowRoot ?? this.#node;
-        const element = getParent(lookupStartNode, path).querySelector(selector);
-
-        if (element === null) {
-            return null;
-        }
-        return new PageElement(element);
-    }
-
-    querySelector(selector) {
-        const element = this.#node.querySelector(selector);
-
-        if (element === null) {
-            return null;
-        }
-        return new PageElement(element);
-    }
-}
-
 export function geomeanToScore(geomean) {
     return 10000 / geomean;
 }
-
-// The WarmupSuite is used to make sure all runner helper functions and
-// classes are compiled, to avoid unnecessary pauses due to delayed
-// compilation of runner methods in the middle of the measuring cycle.
-export const WarmupSuite = {
-    name: "Warmup",
-    url: "warmup/index.html",
-    async prepare(page) {
-        await page.waitForElement("#testItem");
-    },
-    tests: [
-        // Make sure to run ever page.method once at least
-        new BenchmarkTestStep("WarmingUpPageMethods", (page) => {
-            let results = [];
-            results.push(page.querySelector(".testItem"));
-            results.push(page.querySelectorAll(".item"));
-            results.push(page.getElementById("testItem"));
-        }),
-        new BenchmarkTestStep("WarmingUpPageElementMethods", (page) => {
-            const item = page.getElementById("testItem");
-            item.setValue("value");
-            item.click();
-            item.focus();
-            item.dispatchEvent("change");
-            item.enter("keypress");
-            item.dispatchEvent("input");
-            item.enter("keyup");
-        }),
-        new BenchmarkTestStep("WarmingUpPageElementMouseMethods", (page) => {
-            const item = page.getElementById("testItem");
-            const mouseEventOptions = { clientX: 100, clientY: 100, bubbles: true, cancelable: true };
-            const wheelEventOptions = {
-                clientX: 200,
-                clientY: 200,
-                deltaMode: 0,
-                delta: -10,
-                deltaY: -10,
-                bubbles: true,
-                cancelable: true,
-            };
-            item.dispatchEvent("mousedown", mouseEventOptions, MouseEvent);
-            item.dispatchEvent("mousemove", mouseEventOptions, MouseEvent);
-            item.dispatchEvent("mouseup", mouseEventOptions, MouseEvent);
-            item.dispatchEvent("wheel", wheelEventOptions, WheelEvent);
-        }),
-    ],
-};
 
 // https://stackoverflow.com/a/47593316
 function seededHashRandomNumberGenerator(a) {
@@ -324,11 +52,8 @@ export class BenchmarkRunner {
             throw new Error("Invalid suites");
         }
         this._suites = suites;
-        if (params.useWarmupSuite) {
-            this._suites = [WarmupSuite, ...suites];
-        }
         this._client = client;
-        this._page = null;
+        this._suiteRunner = null;
         this._metrics = null;
         this._iterationCount = params.iterationCount;
         if (params.shuffleSeed !== "off") {
@@ -339,13 +64,27 @@ export class BenchmarkRunner {
     }
 
     _resetMeasuredValues() {
-        this._measuredValues = { steps: {}, total: 0, mean: NaN, geomean: NaN, score: NaN };
+        this._measuredValues = { steps: {} };
     }
 
     async runMultipleIterations(iterationCount) {
         this._iterationCount = iterationCount;
         if (this._client?.willStartFirstIteration) {
             await this._client.willStartFirstIteration(iterationCount);
+        }
+
+        const hasWebgpu = this._suites.some((s) => s.enabled && s.tags?.includes("webgpu"));
+        if (hasWebgpu) {
+            try {
+                await ensureWebGPU();
+            } catch (error) {
+                console.error(error);
+                if (this._client?.handleError) {
+                    await this._client.handleError(error);
+                    return;
+                }
+                throw error;
+            }
         }
 
         try {
@@ -356,6 +95,7 @@ export class BenchmarkRunner {
                 await this._client.handleError(error);
                 return;
             }
+            throw error;
         }
 
         if (this._client?.didFinishLastIteration) {
@@ -443,7 +183,6 @@ export class BenchmarkRunner {
                 try {
                     await this._client?.willStartSuite?.(suite, iteration);
                     await this._appendFrame();
-                    this._page = new Page(this._frame);
                     let cleanupErrorListeners;
                     const errorPromise = new Promise((_, reject) => {
                         const errorHandler = (e) => {
@@ -470,11 +209,13 @@ export class BenchmarkRunner {
                     this._measuredValues.steps[suite.name] = { total: 0 };
                     await this._client?.didFailSuite?.(suite, error);
                 } finally {
+                    await this._teardownSuite();
                     this._removeFrame();
                 }
             }
-        } finally {
             await this._finishRunAllSuites(iteration);
+        } finally {
+            await this._wakeLock.release();
         }
     }
 
@@ -486,16 +227,32 @@ export class BenchmarkRunner {
         await this._finalize(iteration);
         performance.mark(finalizeEndLabel);
         performance.measure("runner-finalize", finalizeStartLabel, finalizeEndLabel);
-        await this._wakeLock.release();
     }
 
     async runSuite(suite) {
         // FIXME: Encapsulate more state in the SuiteRunner.
         // FIXME: Return and use measured values from SuiteRunner.
-        const type = suite.type ?? ((params.useAsyncSteps && "async") || "default");
+        const type = suite.type ?? "default";
         const suiteRunnerClass = SUITE_RUNNER_LOOKUP[type];
-        const suiteRunner = new suiteRunnerClass(this._frame, this._page, params, suite, this._client, this._measuredValues);
+        const suiteRunner = new suiteRunnerClass(this._frame, params, suite, this._client, this._measuredValues);
+        this._suiteRunner = suiteRunner;
         await suiteRunner.run();
+    }
+
+    async _teardownSuite() {
+        // Let the workload release its resources (wasm memory, GPU buffers, etc.)
+        // while its frame still exists. Every suite runs in the same page, so
+        // anything left behind accumulates over the whole run.
+        const suiteRunner = this._suiteRunner;
+        this._suiteRunner = null;
+        if (!suiteRunner) {
+            return;
+        }
+        try {
+            await suiteRunner.teardown();
+        } catch (error) {
+            console.error(`Workload ${suiteRunner.suite.name} teardown failed:`, error);
+        }
     }
 
     async _finalize(iteration) {
@@ -507,15 +264,8 @@ export class BenchmarkRunner {
             const hasWasm = this._suites.some((s) => s.enabled && s.tags?.includes("wasm"));
             const hasWebgpu = this._suites.some((s) => s.enabled && s.tags?.includes("webgpu"));
 
-            if (hasWasm && isNaN(iterationWasmMetric?.geomean)) {
-                throw new Error(`Iteration ${iteration}: Wasm was enabled but produced NaN geomean.`);
-            }
-            if (hasWebgpu && isNaN(iterationWebgpuMetric?.geomean)) {
-                throw new Error(`Iteration ${iteration}: WebGPU was enabled but produced NaN geomean.`);
-            }
-
-            const wasmGeomean = hasWasm ? iterationWasmMetric.geomean : 0;
-            const webgpuGeomean = hasWebgpu ? iterationWebgpuMetric.geomean : 0;
+            const wasmGeomean = hasWasm && !isNaN(iterationWasmMetric?.geomean) ? iterationWasmMetric.geomean : 0;
+            const webgpuGeomean = hasWebgpu && !isNaN(iterationWebgpuMetric?.geomean) ? iterationWebgpuMetric.geomean : 0;
 
             this._measuredValues.wasmGeomean = wasmGeomean;
             this._measuredValues.wasmScore = geomeanToScore(wasmGeomean);
@@ -616,6 +366,4 @@ export class BenchmarkRunner {
             metric.computeAggregatedMetrics();
         }
     }
-
-    _initializeMetrics() {}
 }

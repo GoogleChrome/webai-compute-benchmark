@@ -1,39 +1,7 @@
-/**
- * Helper Methods
- *
- * Various methods that are extracted from the Page class.
- */
-export function getParent(lookupStartNode, path) {
-    lookupStartNode = lookupStartNode.shadowRoot ?? lookupStartNode;
-    const parent = path.reduce((root, selector) => {
-        const node = root.querySelector(selector);
-        return node.shadowRoot ?? node;
-    }, lookupStartNode);
-
-    return parent;
-}
-
-export function getElement(selector, path = [], lookupStartNode = document) {
-    const element = getParent(lookupStartNode, path).querySelector(selector);
-    return element;
-}
-
-export function getAllElements(selector, path = [], lookupStartNode = document) {
-    const elements = Array.from(getParent(lookupStartNode, path).querySelectorAll(selector));
-    return elements;
-}
-
-export function forceLayout(body, layoutMode = "getBoundingRectAndElementFromPoint") {
+export function forceLayout(body) {
     body ??= document.body;
     const rect = body.getBoundingClientRect();
-    switch (layoutMode) {
-        case "getBoundingRectAndElementFromPoint":
-            return document.elementFromPoint((rect.width / 2) | 0, (rect.height / 2) | 0);
-        case "getBoundingClientRect":
-            return rect.height;
-        default:
-            throw Error(`Invalid layoutMode: ${layoutMode}`);
-    }
+    return document.elementFromPoint((rect.width / 2) | 0, (rect.height / 2) | 0);
 }
 
 import { AsyncBenchmarkStep, AsyncBenchmarkSuite } from "./benchmark.mjs";
@@ -120,4 +88,22 @@ const VALID_IDENTIFIER = /^[a-zA-Z0-9][\w .-]*$/;
 
 export function isValidIdentifier(name) {
     return typeof name === "string" && !(name in Object.prototype) && VALID_IDENTIFIER.test(name);
+}
+
+export const WEBGPU_UNAVAILABLE_ERROR_MESSAGE = "WebGPU is not available or enabled in this browser.";
+
+export async function ensureWebGPU() {
+    let device = null;
+    if (globalThis.navigator?.gpu) {
+        try {
+            const adapter = await navigator.gpu.requestAdapter();
+            device = await adapter?.requestDevice();
+            device?.destroy();
+        } catch {
+            device = null;
+        }
+    }
+    if (!device) {
+        throw new Error(WEBGPU_UNAVAILABLE_ERROR_MESSAGE);
+    }
 }

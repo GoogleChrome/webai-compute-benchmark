@@ -14,6 +14,8 @@
  * requested backend fails instead of quietly measuring the other one.
  */
 
+// Must be imported before any ML runtime is initialized, see workload-teardown.mjs.
+import { registerTeardown } from "speedometer-utils/workload-teardown.mjs";
 import { Wllama } from "@wllama/wllama/esm/index.js";
 import { BenchmarkConnector } from "speedometer-utils/benchmark.mjs";
 import { fetchModelWithProgress } from "speedometer-utils/download-utils.mjs";
@@ -145,6 +147,12 @@ class LlamaCppBenchmark {
         console.timeEnd("llama-cpp-generation");
         console.log(result?.choices?.[0]?.message?.content ?? result);
     }
+
+    async dispose() {
+        // Unloads the model and terminates wllama's worker.
+        await this.wllama?.exit();
+        this.wllama = null;
+    }
 }
 
 const appVersion = "0.1.0";
@@ -163,6 +171,8 @@ export async function initializeLlamaCppBenchmark(backendId) {
     const appName = `Llama.cpp-${backend.id}`;
     try {
         const benchmark = new LlamaCppBenchmark(backend);
+        // Registered before init() so a partially initialized workload is released as well.
+        registerTeardown(() => benchmark.dispose());
         await benchmark.init();
 
         /*--------- Running test suites ---------*/
