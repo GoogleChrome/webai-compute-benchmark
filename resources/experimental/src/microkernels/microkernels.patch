@@ -1,0 +1,198 @@
+# SPDX-License-Identifier: BSD-3-Clause
+
+diff --git a/convert.h b/convert.h
+index feb9388..4a9ea13 100644
+--- a/convert.h
++++ b/convert.h
+@@ -3,6 +3,8 @@
+ #ifndef _CONVERSIONS_H_
+ #define _CONVERSIONS_H_
+ 
++#include <type_traits>
++
+ #include "util.h"
+ 
+ template <typename OutTy, typename InTy>
+@@ -39,7 +41,15 @@ bool init_and_run_convert_1d(double& total_vector_time, double& total_scalar_tim
+   InTy *in = new InTy[N];
+   OutTy *out = new OutTy[N];
+   for (unsigned i = 0; i < N; ++i) {
+-    in[i] = static_cast<InTy>(fast_rand());
++    if constexpr (std::is_floating_point_v<InTy> && std::is_integral_v<OutTy>) {
++      if constexpr (std::is_unsigned_v<OutTy>) {
++        in[i] = static_cast<InTy>(static_cast<uint8_t>(fast_rand()));
++      } else {
++        in[i] = static_cast<InTy>(static_cast<int8_t>(fast_rand()));
++      }
++    } else {
++      in[i] = static_cast<InTy>(fast_rand());
++    }
+   }
+   Result res = convert_1d<OutTy, InTy>(out, in, N);
+   total_vector_time += res.vector_msec;
+diff --git a/mac.h b/mac.h
+index bd609b6..10a6bf8 100644
+--- a/mac.h
++++ b/mac.h
+@@ -3,10 +3,68 @@
+ #ifndef _MAC_H_
+ #define _MAC_H_
+ 
++#include <algorithm>
++#include <cmath>
+ #include <cstdlib>
++#include <limits>
++#include <type_traits>
+ 
+ #include "util.h"
+ 
++template <typename AccTy, typename ProductFn>
++[[gnu::noinline]] bool fp_mac_fallback_equal(AccTy vec_res, AccTy scalar_res,
++                                             unsigned N, ProductFn product_at) {
++  const double v = static_cast<double>(vec_res);
++  const double s = static_cast<double>(scalar_res);
++  const double tol =
++      static_cast<double>(N) * std::numeric_limits<AccTy>::epsilon();
++  const double diff = std::abs(v - s);
++  const double max_res = std::max(std::abs(v), std::abs(s));
++  double abs_sum = 0.0;
++  for (unsigned i = 0; i < N; ++i) {
++    abs_sum += std::abs(static_cast<double>(product_at(i)));
++  }
++  const double walk_scale =
++      N > 0 ? abs_sum / std::sqrt(static_cast<double>(N)) : 0.0;
++  return diff <= tol * std::max(max_res, walk_scale);
++}
++
++// SIMD reductions reassociate floating-point additions across lanes (and may
++// contract multiply-adds), changing rounding relative to the scalar loop.
++template <typename AccTy, typename ProductFn>
++bool mac_equal(AccTy vec_res, AccTy scalar_res, unsigned N,
++               ProductFn product_at) {
++  if constexpr (!std::is_floating_point_v<AccTy>) {
++    return vec_res == scalar_res;
++  } else {
++    const double v = static_cast<double>(vec_res);
++    const double s = static_cast<double>(scalar_res);
++    if (!std::isfinite(v) || !std::isfinite(s)) {
++      return false;
++    }
++    const double tol =
++        static_cast<double>(N) * std::numeric_limits<AccTy>::epsilon();
++    const double diff = std::abs(v - s);
++    const double max_res = std::max(std::abs(v), std::abs(s));
++    if (diff <= tol * max_res) {
++      return true;
++    }
++    return fp_mac_fallback_equal(vec_res, scalar_res, N, product_at);
++  }
++}
++
++template <typename AccTy, typename InTyA, typename InTyB,
++          template <typename> class VecTy>
++bool mac_field_equal(AccTy vec_res, AccTy scalar_res, const VecTy<InTyA>* a,
++                     const VecTy<InTyB>* b, unsigned N,
++                     InTyA VecTy<InTyA>::* field_a,
++                     InTyB VecTy<InTyB>::* field_b) {
++  return mac_equal(vec_res, scalar_res, N, [&](unsigned i) {
++    return static_cast<AccTy>(a[i].*field_a) *
++           static_cast<AccTy>(b[i].*field_b);
++  });
++}
++
+ template <typename AccTy, typename InTyA, typename InTyB>
+ Result mac_1d(InTyA* a, InTyB* b, unsigned N) {
+ 
+@@ -25,7 +83,10 @@ Result mac_1d(InTyA* a, InTyB* b, unsigned N) {
+   }
+   double scalar_time = scalar_timer.end();
+ 
+-  return Result{vector_time, scalar_time, vec_res == scalar_res};
++  return Result{vector_time, scalar_time,
++                mac_equal(vec_res, scalar_res, N, [&](unsigned i) {
++                  return static_cast<AccTy>(a[i]) * static_cast<AccTy>(b[i]);
++                })};
+ }
+ 
+ template <typename AccTy, typename InTyA, typename InTyB>
+@@ -72,8 +133,10 @@ Result mac_2d(Vector2D<InTyA>* a, Vector2D<InTyB>* b, unsigned N) {
+   double scalar_time = scalar_timer.end();
+ 
+   return Result{vector_time, scalar_time,
+-                (vec_res.x == scalar_res.x &&
+-                 vec_res.y == scalar_res.y)};
++                (mac_field_equal(vec_res.x, scalar_res.x, a, b, N,
++                                 &Vector2D<InTyA>::x, &Vector2D<InTyB>::x) &&
++                 mac_field_equal(vec_res.y, scalar_res.y, a, b, N,
++                                 &Vector2D<InTyA>::y, &Vector2D<InTyB>::y))};
+ }
+ 
+ template <typename AccTy, typename InTyA, typename InTyB>
+@@ -84,7 +147,7 @@ bool init_and_run_mac_2d(double& total_vector_time,
+   Vector2D<InTyB> *b = new Vector2D<InTyB>[N];
+   for (unsigned i = 0; i < N; ++i) {
+     a[i].x = static_cast<InTyA>(fast_rand());
+-    a[i].y = static_cast<InTyB>(fast_rand());
++    a[i].y = static_cast<InTyA>(fast_rand());
+     b[i].x = static_cast<InTyB>(fast_rand());
+     b[i].y = static_cast<InTyB>(fast_rand());
+   }
+@@ -126,9 +189,12 @@ Result mac_3d(Vector3D<InTyA>* a, Vector3D<InTyB>* b, unsigned N) {
+   double scalar_time = scalar_timer.end();
+ 
+   return Result{vector_time, scalar_time,
+-                (vec_res.x == scalar_res.x &&
+-                 vec_res.y == scalar_res.y &&
+-                 vec_res.z == scalar_res.z)};
++                (mac_field_equal(vec_res.x, scalar_res.x, a, b, N,
++                                 &Vector3D<InTyA>::x, &Vector3D<InTyB>::x) &&
++                 mac_field_equal(vec_res.y, scalar_res.y, a, b, N,
++                                 &Vector3D<InTyA>::y, &Vector3D<InTyB>::y) &&
++                 mac_field_equal(vec_res.z, scalar_res.z, a, b, N,
++                                 &Vector3D<InTyA>::z, &Vector3D<InTyB>::z))};
+ }
+ 
+ template <typename AccTy, typename InTyA, typename InTyB>
+@@ -139,8 +205,8 @@ bool init_and_run_mac_3d(double& total_vector_time,
+   Vector3D<InTyB> *b = new Vector3D<InTyB>[N];
+   for (unsigned i = 0; i < N; ++i) {
+     a[i].x = static_cast<InTyA>(fast_rand());
+-    a[i].y = static_cast<InTyB>(fast_rand());
+-    a[i].z = static_cast<InTyB>(fast_rand());
++    a[i].y = static_cast<InTyA>(fast_rand());
++    a[i].z = static_cast<InTyA>(fast_rand());
+     b[i].x = static_cast<InTyB>(fast_rand());
+     b[i].y = static_cast<InTyB>(fast_rand());
+     b[i].z = static_cast<InTyB>(fast_rand());
+@@ -186,10 +252,14 @@ Result mac_4d(Vector4D<InTyA>* a, Vector4D<InTyB>* b, unsigned N) {
+   double scalar_time = scalar_timer.end();
+ 
+   return Result{vector_time, scalar_time,
+-                (vec_res.x == scalar_res.x &&
+-                 vec_res.y == scalar_res.y &&
+-                 vec_res.z == scalar_res.z &&
+-                 vec_res.w == scalar_res.w)};
++                (mac_field_equal(vec_res.x, scalar_res.x, a, b, N,
++                                 &Vector4D<InTyA>::x, &Vector4D<InTyB>::x) &&
++                 mac_field_equal(vec_res.y, scalar_res.y, a, b, N,
++                                 &Vector4D<InTyA>::y, &Vector4D<InTyB>::y) &&
++                 mac_field_equal(vec_res.z, scalar_res.z, a, b, N,
++                                 &Vector4D<InTyA>::z, &Vector4D<InTyB>::z) &&
++                 mac_field_equal(vec_res.w, scalar_res.w, a, b, N,
++                                 &Vector4D<InTyA>::w, &Vector4D<InTyB>::w))};
+ }
+ 
+ template <typename AccTy, typename InTyA, typename InTyB>
+@@ -200,9 +270,9 @@ bool init_and_run_mac_4d(double& total_vector_time,
+   Vector4D<InTyB> *b = new Vector4D<InTyB>[N];
+   for (unsigned i = 0; i < N; ++i) {
+     a[i].x = static_cast<InTyA>(fast_rand());
+-    a[i].y = static_cast<InTyB>(fast_rand());
+-    a[i].z = static_cast<InTyB>(fast_rand());
+-    a[i].w = static_cast<InTyB>(fast_rand());
++    a[i].y = static_cast<InTyA>(fast_rand());
++    a[i].z = static_cast<InTyA>(fast_rand());
++    a[i].w = static_cast<InTyA>(fast_rand());
+     b[i].x = static_cast<InTyB>(fast_rand());
+     b[i].y = static_cast<InTyB>(fast_rand());
+     b[i].z = static_cast<InTyB>(fast_rand());

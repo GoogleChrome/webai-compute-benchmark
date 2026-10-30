@@ -111,8 +111,7 @@ class MicrokernelsBenchmark {
 
 function createMicrokernelsSuite(benchmark, suiteName, subIterationCount) {
     const subBenchmarkNames = suiteName === "mac" ? MAC_SUB_BENCHMARK_NAMES : ["1d"];
-    const runSubBenchmark = (name) =>
-        suiteName === "mac" ? benchmark.runMacSubBenchmark(name) : benchmark.runConvertSubBenchmark();
+    const runSubBenchmark = (name) => (suiteName === "mac" ? benchmark.runMacSubBenchmark(name) : benchmark.runConvertSubBenchmark());
 
     // TODO(ryandiaz): We may want to report the total as a geomean
     // so one sub-benchmark doesn't dominate.

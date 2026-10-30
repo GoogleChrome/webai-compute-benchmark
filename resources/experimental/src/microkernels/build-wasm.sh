@@ -16,9 +16,9 @@ MICROKERNELS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pw
 OUT_DIR="$MICROKERNELS_DIR/build"
 
 CXX="${CXX:-em++}"
-for cmd in "$CXX" curl; do
+for cmd in "$CXX" curl patch; do
   if ! command -v "$cmd" >/dev/null 2>&1; then
-    echo "Error: $cmd not found. Please activate emsdk (or set CXX) and install curl." >&2
+    echo "Error: $cmd not found. Please activate emsdk (or set CXX) and install curl and patch." >&2
     exit 1
   fi
 done
@@ -45,10 +45,18 @@ SRC_FILES=(
 )
 
 # wasm-perf builds microkernels with -O3 plus its common set of Wasm target
-# features.
+# features. We add:
+# - -ffast-math -fno-finite-math-only: allows Clang to reassociate FP additions
+#   so float/double MAC reductions vectorize to Wasm SIMD, while keeping NaN/Inf
+#   checks live for result validation in mac.h (patched via microkernels.patch).
+# - -fwrapv: makes signed integer overflow well-defined two's-complement
+#   wraparound for the signed integer MAC accumulators.
 DEFAULT_CFLAGS=(
   -O3
+  -ffast-math
+  -fno-finite-math-only
   -fno-exceptions
+  -fwrapv
   -mbulk-memory
   -mextended-const
   -mmultivalue
@@ -84,6 +92,7 @@ mkdir -p "$MICROKERNELS_SRC"
 for f in "${SRC_FILES[@]}"; do
   curl -LSsf "$WASM_PERF_SRC_BASE_URL/$f" -o "$MICROKERNELS_SRC/$f"
 done
+patch -i "$MICROKERNELS_DIR/microkernels.patch" -p 1 --directory="$MICROKERNELS_SRC"
 
 mkdir -p "$STAGE_DIR"
 
@@ -104,7 +113,7 @@ to build or deploy the benchmark. To refresh them, activate emsdk and run:
 resources/experimental/build-wasm-workloads.sh microkernels
 \`\`\`
 
-- Source: [wasm-perf/benchmarks/microkernels](https://gitlab.arm.com/runtimes/wasm-perf/-/tree/$WASM_PERF_COMMIT/benchmarks/microkernels) ([\`$WASM_PERF_COMMIT\`](https://gitlab.arm.com/runtimes/wasm-perf/-/tree/$WASM_PERF_COMMIT))
+- Source: [wasm-perf/benchmarks/microkernels](https://gitlab.arm.com/runtimes/wasm-perf/-/tree/$WASM_PERF_COMMIT/benchmarks/microkernels) ([\`$WASM_PERF_COMMIT\`](https://gitlab.arm.com/runtimes/wasm-perf/-/tree/$WASM_PERF_COMMIT), patched with \`microkernels.patch\`)
 - Compiler: \`$EMCC_VERSION\`
 - CFLAGS: \`${CFLAGS_ARR[*]}\`
 - LDFLAGS: \`${EM_LDFLAGS[*]}\`
