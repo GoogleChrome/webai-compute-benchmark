@@ -16,8 +16,8 @@ import { params } from "speedometer-utils/params.mjs";
 const microkernelsUrl = new URL("./build/microkernels.wasm", import.meta.url);
 
 // Loop count `N` passed to each suite's sub-benchmarks
-const MAC_LOOP_COUNT = 5000000;
-const CONVERT_LOOP_COUNT = 10000000;
+const MAC_LOOP_COUNT = 20000000;
+const CONVERT_LOOP_COUNT = 20000000;
 
 /**
  * `microkernels/src/main.cc` times auto-vectorized kernels over arrays of
