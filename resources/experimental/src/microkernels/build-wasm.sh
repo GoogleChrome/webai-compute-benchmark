@@ -51,7 +51,7 @@ SRC_FILES=(
 #   checks live for result validation in mac.h (patched via microkernels.patch).
 # - -fwrapv: makes signed integer overflow well-defined two's-complement
 #   wraparound for the signed integer MAC accumulators.
-DEFAULT_CFLAGS=(
+DEFAULT_CXXFLAGS=(
   -O3
   -ffast-math
   -fno-finite-math-only
@@ -66,10 +66,10 @@ DEFAULT_CFLAGS=(
   -msign-ext
   -msimd128
 )
-if [[ -n "${CFLAGS:-}" ]]; then
-  read -r -a CFLAGS_ARR <<< "$CFLAGS"
+if [[ -n "${CXXFLAGS:-${CFLAGS:-}}" ]]; then
+  read -r -a CXXFLAGS_ARR <<< "${CXXFLAGS:-${CFLAGS:-}}"
 else
-  CFLAGS_ARR=("${DEFAULT_CFLAGS[@]}")
+  CXXFLAGS_ARR=("${DEFAULT_CXXFLAGS[@]}")
 fi
 
 # Each sub-benchmark allocates its input/output buffers (up to ~64 MB for the
@@ -97,7 +97,7 @@ patch -i "$MICROKERNELS_DIR/microkernels.patch" -p 1 --directory="$MICROKERNELS_
 mkdir -p "$STAGE_DIR"
 
 echo "[microkernels] Compiling microkernels.mjs + microkernels.wasm with $EMCC_VERSION..."
-"$CXX" "${CFLAGS_ARR[@]}" "${PREFIX_MAP_FLAGS[@]}" "${EM_LDFLAGS[@]}" \
+"$CXX" "${CXXFLAGS_ARR[@]}" "${PREFIX_MAP_FLAGS[@]}" "${EM_LDFLAGS[@]}" \
   "$MICROKERNELS_SRC/main.cc" \
   -o "$STAGE_DIR/microkernels.mjs"
 
@@ -115,7 +115,7 @@ resources/experimental/build-wasm-workloads.sh microkernels
 
 - Source: [wasm-perf/benchmarks/microkernels](https://gitlab.arm.com/runtimes/wasm-perf/-/tree/$WASM_PERF_COMMIT/benchmarks/microkernels) ([\`$WASM_PERF_COMMIT\`](https://gitlab.arm.com/runtimes/wasm-perf/-/tree/$WASM_PERF_COMMIT), patched with \`microkernels.patch\`)
 - Compiler: \`$EMCC_VERSION\`
-- CFLAGS: \`${CFLAGS_ARR[*]}\`
+- CXXFLAGS: \`${CXXFLAGS_ARR[*]}\`
 - LDFLAGS: \`${EM_LDFLAGS[*]}\`
 EOF
 
