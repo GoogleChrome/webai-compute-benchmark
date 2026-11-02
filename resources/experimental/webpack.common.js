@@ -8,8 +8,6 @@ module.exports = {
     },
     target: ["web", "es2020"],
     entry: {
-        "text2text-generation-cpu": "./src/text2text-generation-cpu.mjs",
-        "text2text-generation-gpu": "./src/text2text-generation-gpu.mjs",
         gemma: "./src/gemma/benchmark.mjs",
         "litert-lm": "./src/litert-lm/benchmark.mjs",
         "eigen-eig33": "./src/eigen/eig33.mjs",
@@ -26,18 +24,6 @@ module.exports = {
         "llama-cpp-webgpu": "./src/llama-cpp/webgpu.mjs",
     },
     plugins: [
-        new HtmlWebpackPlugin({
-            title: "Experimental Runner",
-            template: path.resolve(__dirname, "src", "index.html"),
-            filename: "text2text-generation-cpu.html",
-            chunks: ["text2text-generation-cpu"],
-        }),
-        new HtmlWebpackPlugin({
-            title: "Experimental Runner",
-            template: path.resolve(__dirname, "src", "index.html"),
-            filename: "text2text-generation-gpu.html",
-            chunks: ["text2text-generation-gpu"],
-        }),
         new HtmlWebpackPlugin({
             title: "Experimental Gemma Runner",
             template: path.resolve(__dirname, "src", "console-runner.html"),

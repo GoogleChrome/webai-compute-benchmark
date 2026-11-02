@@ -168,18 +168,6 @@ export const defaultSuites = [
         modelId: "qualcomm/MediaPipe-Hand-Detection",
     },
     {
-        name: "Experimental-Text2Text-Generation-wasm",
-        url: "resources/experimental/dist/text2text-generation-cpu.html",
-        tags: ["experimental", "text2text-generation", "wasm", "transformers-js"],
-        type: "remote",
-    },
-    {
-        name: "Experimental-Text2Text-Generation-webgpu",
-        url: "resources/experimental/dist/text2text-generation-gpu.html",
-        tags: ["experimental", "text2text-generation", "webgpu", "transformers-js"],
-        type: "remote",
-    },
-    {
         name: "Experimental-Gemma-CPP-wasm",
         url: "resources/experimental/dist/gemma.html",
         tags: ["experimental", "gemma", "wasm"],
