@@ -1,7 +1,8 @@
 import { BenchmarkRunner, geomeanToScore } from "../../resources/benchmark-runner.mjs";
 import { SuiteRunner, RemoteSuiteRunner } from "../../resources/suite-runner.mjs";
 import { StepRunner } from "../../resources/shared/step-runner.mjs";
-import { ensureWebGPU, WEBGPU_UNAVAILABLE_ERROR_MESSAGE } from "../../resources/shared/helpers.mjs";
+import { AsyncBenchmarkSuite } from "../../resources/shared/benchmark.mjs";
+import { createSubIteratedSuite, ensureWebGPU, WEBGPU_UNAVAILABLE_ERROR_MESSAGE } from "../../resources/shared/helpers.mjs";
 import { defaultParams } from "../../resources/shared/params.mjs";
 
 function STEP_FIXTURE(name) {
@@ -532,6 +533,58 @@ describe("BenchmarkRunner", () => {
                 expect(caughtError.message).to.equal("Client failure");
                 assert.notCalled(finalizeStub);
                 assert.calledOnce(wakeLockReleaseSpy);
+            });
+        });
+
+        describe("createSubIteratedSuite and nested AsyncBenchmarkSuite", () => {
+            it("should record outer JS step durations when run() returns undefined", async () => {
+                let calls = 0;
+                const suite = createSubIteratedSuite(
+                    {
+                        async run() {
+                            calls++;
+                        },
+                    },
+                    2
+                );
+                expect(suite.name).to.equal("default");
+
+                const { result } = await suite.runAndRecord(defaultParams);
+                expect(calls).to.equal(2);
+                expect(Object.keys(result.steps)).to.eql(["sub-iter-1", "sub-iter-2"]);
+                expect(result.steps["sub-iter-1"].total).to.be.a("number");
+                expect(result.steps["sub-iter-2"].total).to.be.a("number");
+                expect(result.total).to.equal(result.steps["sub-iter-1"].total + result.steps["sub-iter-2"].total);
+            });
+
+            it("should use parsed { tests, total } results and support direct child AsyncBenchmarkSuites", async () => {
+                const timings = {
+                    "sub-a": [12.5, 17.5],
+                    "sub-b": [5, 10],
+                };
+                const indices = { "sub-a": 0, "sub-b": 0 };
+
+                const childSuites = ["sub-a", "sub-b"].map((name) =>
+                    createSubIteratedSuite(
+                        {
+                            async run() {
+                                const total = timings[name][indices[name]++];
+                                return { tests: {}, total };
+                            },
+                        },
+                        2,
+                        name
+                    )
+                );
+                const parentSuite = new AsyncBenchmarkSuite("default", childSuites);
+
+                const { result } = await parentSuite.runAndRecord(defaultParams);
+                expect(Object.keys(result.steps)).to.eql(["sub-a", "sub-b"]);
+                expect(result.steps["sub-a"].total).to.equal(30);
+                expect(result.steps["sub-a"].steps["sub-iter-1"]).to.eql({ tests: {}, total: 12.5 });
+                expect(result.steps["sub-a"].steps["sub-iter-2"]).to.eql({ tests: {}, total: 17.5 });
+                expect(result.steps["sub-b"].total).to.equal(15);
+                expect(result.total).to.equal(45);
             });
         });
     });

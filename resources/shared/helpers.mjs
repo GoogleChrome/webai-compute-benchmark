@@ -6,37 +6,19 @@ export function forceLayout(body) {
 
 import { AsyncBenchmarkStep, AsyncBenchmarkSuite } from "./benchmark.mjs";
 
-export function createSubIteratedSuite(benchmark, subIterationCount) {
-    const steps = [];
-    for (let i = 0; i < subIterationCount; i++) {
-        steps.push(
-            new AsyncBenchmarkStep(
-                `sub-iter-${i + 1}`,
-                async () => {
-                    forceLayout();
-                    await benchmark.run();
-                    forceLayout();
-                },
-                { measureAsync: false }
-            )
-        );
-    }
-    return new AsyncBenchmarkSuite("default", steps);
-}
-
 /**
- * Creates `subIterationCount` async benchmark steps (`sub-iter-1` .. `sub-iter-N`)
- * that return the `{ tests, total }` result produced by `runFn()` instead of the
- * outer JS step duration, for workloads that report internal Wasm timings.
+ * Creates an `AsyncBenchmarkSuite` of `subIterationCount` steps (`sub-iter-1` .. `sub-iter-N`).
+ * If `benchmark.run()` returns a `{ tests, total }` result (for workloads that report internal
+ * Wasm timings), that result is used; otherwise the outer JS step duration is recorded.
  */
-export function createSubIteratedSteps(runFn, subIterationCount) {
-    return Array.from({ length: subIterationCount }, (_, i) => {
+export function createSubIteratedSuite(benchmark, subIterationCount, name = "default") {
+    const steps = Array.from({ length: subIterationCount }, (_, i) => {
         let parsedResult = null;
         const step = new AsyncBenchmarkStep(
             `sub-iter-${i + 1}`,
             async () => {
                 forceLayout();
-                parsedResult = await runFn();
+                parsedResult = await benchmark.run();
                 forceLayout();
             },
             { measureAsync: false }
@@ -44,11 +26,12 @@ export function createSubIteratedSteps(runFn, subIterationCount) {
         return {
             name: step.name,
             async runAndRecord(stepParams, suite, recordCallback) {
-                await step.runAndRecord(stepParams, suite, recordCallback);
-                return parsedResult;
+                const stepResult = await step.runAndRecord(stepParams, suite, recordCallback);
+                return parsedResult ?? stepResult;
             },
         };
     });
+    return new AsyncBenchmarkSuite(name, steps);
 }
 
 /**

@@ -12,7 +12,7 @@ import OnnxMobilenetModule from "./build/example-onnx-mobilenet-v2.mjs";
 import PytorchResnetModule from "./build/example-pytorch-resnet.mjs";
 import TfliteMobilenetModule from "./build/example-tflite-mobilenet-v3.mjs";
 import { AsyncBenchmarkSuite, BenchmarkConnector } from "speedometer-utils/benchmark.mjs";
-import { createSubIteratedSteps, instantiatePrecompiled } from "speedometer-utils/helpers.mjs";
+import { createSubIteratedSuite, instantiatePrecompiled } from "speedometer-utils/helpers.mjs";
 import { params } from "speedometer-utils/params.mjs";
 
 const WASM_URLS = {
@@ -218,19 +218,7 @@ class TractBenchmark {
 // TODO(ryandiaz) We may want to report the total as a geomean
 // so one sub benchmark doesn't dominate.
 function createSuiteSteps(benchmark, subBenchmarks, subIterationCount) {
-    return subBenchmarks.map((subBenchmark) => {
-        const subSuite = new AsyncBenchmarkSuite(
-            subBenchmark.name,
-            createSubIteratedSteps(() => benchmark.runSubBenchmark(subBenchmark), subIterationCount)
-        );
-        return {
-            name: subBenchmark.name,
-            async runAndRecord(stepParams, _parentSuite, _parentRecord, onProgress) {
-                const { result } = await subSuite.runAndRecord(stepParams, onProgress);
-                return result;
-            },
-        };
-    });
+    return subBenchmarks.map((subBenchmark) => createSubIteratedSuite({ run: () => benchmark.runSubBenchmark(subBenchmark) }, subIterationCount, subBenchmark.name));
 }
 
 const appVersion = "0.22.0";

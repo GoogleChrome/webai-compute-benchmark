@@ -10,7 +10,7 @@
 
 import MicrokernelsModule from "./build/microkernels.mjs";
 import { AsyncBenchmarkSuite, BenchmarkConnector } from "speedometer-utils/benchmark.mjs";
-import { createSubIteratedSteps, instantiatePrecompiled } from "speedometer-utils/helpers.mjs";
+import { createSubIteratedSuite, instantiatePrecompiled } from "speedometer-utils/helpers.mjs";
 import { params } from "speedometer-utils/params.mjs";
 
 const microkernelsUrl = new URL("./build/microkernels.wasm", import.meta.url);
@@ -115,19 +115,7 @@ function createMicrokernelsSuite(benchmark, suiteName, subIterationCount) {
 
     // TODO(ryandiaz): We may want to report the total as a geomean
     // so one sub-benchmark doesn't dominate.
-    const steps = subBenchmarkNames.map((name) => {
-        const subSuite = new AsyncBenchmarkSuite(
-            name,
-            createSubIteratedSteps(() => runSubBenchmark(name), subIterationCount)
-        );
-        return {
-            name,
-            async runAndRecord(stepParams, _parentSuite, _parentRecord, onProgress) {
-                const { result } = await subSuite.runAndRecord(stepParams, onProgress);
-                return result;
-            },
-        };
-    });
+    const steps = subBenchmarkNames.map((name) => createSubIteratedSuite({ run: () => runSubBenchmark(name) }, subIterationCount, name));
     return new AsyncBenchmarkSuite("default", steps);
 }
 
