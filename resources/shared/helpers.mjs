@@ -6,22 +6,45 @@ export function forceLayout(body) {
 
 import { AsyncBenchmarkStep, AsyncBenchmarkSuite } from "./benchmark.mjs";
 
-export function createSubIteratedSuite(benchmark, subIterationCount) {
-    const steps = [];
-    for (let i = 0; i < subIterationCount; i++) {
-        steps.push(
-            new AsyncBenchmarkStep(
-                `sub-iter-${i + 1}`,
-                async () => {
-                    forceLayout();
-                    await benchmark.run();
-                    forceLayout();
-                },
-                { measureAsync: false }
-            )
+/**
+ * Creates an `AsyncBenchmarkSuite` of `subIterationCount` steps (`sub-iter-1` .. `sub-iter-N`).
+ * If `benchmark.run()` returns a `{ tests, total }` result (for workloads that report internal
+ * Wasm timings), that result is used; otherwise the outer JS step duration is recorded.
+ */
+export function createSubIteratedSuite(benchmark, subIterationCount, name = "default") {
+    const steps = Array.from({ length: subIterationCount }, (_, i) => {
+        let parsedResult = null;
+        const step = new AsyncBenchmarkStep(
+            `sub-iter-${i + 1}`,
+            async () => {
+                forceLayout();
+                parsedResult = await benchmark.run();
+                forceLayout();
+            },
+            { measureAsync: false }
         );
-    }
-    return new AsyncBenchmarkSuite("default", steps);
+        return {
+            name: step.name,
+            async runAndRecord(stepParams, suite, recordCallback) {
+                const stepResult = await step.runAndRecord(stepParams, suite, recordCallback);
+                return parsedResult ?? stepResult;
+            },
+        };
+    });
+    return new AsyncBenchmarkSuite(name, steps);
+}
+
+/**
+ * Emscripten `instantiateWasm` callback factory that instantiates an already-compiled
+ * `WebAssembly.Module`, avoiding repeated compilation inside measured runs.
+ */
+export function instantiatePrecompiled(wasmModule, onError) {
+    return (imports, successCallback) => {
+        WebAssembly.instantiate(wasmModule, imports).then((instance) => {
+            successCallback(instance, wasmModule);
+        }, onError);
+        return {};
+    };
 }
 
 export async function getVisualOutputCanvas(width, height) {
