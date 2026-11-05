@@ -2,6 +2,30 @@ import { STEP_RUNNER_LOOKUP } from "./shared/step-runner.mjs";
 import { isValidUrl } from "./shared/params.mjs";
 import { isValidIdentifier } from "./shared/helpers.mjs";
 
+function validateStepResultsTree(steps, suiteName) {
+    if (!steps || typeof steps !== "object" || Array.isArray(steps)) {
+        throw new Error(`Invalid steps object in suite ${suiteName}`);
+    }
+    for (const [name, stepResult] of Object.entries(steps)) {
+        if (!isValidIdentifier(name)) {
+            throw new Error(`Invalid step names in suite ${suiteName}`);
+        }
+        if (stepResult && typeof stepResult === "object") {
+            if (stepResult.unit !== undefined && !isValidIdentifier(stepResult.unit)) {
+                throw new Error(`Invalid metric unit "${stepResult.unit}" for step "${name}" in suite ${suiteName}`);
+            }
+            if (!Number.isFinite(stepResult.total) || stepResult.total < 0) {
+                throw new Error(`Invalid total for step "${name}" in suite ${suiteName}: ${stepResult.total}`);
+            }
+            if (stepResult.steps !== undefined) {
+                validateStepResultsTree(stepResult.steps, suiteName);
+            }
+        } else if (!Number.isFinite(stepResult) || stepResult < 0) {
+            throw new Error(`Invalid result for step "${name}" in suite ${suiteName}: ${stepResult}`);
+        }
+    }
+}
+
 export class SuiteRunner {
     #frame;
     #params;
@@ -286,9 +310,7 @@ export class RemoteSuiteRunner extends SuiteRunner {
         this.frame.contentWindow.postMessage({ id: this.appId, key: "benchmark-connector", type: "benchmark-suite", name: this.suite.config?.name || "default" }, "*");
         // Capture metrics from the completed tests.
         const response = await this._subscribeOnce("suite-complete");
-        if (!Object.keys(response.result.steps).every(isValidIdentifier)) {
-            throw new Error(`Invalid step names in suite ${this.suite.name}`);
-        }
+        validateStepResultsTree(response.result?.steps, this.suite.name);
 
         this.suiteResults.steps = {
             ...this.suiteResults.steps,

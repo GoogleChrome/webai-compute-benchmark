@@ -311,6 +311,16 @@ describe("BenchmarkRunner", () => {
 
                     assert.calledWith(runner._client.didRunSuites, runner._measuredValues);
                 });
+
+                it("should reject conflicting units for the same metric across iterations", () => {
+                    const testRunner = new BenchmarkRunner([{ name: "Suite", enabled: true, tags: ["wasm"] }], {});
+                    testRunner._iterationCount = 2;
+                    testRunner._measuredValues = { steps: { Suite: { total: 100, steps: { Rate: { unit: "tps", total: 50 } } } } };
+                    testRunner._appendIterationMetrics(0);
+
+                    testRunner._measuredValues = { steps: { Suite: { total: 100, steps: { Rate: { unit: "ms", total: 50 } } } } };
+                    expect(() => testRunner._appendIterationMetrics(1)).to.throwError(/Conflicting units/);
+                });
             });
         });
 
@@ -349,6 +359,29 @@ describe("BenchmarkRunner", () => {
                 }
                 remoteRunner.suiteResults.total = 10;
                 expect(() => remoteRunner._validateSuiteResults()).to.not.throwError();
+            });
+
+            it("should reject unsafe step names, unsafe units, and non-finite step totals", async () => {
+                const invalidResults = [
+                    { total: 100, steps: { TTFT: { unit: "tok/s", total: 10 } } },
+                    { total: 100, steps: { TTFT: { unit: "<svg onload=1>", total: 10 } } },
+                    { total: 100, steps: { TTFT: { unit: "ms", total: 10, steps: { "bad/name": { total: 5 } } } } },
+                    { total: 100, steps: { TTFT: { unit: "ms", total: NaN } } },
+                    { total: 100, steps: { TTFT: { unit: "ms", total: -5 } } },
+                ];
+                const postMessageStub = stub(frame.contentWindow, "postMessage");
+                for (const result of invalidResults) {
+                    postMessageStub.callsFake(() => {
+                        setTimeout(() => remoteRunner.postMessageCallbacks.get("suite-complete")?.({ data: { type: "suite-complete", result } }), 0);
+                    });
+                    let caught;
+                    try {
+                        await remoteRunner._runSuite();
+                    } catch (e) {
+                        caught = e;
+                    }
+                    expect(caught).to.be.an(Error);
+                }
             });
 
             it("should not request a teardown from workloads that did not announce support for it", async () => {
