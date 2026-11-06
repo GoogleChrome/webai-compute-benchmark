@@ -218,7 +218,7 @@ function prepareScatterPlotValues(metrics, normalize = true) {
         let width = metric.delta || 1;
         let center = mean;
         if (normalize) {
-            width = (metric.delta / mean) * toPercent;
+            width = ((metric.delta || 0) / mean) * toPercent;
             center = 0;
         }
         const left = center - width / 2;
@@ -267,7 +267,7 @@ function renderScatterPlot({ values, width = 500, height, trackHeight, xAxisPosi
     if (xAxisPositiveOnly) {
         xMin = Math.max(xMin, 0);
     }
-    if (xMax <= xMin) {
+    if (!(xMax > xMin)) {
         const center = Number.isFinite(xMax) ? xMax : 0;
         xMin = xAxisPositiveOnly ? Math.max(0, center - 1) : center - 1;
         xMax = center + 1;

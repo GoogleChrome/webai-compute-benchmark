@@ -3,6 +3,9 @@ import { SuiteRunner, RemoteSuiteRunner } from "../../resources/suite-runner.mjs
 import { StepRunner } from "../../resources/shared/step-runner.mjs";
 import { AsyncBenchmarkSuite } from "../../resources/shared/benchmark.mjs";
 import { createSubIteratedSuite, ensureWebGPU, WEBGPU_UNAVAILABLE_ERROR_MESSAGE } from "../../resources/shared/helpers.mjs";
+import { createLlmSubIteratedSuite } from "../../resources/shared/llm-metrics.mjs";
+import { Metric } from "../../resources/metric.mjs";
+import { renderMetricView } from "../../resources/metric-ui.mjs";
 import { defaultParams } from "../../resources/shared/params.mjs";
 
 function STEP_FIXTURE(name) {
@@ -618,6 +621,112 @@ describe("BenchmarkRunner", () => {
                 expect(result.steps["sub-a"].steps["sub-iter-2"]).to.eql({ tests: {}, total: 17.5 });
                 expect(result.steps["sub-b"].total).to.equal(15);
                 expect(result.total).to.equal(45);
+            });
+
+            it("should transpose LLM sub-iteration metrics using geometric mean while preserving outer wall-clock total", async () => {
+                const samples = [
+                    { ttftMs: 100, prefillTokensPerSec: 200, decodeTokensPerSec: 25 },
+                    { ttftMs: 400, prefillTokensPerSec: 800, decodeTokensPerSec: 100 },
+                ];
+                let index = 0;
+                const suite = createLlmSubIteratedSuite(
+                    {
+                        async run() {
+                            return samples[index++];
+                        },
+                    },
+                    2
+                );
+
+                const { result } = await suite.runAndRecord(defaultParams);
+                expect(result.total).to.be.a("number");
+                expect(Number.isFinite(result.total)).to.be(true);
+                expect(Object.keys(result.steps)).to.eql(["TTFT", "Prefill-TPS", "Decode-TPS"]);
+
+                expect(result.steps.TTFT.unit).to.equal("ms");
+                expect(Math.abs(result.steps.TTFT.total - 200) < 1e-9).to.be(true);
+                expect(result.steps.TTFT.steps["sub-iter-1"]).to.eql({ unit: "ms", tests: {}, total: 100 });
+                expect(result.steps.TTFT.steps["sub-iter-2"]).to.eql({ unit: "ms", tests: {}, total: 400 });
+
+                expect(result.steps["Prefill-TPS"].unit).to.equal("tps");
+                expect(Math.abs(result.steps["Prefill-TPS"].total - 400) < 1e-9).to.be(true);
+                expect(result.steps["Prefill-TPS"].steps["sub-iter-1"]).to.eql({ unit: "tps", tests: {}, total: 200 });
+                expect(result.steps["Prefill-TPS"].steps["sub-iter-2"]).to.eql({ unit: "tps", tests: {}, total: 800 });
+
+                expect(result.steps["Decode-TPS"].unit).to.equal("tps");
+                expect(Math.abs(result.steps["Decode-TPS"].total - 50) < 1e-9).to.be(true);
+                expect(result.steps["Decode-TPS"].steps["sub-iter-1"]).to.eql({ unit: "tps", tests: {}, total: 25 });
+                expect(result.steps["Decode-TPS"].steps["sub-iter-2"]).to.eql({ unit: "tps", tests: {}, total: 100 });
+            });
+
+            it("should reject missing, non-positive, or non-finite LLM metrics in createLlmSubIteratedSuite", async () => {
+                const invalidSamples = [
+                    null,
+                    {},
+                    { ttftMs: 0, prefillTokensPerSec: 100, decodeTokensPerSec: 50 },
+                    { ttftMs: 100, prefillTokensPerSec: -10, decodeTokensPerSec: 50 },
+                    { ttftMs: 100, prefillTokensPerSec: 100, decodeTokensPerSec: NaN },
+                    { ttftMs: 100, prefillTokensPerSec: 100, decodeTokensPerSec: Infinity },
+                ];
+                for (const sample of invalidSamples) {
+                    const suite = createLlmSubIteratedSuite(
+                        {
+                            async run() {
+                                return sample;
+                            },
+                        },
+                        1
+                    );
+                    let caught;
+                    try {
+                        await suite.runAndRecord(defaultParams);
+                    } catch (e) {
+                        caught = e;
+                    }
+                    expect(caught).to.be.an(Error);
+                }
+            });
+        });
+
+        describe("renderMetricView", () => {
+            it("should render separate chart blocks per unit and handle constant float samples without NaN", () => {
+                const ttft = new Metric("Suite/TTFT", "ms");
+                const prefill = new Metric("Suite/Prefill-TPS", "tps");
+                const decode = new Metric("Suite/Decode-TPS", "tps");
+                for (const v of [0.1, 0.1, 0.1]) {
+                    ttft.add(v);
+                }
+                for (const v of [100, 200, 300]) {
+                    prefill.add(v);
+                }
+                for (const v of [50, 50, 50]) {
+                    decode.add(v);
+                }
+                ttft.computeAggregatedMetrics();
+                prefill.computeAggregatedMetrics();
+                decode.computeAggregatedMetrics();
+
+                const html = renderMetricView({ metrics: [ttft, prefill, decode], title: "Suite" });
+                expect(html).not.to.contain("NaN");
+
+                const container = document.createElement("div");
+                container.innerHTML = html;
+                const charts = container.querySelectorAll(":scope > dl.metric > dd > .metric-chart");
+                expect(charts.length).to.equal(2);
+                expect(charts[0].querySelectorAll(".metric-chart-absolute svg, .metric-chart-relative svg").length).to.equal(2);
+                expect(charts[1].querySelectorAll(".metric-chart-absolute svg, .metric-chart-relative svg").length).to.equal(2);
+                expect(charts[0].textContent).to.contain("TTFT");
+                expect(charts[0].textContent).to.contain("ms");
+                expect(charts[1].textContent).to.contain("Prefill-TPS");
+                expect(charts[1].textContent).to.contain("Decode-TPS");
+                expect(charts[1].textContent).to.contain("tps");
+            });
+
+            it("should reject invalid titles in renderMetricView", () => {
+                const metric = new Metric("Suite/TTFT", "ms");
+                metric.add(10);
+                metric.computeAggregatedMetrics();
+                expect(() => renderMetricView({ metrics: [metric], title: "<svg onload=1>" })).to.throwError();
             });
         });
     });
