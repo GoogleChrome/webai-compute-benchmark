@@ -766,6 +766,10 @@ section#about .note {
     grid-template-columns: calc((var(--viewport-width) - 120px) / 2) 1fr;
 }
 
+.metric-chart + .metric-chart {
+    margin-top: 8px;
+}
+
 .metric-chart-relative {
     display: none;
 }

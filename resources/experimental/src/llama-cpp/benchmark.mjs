@@ -19,7 +19,7 @@ import { registerTeardown } from "speedometer-utils/workload-teardown.mjs";
 import { Wllama } from "@wllama/wllama/esm/index.js";
 import { BenchmarkConnector } from "speedometer-utils/benchmark.mjs";
 import { fetchModelWithProgress } from "speedometer-utils/download-utils.mjs";
-import { createSubIteratedSuite } from "speedometer-utils/helpers.mjs";
+import { createLlmSubIteratedSuite } from "speedometer-utils/llm-metrics.mjs";
 import { params } from "speedometer-utils/params.mjs";
 import { LLM_BENCHMARK_PROMPT, LLM_MAX_OUTPUT_TOKENS, LLM_SEED, LLM_TEMPERATURE, LLM_TOP_K } from "../llm-benchmark-config.mjs";
 
@@ -143,9 +143,16 @@ class LlamaCppBenchmark {
             seed: LLM_SEED,
             ignore_eos: true,
             cache_prompt: false,
+            timings_per_token: true,
         });
         console.timeEnd("llama-cpp-generation");
         console.log(result?.choices?.[0]?.message?.content ?? result);
+        const timings = result?.timings;
+        return {
+            ttftMs: timings?.prompt_ms,
+            prefillTokensPerSec: timings?.prompt_per_second,
+            decodeTokensPerSec: timings?.predicted_per_second,
+        };
     }
 
     async dispose() {
@@ -177,7 +184,7 @@ export async function initializeLlamaCppBenchmark(backendId) {
 
         /*--------- Running test suites ---------*/
         const suites = {
-            default: createSubIteratedSuite(benchmark, params.subIterationCount),
+            default: createLlmSubIteratedSuite(benchmark, params.subIterationCount),
         };
 
         const benchmarkConnector = new BenchmarkConnector(suites, appName, appVersion);

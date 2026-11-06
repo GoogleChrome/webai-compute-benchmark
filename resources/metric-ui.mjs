@@ -2,6 +2,19 @@ import { Metric } from "./metric.mjs";
 
 export const COLORS = Object.freeze(["blue", "blue-light", "green-light", "green", "yellow", "orange", "red", "magenta", "violet", "purple", "blue-dark", "green-dark", "ochre", "rust"]);
 
+function groupMetricsByUnit(metrics) {
+    const groups = new Map();
+    for (const metric of metrics) {
+        let group = groups.get(metric.unit);
+        if (!group) {
+            group = [];
+            groups.set(metric.unit, group);
+        }
+        group.push(metric);
+    }
+    return Array.from(groups.values());
+}
+
 export function renderMetricView(viewParams) {
     let { metrics, width = 500, trackHeight = 20, subMetricMargin = 35, title = "", colors = COLORS } = viewParams;
     if (title && !Metric.isValidName(title)) {
@@ -9,40 +22,44 @@ export function renderMetricView(viewParams) {
     }
     // Make sure subMetricMargin is set for use in renderSubMetrics.
     viewParams.subMetricMargin = subMetricMargin;
-    const scatterPlotParams = { width, trackHeight, colors };
+    const unitGroups = groupMetricsByUnit(metrics);
+    let colorOffset = 0;
+    const charts = unitGroups
+        .map((group) => {
+            const groupColors = colors.map((_, idx) => colors[(colorOffset + idx) % colors.length]);
+            colorOffset += group.length;
+            const scatterPlotParams = { width, trackHeight, colors: groupColors };
 
-    scatterPlotParams.xAxisPositiveOnly = false;
-    scatterPlotParams.xAxisShowZero = true;
-    scatterPlotParams.values = prepareScatterPlotValues(metrics, true);
-    scatterPlotParams.unit = "%";
-    scatterPlotParams.xAxisLabel = "Spread Normalized";
-    const normalizedScatterPlot = renderScatterPlot(scatterPlotParams);
+            scatterPlotParams.xAxisPositiveOnly = false;
+            scatterPlotParams.xAxisShowZero = true;
+            scatterPlotParams.values = prepareScatterPlotValues(group, true);
+            scatterPlotParams.unit = "%";
+            scatterPlotParams.xAxisLabel = "Spread Normalized";
+            const normalizedScatterPlot = renderScatterPlot(scatterPlotParams);
 
-    scatterPlotParams.xAxisPositiveOnly = true;
-    scatterPlotParams.xAxisShowZero = false;
-    scatterPlotParams.values = prepareScatterPlotValues(metrics, false);
-    scatterPlotParams.unit = metrics[0].unit;
-    scatterPlotParams.xAxisLabel = metrics[0].unit;
-    const absoluteScatterPlot = renderScatterPlot(scatterPlotParams);
+            scatterPlotParams.xAxisPositiveOnly = true;
+            scatterPlotParams.xAxisShowZero = false;
+            scatterPlotParams.values = prepareScatterPlotValues(group, false);
+            scatterPlotParams.unit = group[0].unit;
+            scatterPlotParams.xAxisLabel = group[0].unit;
+            const absoluteScatterPlot = renderScatterPlot(scatterPlotParams);
 
-    const legend = metrics
-        .map(
-            (metric, i) => `
+            const legend = group
+                .map(
+                    (metric, i) => `
                 <tr >
-                    <td class="${colors[i % colors.length]} no-select" >●</td>
+                    <td class="${groupColors[i % groupColors.length]} no-select" >●</td>
                     <td class="label">${metric.shortName}</td>
                     <td class="number">${metric.mean.toFixed(2)}</td>
                     <td>±</td>
                     <td>${metric.deltaString}</td>
                     <td>${metric.unit}</td>
                 </tr>`
-        )
-        .join("");
-    return `
-        <dl class="metric">
-            <dt><h3>${title}<h3></dt>
-            <dd>
-                <div class="metric-chart"">
+                )
+                .join("");
+
+            return `
+                <div class="metric-chart">
                     <div onclick="document.body.classList.toggle('relative-charts')">
                         <div class="metric-chart-absolute">
                             ${absoluteScatterPlot}
@@ -52,7 +69,15 @@ export function renderMetricView(viewParams) {
                         </div>
                     </div>
                     <table class="chart chart-legend">${legend}</table>
-                </div>
+                </div>`;
+        })
+        .join("");
+
+    return `
+        <dl class="metric">
+            <dt><h3>${title}</h3></dt>
+            <dd>
+                ${charts}
                 ${renderSubMetrics(viewParams)}
             </dd>
         </dl>
@@ -70,15 +95,15 @@ function renderSubMetrics(viewParams) {
             <div class="submetrics">
                 ${renderMetricsTable(metrics)}
             </div>`;
-    const hasChildMetric = metrics.length > 0 && metrics[0].children.length > 0;
-    if (!hasChildMetric || !renderChildren) {
+    const metricsWithChildren = renderChildren ? metrics.filter((metric) => metric.children.length > 0) : [];
+    if (metricsWithChildren.length === 0) {
         return valuesTable;
     }
 
     const subMetricWidth = width - subMetricMargin;
     const childColors = [...colors];
 
-    const subMetrics = metrics
+    const subMetrics = metricsWithChildren
         .map((metric) => {
             // Rotate colors to get different colors for sub-plots.
             for (let i = 0; i < metric.children.length; i++) {
@@ -144,7 +169,7 @@ function renderMetricsTable(metrics, min, max) {
                 continue;
             }
             const delta = metric.max - metric.min;
-            const percent = Math.max(Math.min((value - metric.min) / delta, 1), 0) * 100;
+            const percent = delta > 0 ? Math.max(Math.min((value - metric.min) / delta, 1), 0) * 100 : 0;
             const percentGradient = `background: linear-gradient(90deg, var(--foreground-alpha) ${percent}%, rgba(0,0,0,0) ${percent}%);`;
             columns += `<td style="${percentGradient}">${value.toFixed(2)}</td>`;
         }
@@ -193,7 +218,7 @@ function prepareScatterPlotValues(metrics, normalize = true) {
         let width = metric.delta || 1;
         let center = mean;
         if (normalize) {
-            width = (metric.delta / mean) * toPercent;
+            width = ((metric.delta || 0) / mean) * toPercent;
             center = 0;
         }
         const left = center - width / 2;
@@ -241,6 +266,11 @@ function renderScatterPlot({ values, width = 500, height, trackHeight, xAxisPosi
     }
     if (xAxisPositiveOnly) {
         xMin = Math.max(xMin, 0);
+    }
+    if (!(xMax > xMin)) {
+        const center = Number.isFinite(xMax) ? xMax : 0;
+        xMin = xAxisPositiveOnly ? Math.max(0, center - 1) : center - 1;
+        xMax = center + 1;
     }
     // Max delta of values across each axis:
     const trackCount = Math.ceil(yMax - yMin) || 1;
