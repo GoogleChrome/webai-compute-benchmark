@@ -3,7 +3,7 @@ import { registerTeardown } from "speedometer-utils/workload-teardown.mjs";
 import Gemma from "./build/gemma_cpp_js.mjs";
 import { BenchmarkConnector } from "speedometer-utils/benchmark.mjs";
 import { createDownloadProgressLogger } from "speedometer-utils/download-utils.mjs";
-import { createSubIteratedSuite } from "speedometer-utils/helpers.mjs";
+import { createLlmSubIteratedSuite } from "speedometer-utils/llm-metrics.mjs";
 import { params } from "speedometer-utils/params.mjs";
 import { LLM_BENCHMARK_PROMPT, LLM_MAX_OUTPUT_TOKENS, LLM_TEMPERATURE, LLM_TOP_K } from "../llm-benchmark-config.mjs";
 
@@ -28,7 +28,13 @@ class GemmaBenchmark {
             ignore_eos: true,
         });
         console.timeEnd("gemma-generation");
-        console.log(result);
+        console.log(result?.text ?? result);
+        const metrics = result?.metrics;
+        return {
+            ttftMs: metrics?.ttft_ms,
+            prefillTokensPerSec: metrics?.prefill_tokens_per_sec,
+            decodeTokensPerSec: metrics?.decode_tokens_per_sec,
+        };
     }
     dispose() {
         this.model?.delete();
@@ -51,7 +57,7 @@ try {
 
 /*--------- Running test suites ---------*/
 const suites = {
-    default: createSubIteratedSuite(benchmark, params.subIterationCount),
+    default: createLlmSubIteratedSuite(benchmark, params.subIterationCount),
 };
 
 const benchmarkConnector = new BenchmarkConnector(suites, appName, appVersion);
