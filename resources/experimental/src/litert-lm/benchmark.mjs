@@ -13,7 +13,7 @@ import { registerTeardown } from "speedometer-utils/workload-teardown.mjs";
 import { Engine, loadLiteRtLm, SamplerType, unloadLiteRtLm } from "@litert-lm/core";
 import { BenchmarkConnector } from "speedometer-utils/benchmark.mjs";
 import { fetchModelWithProgress } from "speedometer-utils/download-utils.mjs";
-import { createSubIteratedSuite } from "speedometer-utils/helpers.mjs";
+import { createLlmSubIteratedSuite } from "speedometer-utils/llm-metrics.mjs";
 import { params } from "speedometer-utils/params.mjs";
 import { LLM_BENCHMARK_PROMPT, LLM_MAX_OUTPUT_TOKENS, LLM_SEED, LLM_TEMPERATURE, LLM_TOP_K } from "../llm-benchmark-config.mjs";
 
@@ -53,13 +53,12 @@ class LiteRtLmBenchmark {
         try {
             const result = await conversation.sendMessage(LLM_BENCHMARK_PROMPT);
             console.log(result?.content?.[0]?.text ?? result);
-            const benchmarkInfo = await conversation.getBenchmarkInfo();
-            console.log("Benchmark info:", {
-                timeToFirstTokenInSecond: benchmarkInfo.timeToFirstTokenInSecond,
-                lastPrefillTokensPerSecond: benchmarkInfo.lastPrefillTokensPerSecond,
-                lastDecodeTokensPerSecond: benchmarkInfo.lastDecodeTokensPerSecond,
-                lastDecodeTokenCount: benchmarkInfo.lastDecodeTokenCount,
-            });
+            const info = await conversation.getBenchmarkInfo();
+            return {
+                ttftMs: info?.timeToFirstTokenInSecond * 1000,
+                prefillTokensPerSec: info?.lastPrefillTokensPerSecond,
+                decodeTokensPerSec: info?.lastDecodeTokensPerSecond,
+            };
         } finally {
             await conversation.delete();
         }
@@ -84,7 +83,7 @@ try {
 
     /*--------- Running test suites ---------*/
     const suites = {
-        default: createSubIteratedSuite(benchmark, params.subIterationCount),
+        default: createLlmSubIteratedSuite(benchmark, params.subIterationCount),
     };
 
     const benchmarkConnector = new BenchmarkConnector(suites, appName, appVersion);

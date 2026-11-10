@@ -277,23 +277,32 @@ export class BenchmarkRunner {
     }
 
     _appendIterationMetrics(iteration) {
-        const getMetric = (name, unit = "ms") => this._metrics[name] || (this._metrics[name] = new Metric(name, unit));
+        const getMetric = (name, unit = "ms") => {
+            const existing = this._metrics[name];
+            if (existing) {
+                if (existing.unit !== unit) {
+                    throw new Error(`Conflicting units for metric=${name}: expected "${existing.unit}", got "${unit}".`);
+                }
+                return existing;
+            }
+            return (this._metrics[name] = new Metric(name, unit));
+        };
         const iterationMetric = (i, name) => {
-            if (i >= params.iterationCount) {
+            if (i >= this._iterationCount) {
                 throw new Error(`Requested iteration=${i} does not exist.`);
             }
             return getMetric(`Iteration-${i}-${name}`);
         };
 
         const collectSubMetrics = (prefix, items, parent) => {
-            for (let name in items) {
-                const results = items[name];
-                const metric = getMetric(prefix + name);
-                metric.add(results.total ?? results);
-                if (metric.parent !== parent) {
+            for (const [name, results] of Object.entries(items)) {
+                const unit = results?.unit ?? "ms";
+                const metric = getMetric(prefix + name, unit);
+                metric.add(results?.total ?? results);
+                if (parent && metric.parent !== parent) {
                     parent.addChild(metric);
                 }
-                if (results.steps) {
+                if (results?.steps) {
                     collectSubMetrics(`${metric.name}${Metric.separator}`, results.steps, metric);
                 }
             }
