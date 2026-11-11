@@ -1,7 +1,8 @@
 import { BenchmarkRunner } from "./benchmark-runner.mjs";
 import * as Statistics from "./statistics.mjs";
-import { renderMetricView } from "./metric-ui.mjs";
+import { createLlmScoresElements, renderMetricView } from "./metric-ui.mjs";
 import { WEBGPU_UNAVAILABLE_ERROR_MESSAGE } from "./shared/helpers.mjs";
+import { LLM_METRICS } from "./shared/llm-metrics.mjs";
 import { defaultParams, params } from "./shared/params.mjs";
 import { createDeveloperModeContainer } from "./developer-mode.mjs";
 
@@ -267,6 +268,17 @@ class MainBenchmarkClient {
             renderChildren: false,
             colors: ["white"],
         });
+
+        const llmMetricEntries = LLM_METRICS.map((def) => ({
+            label: def.name,
+            metric: metrics[`${def.name}-Geomean`],
+        })).filter(({ metric }) => metric?.values.length > 0);
+        const llmAggregateSection = document.getElementById("llm-aggregate-section");
+        const llmAggregateScores = document.getElementById("llm-aggregate-scores");
+        if (llmAggregateSection && llmAggregateScores) {
+            llmAggregateScores.replaceChildren(...createLlmScoresElements(llmMetricEntries));
+            llmAggregateSection.hidden = llmMetricEntries.length === 0;
+        }
 
         const toplevelMetrics = Object.values(metrics).filter((each) => !each.parent && each.children.length > 0);
         document.getElementById("tests-chart").innerHTML = renderMetricView({

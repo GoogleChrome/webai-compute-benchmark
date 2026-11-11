@@ -5,7 +5,7 @@ import { AsyncBenchmarkSuite } from "../../resources/shared/benchmark.mjs";
 import { createSubIteratedSuite, ensureWebGPU, WEBGPU_UNAVAILABLE_ERROR_MESSAGE } from "../../resources/shared/helpers.mjs";
 import { createLlmSubIteratedSuite } from "../../resources/shared/llm-metrics.mjs";
 import { Metric } from "../../resources/metric.mjs";
-import { renderMetricView } from "../../resources/metric-ui.mjs";
+import { createLlmScoresElements, renderMetricView } from "../../resources/metric-ui.mjs";
 import { defaultParams } from "../../resources/shared/params.mjs";
 
 function STEP_FIXTURE(name) {
@@ -323,6 +323,118 @@ describe("BenchmarkRunner", () => {
 
                     testRunner._measuredValues = { steps: { Suite: { total: 100, steps: { Rate: { unit: "ms", total: 50 } } } } };
                     expect(() => testRunner._appendIterationMetrics(1)).to.throwError(/Conflicting units/);
+                });
+
+                it("should omit LLM geomean metrics when no LLM suites are enabled", () => {
+                    expect(runner._metrics["TTFT-Geomean"]).to.be(undefined);
+                    expect(runner._metrics["Prefill-TPS-Geomean"]).to.be(undefined);
+                    expect(runner._metrics["Decode-TPS-Geomean"]).to.be(undefined);
+
+                    const disabledRunner = new BenchmarkRunner(
+                        [
+                            { name: "Non-LLM", enabled: true, tags: ["wasm"] },
+                            { name: "Disabled-LLM", enabled: false, tags: ["wasm", "llm"] },
+                        ],
+                        {}
+                    );
+                    disabledRunner._iterationCount = 1;
+                    disabledRunner._measuredValues = {
+                        steps: {
+                            "Non-LLM": { total: 100 },
+                            "Disabled-LLM": {
+                                total: 500,
+                                steps: {
+                                    TTFT: { unit: "ms", total: 100 },
+                                    "Prefill-TPS": { unit: "tps", total: 200 },
+                                    "Decode-TPS": { unit: "tps", total: 25 },
+                                },
+                            },
+                        },
+                    };
+                    disabledRunner._appendIterationMetrics(0);
+
+                    expect(disabledRunner._metrics["TTFT-Geomean"]).to.be(undefined);
+                    expect(disabledRunner._metrics["Iteration-0-TTFT-Total"]).to.be(undefined);
+                });
+
+                it("should compute combined LLM geomean metrics across iterations and ignore non-LLM or failed suites", () => {
+                    const testRunner = new BenchmarkRunner(
+                        [
+                            { name: "Non-LLM", enabled: true, tags: ["wasm"] },
+                            { name: "LLM-Wasm", enabled: true, tags: ["wasm", "llm"] },
+                            { name: "LLM-WebGPU", enabled: true, tags: ["webgpu", "llm"] },
+                        ],
+                        {}
+                    );
+                    testRunner._iterationCount = 2;
+                    testRunner._measuredValues = {
+                        steps: {
+                            "Non-LLM": { total: 250 },
+                            "LLM-Wasm": {
+                                total: 1000,
+                                steps: {
+                                    TTFT: { unit: "ms", total: 100 },
+                                    "Prefill-TPS": { unit: "tps", total: 200 },
+                                    "Decode-TPS": { unit: "tps", total: 25 },
+                                },
+                            },
+                            "LLM-WebGPU": {
+                                total: 500,
+                                steps: {
+                                    TTFT: { unit: "ms", total: 400 },
+                                    "Prefill-TPS": { unit: "tps", total: 800 },
+                                    "Decode-TPS": { unit: "tps", total: 100 },
+                                },
+                            },
+                        },
+                    };
+                    testRunner._appendIterationMetrics(0);
+
+                    testRunner._measuredValues = {
+                        steps: {
+                            "Non-LLM": { total: 260 },
+                            "LLM-Wasm": { total: 0 },
+                            "LLM-WebGPU": {
+                                total: 450,
+                                steps: {
+                                    TTFT: { unit: "ms", total: 300 },
+                                    "Prefill-TPS": { unit: "tps", total: 600 },
+                                    "Decode-TPS": { unit: "tps", total: 70 },
+                                },
+                            },
+                        },
+                    };
+                    testRunner._appendIterationMetrics(1);
+
+                    expect(testRunner._metrics["TTFT-Geomean"].unit).to.equal("ms");
+                    expect(testRunner._metrics["TTFT-Geomean"].values.length).to.equal(2);
+                    expect(Math.abs(testRunner._metrics["TTFT-Geomean"].values[0] - 200) < 1e-9).to.be(true);
+                    expect(Math.abs(testRunner._metrics["TTFT-Geomean"].values[1] - 300) < 1e-9).to.be(true);
+                    expect(Math.abs(testRunner._metrics["TTFT-Geomean"].mean - 250) < 1e-9).to.be(true);
+                    expect(testRunner._metrics["TTFT-Geomean"].delta > 0).to.be(true);
+
+                    expect(testRunner._metrics["Prefill-TPS-Geomean"].unit).to.equal("tps");
+                    expect(Math.abs(testRunner._metrics["Prefill-TPS-Geomean"].mean - 500) < 1e-9).to.be(true);
+                    expect(testRunner._metrics["Decode-TPS-Geomean"].unit).to.equal("tps");
+                    expect(Math.abs(testRunner._metrics["Decode-TPS-Geomean"].mean - 60) < 1e-9).to.be(true);
+                });
+
+                it("should reject conflicting units in LLM step results", () => {
+                    const testRunner = new BenchmarkRunner([{ name: "LLM-Wasm", enabled: true, tags: ["wasm", "llm"] }], {});
+                    testRunner._iterationCount = 1;
+                    testRunner._measuredValues = {
+                        steps: {
+                            "LLM-Wasm": {
+                                total: 1000,
+                                steps: {
+                                    TTFT: { unit: "s", total: 1 },
+                                    "Prefill-TPS": { unit: "tps", total: 200 },
+                                    "Decode-TPS": { unit: "tps", total: 25 },
+                                },
+                            },
+                        },
+                    };
+                    expect(() => testRunner._appendIterationMetrics(0)).to.throwError(/Conflicting units/);
                 });
             });
         });
@@ -727,6 +839,42 @@ describe("BenchmarkRunner", () => {
                 metric.add(10);
                 metric.computeAggregatedMetrics();
                 expect(() => renderMetricView({ metrics: [metric], title: "<svg onload=1>" })).to.throwError();
+            });
+        });
+
+        describe("createLlmScoresElements", () => {
+            it("should render LLM aggregate metrics as score boxes without charts or tables", () => {
+                const ttft = new Metric("TTFT-Geomean", "ms");
+                const prefill = new Metric("Prefill-TPS-Geomean", "tps");
+                const decode = new Metric("Decode-TPS-Geomean", "tps");
+                for (const v of [190, 210]) {
+                    ttft.add(v);
+                }
+                prefill.add(400);
+                decode.add(50);
+                ttft.computeAggregatedMetrics();
+                prefill.computeAggregatedMetrics();
+                decode.computeAggregatedMetrics();
+
+                const container = document.createElement("div");
+                container.className = "scores-container llm-scores-container";
+                container.replaceChildren(
+                    ...createLlmScoresElements([
+                        { label: "TTFT", metric: ttft },
+                        { label: "Prefill-TPS", metric: prefill },
+                        { label: "Decode-TPS", metric: decode },
+                    ])
+                );
+
+                expect(container.querySelectorAll("svg, table").length).to.equal(0);
+                const boxes = container.querySelectorAll(".llm-score-box");
+                expect(boxes.length).to.equal(3);
+                expect(Array.from(boxes).map((b) => b.querySelector("h3").textContent)).to.eql(["TTFT", "Prefill-TPS", "Decode-TPS"]);
+                expect(boxes[0].querySelector(".score-value").textContent).to.equal("200.00 ms");
+                expect(boxes[0].querySelector(".score-confidence").textContent).to.contain("±");
+                expect(boxes[1].querySelector(".score-value").textContent).to.equal("400.00 tps");
+                expect(boxes[1].querySelector(".score-confidence").textContent).to.equal("");
+                expect(boxes[2].querySelector(".score-value").textContent).to.equal("50.00 tps");
             });
         });
     });

@@ -15,6 +15,34 @@ function groupMetricsByUnit(metrics) {
     return Array.from(groups.values());
 }
 
+export function createLlmScoresElements(metricEntries) {
+    return metricEntries.map(({ label, metric }) => {
+        const box = document.createElement("div");
+        box.className = "score-box llm-score-box";
+
+        const heading = document.createElement("h3");
+        heading.textContent = label;
+
+        const value = document.createElement("div");
+        value.className = "score-value llm-score-value";
+        value.textContent = metric.mean.toFixed(2);
+
+        const unit = document.createElement("span");
+        unit.className = "llm-score-unit";
+        unit.textContent = ` ${metric.unit}`;
+        value.appendChild(unit);
+
+        const confidence = document.createElement("div");
+        confidence.className = "score-confidence";
+        if (metric.deltaString) {
+            confidence.textContent = `\u00b1 ${metric.deltaString}`;
+        }
+
+        box.append(heading, value, confidence);
+        return box;
+    });
+}
+
 export function renderMetricView(viewParams) {
     let { metrics, width = 500, trackHeight = 20, subMetricMargin = 35, title = "", colors = COLORS } = viewParams;
     if (title && !Metric.isValidName(title)) {

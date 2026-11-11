@@ -1,6 +1,7 @@
 import { Metric } from "./metric.mjs";
 import { params } from "./shared/params.mjs";
 import { isValidIdentifier, ensureWebGPU } from "./shared/helpers.mjs";
+import { LLM_METRICS } from "./shared/llm-metrics.mjs";
 import { SUITE_RUNNER_LOOKUP } from "./suite-runner.mjs";
 
 const performance = globalThis.performance;
@@ -287,11 +288,11 @@ export class BenchmarkRunner {
             }
             return (this._metrics[name] = new Metric(name, unit));
         };
-        const iterationMetric = (i, name) => {
+        const iterationMetric = (i, name, unit = "ms") => {
             if (i >= this._iterationCount) {
                 throw new Error(`Requested iteration=${i} does not exist.`);
             }
-            return getMetric(`Iteration-${i}-${name}`);
+            return getMetric(`Iteration-${i}-${name}`, unit);
         };
 
         const collectSubMetrics = (prefix, items, parent) => {
@@ -315,17 +316,28 @@ export class BenchmarkRunner {
         const iterationResults = this._measuredValues.steps;
         collectSubMetrics("", iterationResults);
 
+        const hasLlm = this._suites.some((s) => s.enabled && s.tags?.includes("llm"));
         if (initializeMetrics) {
             // Prepare all iteration metrics so they are listed at the end of
             // of the _metrics object.
             for (let i = 0; i < this._iterationCount; i++) {
                 iterationMetric(i, "Wasm-Total").description = `Wasm test totals for iteration ${i}`;
                 iterationMetric(i, "WebGPU-Total").description = `WebGPU test totals for iteration ${i}`;
+                if (hasLlm) {
+                    for (const { name, unit } of LLM_METRICS) {
+                        iterationMetric(i, `${name}-Total`, unit).description = `LLM ${name} values for iteration ${i}`;
+                    }
+                }
             }
             getMetric("Wasm-Geomean", "ms").description = "Geomean of Wasm test totals";
             getMetric("Wasm-Score", "score").description = "Scaled inverse of the Wasm Geomean";
             getMetric("WebGPU-Geomean", "ms").description = "Geomean of WebGPU test totals";
             getMetric("WebGPU-Score", "score").description = "Scaled inverse of the WebGPU Geomean";
+            if (hasLlm) {
+                for (const { name, unit } of LLM_METRICS) {
+                    getMetric(`${name}-Geomean`, unit).description = `Geomean of LLM ${name} values`;
+                }
+            }
             if (params.measurePrepare) {
                 getMetric("Prepare", "ms").description = "Geomean of workload prepare times";
             }
@@ -346,6 +358,15 @@ export class BenchmarkRunner {
                 } else {
                     throw new Error(`Suite ${suiteName} has neither "wasm" nor "webgpu" tag.`);
                 }
+                if (suite?.enabled && suite?.tags?.includes("llm")) {
+                    for (const { name, unit } of LLM_METRICS) {
+                        const step = results.steps?.[name];
+                        const value = step?.total ?? step;
+                        if (Number.isFinite(value) && value > 0) {
+                            iterationMetric(iteration, `${name}-Total`, step?.unit ?? unit).add(value);
+                        }
+                    }
+                }
             }
         }
 
@@ -359,6 +380,15 @@ export class BenchmarkRunner {
         if (!isNaN(iterationWebgpuTotal.geomean) && iterationWebgpuTotal.geomean > 0) {
             webgpuGeomean.add(iterationWebgpuTotal.geomean);
             getMetric("WebGPU-Score", "score").add(geomeanToScore(iterationWebgpuTotal.geomean));
+        }
+        if (hasLlm) {
+            for (const { name, unit } of LLM_METRICS) {
+                const iterationLlmTotal = iterationMetric(iteration, `${name}-Total`, unit);
+                iterationLlmTotal.computeAggregatedMetrics();
+                if (iterationLlmTotal.values.length > 0 && Number.isFinite(iterationLlmTotal.geomean) && iterationLlmTotal.geomean > 0) {
+                    getMetric(`${name}-Geomean`, unit).add(iterationLlmTotal.geomean);
+                }
+            }
         }
 
         if (params.measurePrepare) {

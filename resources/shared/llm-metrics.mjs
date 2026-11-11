@@ -6,11 +6,11 @@
 
 import { createSubIteratedSuite } from "./helpers.mjs";
 
-const LLM_METRICS = [
-    { key: "ttftMs", name: "TTFT", unit: "ms" },
-    { key: "prefillTokensPerSec", name: "Prefill-TPS", unit: "tps" },
-    { key: "decodeTokensPerSec", name: "Decode-TPS", unit: "tps" },
-];
+export const LLM_METRICS = Object.freeze([
+    Object.freeze({ key: "ttftMs", name: "TTFT", unit: "ms" }),
+    Object.freeze({ key: "prefillTokensPerSec", name: "Prefill-TPS", unit: "tps" }),
+    Object.freeze({ key: "decodeTokensPerSec", name: "Decode-TPS", unit: "tps" }),
+]);
 
 function isPositiveFiniteNumber(value) {
     return typeof value === "number" && Number.isFinite(value) && value > 0;
