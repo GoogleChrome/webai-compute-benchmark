@@ -26,6 +26,6 @@
         "webpack-merge": "^6.0.1"
     },
     "devDependencies": {
-        "webpack-cli": "^6.0.1"
+        "webpack-cli": "^7.2.3"
     }
 }
