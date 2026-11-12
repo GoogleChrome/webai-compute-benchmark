@@ -17,12 +17,12 @@
     "author": "",
     "license": "ISC",
     "dependencies": {
-        "@litert-lm/core": "^0.15.0",
+        "@litert-lm/core": "^0.18.0",
         "@wllama/wllama": "^3.8.1",
-        "html-webpack-plugin": "^5.6.4",
+        "html-webpack-plugin": "^5.6.8",
         "http-server": "^14.1.1",
         "speedometer-utils": "../shared",
-        "webpack": "^5.105.1",
+        "webpack": "^5.112.0",
         "webpack-merge": "^6.0.1"
     },
     "devDependencies": {
