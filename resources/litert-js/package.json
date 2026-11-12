@@ -17,13 +17,13 @@
     "author": "",
     "license": "ISC",
     "dependencies": {
-        "@litertjs/core": "^2.4.0",
+        "@litertjs/core": "^2.5.3",
         "@tensorflow/tfjs": "^4.22.0",
         "@tensorflow/tfjs-node": "^4.22.0",
-        "html-webpack-plugin": "^5.6.4",
+        "html-webpack-plugin": "^5.6.8",
         "http-server": "^14.1.1",
         "speedometer-utils": "../shared",
-        "webpack": "^5.105.2",
+        "webpack": "^5.112.0",
         "webpack-merge": "^6.0.1"
     },
     "devDependencies": {
