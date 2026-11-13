@@ -170,13 +170,13 @@ export const defaultSuites = [
     {
         name: "Experimental-Gemma-CPP-wasm",
         url: "resources/experimental/dist/gemma.html",
-        tags: ["experimental", "gemma", "wasm"],
+        tags: ["experimental", "gemma", "llm", "wasm"],
         type: "remote",
     },
     {
         name: "Experimental-LiteRT-LM-webgpu",
         url: "resources/experimental/dist/litert-lm.html",
-        tags: ["experimental", "gemma", "litert-lm", "webgpu"],
+        tags: ["experimental", "gemma", "litert-lm", "llm", "webgpu"],
         type: "remote",
     },
     {
@@ -254,13 +254,13 @@ export const defaultSuites = [
     {
         name: "Experimental-Llama-CPP-wasm",
         url: "resources/experimental/dist/llama-cpp-wasm.html",
-        tags: ["experimental", "gemma", "llama-cpp", "wasm"],
+        tags: ["experimental", "gemma", "llama-cpp", "llm", "wasm"],
         type: "remote",
     },
     {
         name: "Experimental-Llama-CPP-webgpu",
         url: "resources/experimental/dist/llama-cpp-webgpu.html",
-        tags: ["experimental", "gemma", "llama-cpp", "webgpu"],
+        tags: ["experimental", "gemma", "llama-cpp", "llm", "webgpu"],
         type: "remote",
     },
 ];

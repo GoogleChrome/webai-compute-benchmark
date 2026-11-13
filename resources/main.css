@@ -467,6 +467,36 @@ iframe.test-runner {
     margin-top: 5px;
 }
 
+.llm-scores-container {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    gap: 24px;
+    margin: 16px auto 28px;
+    max-width: 780px;
+}
+
+.llm-score-box {
+    min-width: 0;
+}
+
+.llm-score-box h3 {
+    font-size: 18px;
+    margin: 0 0 10px 0;
+    color: var(--foreground);
+    letter-spacing: 0.5px;
+}
+
+.llm-score-value {
+    white-space: nowrap;
+}
+
+.llm-score-unit {
+    font-size: 20px;
+    font-weight: normal;
+    color: var(--foreground);
+}
+
 section#summary.invalid .scores-container {
     opacity: 0.2;
 }
