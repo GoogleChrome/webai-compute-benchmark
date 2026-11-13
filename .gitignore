@@ -19,3 +19,4 @@
 
 .vscode
 .angular
+/tests/screenshot-canvas-ci.png
