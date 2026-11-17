@@ -1,3 +1,11 @@
+// Copyright 2026 Google LLC
+//
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file or at
+// https://developers.google.com/open-source/licenses/bsd
+//
+// Adapted from wasm-perf/benchmarks/microkernels/src/convert.h:
+// SPDX-FileCopyrightText: Copyright 2026 Arm Limited and/or its affiliates <open-source-office@arm.com>
 // SPDX-License-Identifier: BSD-3-Clause
 
 #ifndef _CONVERSIONS_H_

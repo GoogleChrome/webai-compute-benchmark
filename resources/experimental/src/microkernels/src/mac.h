@@ -1,3 +1,11 @@
+// Copyright 2026 Google LLC
+//
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file or at
+// https://developers.google.com/open-source/licenses/bsd
+//
+// Adapted from wasm-perf/benchmarks/microkernels/src/mac.h:
+// SPDX-FileCopyrightText: Copyright 2026 Arm Limited and/or its affiliates <open-source-office@arm.com>
 // SPDX-License-Identifier: BSD-3-Clause
 
 #ifndef _MAC_H_
@@ -11,22 +19,47 @@
 
 #include "util.h"
 
+// Cap floating-point MAC validation tolerances strictly below 1.0 so the check
+// never becomes vacuous at large N. Without a cap,
+// `N * std::numeric_limits<float>::epsilon()` exceeds 1.0 at N >= 2^23
+// (accepting vec_res == 0 for any scalar_res) and exceeds 2.0 at N >= 2^24
+// (e.g., tol ~= 2.38 at N = 20,000,000), where the triangle inequality
+// |v - s| <= 2 * max(|v|, |s|) makes `diff <= tol * max_res` unconditionally
+// true for any two finite floats—even opposite signs.
+//
+// Setting kMaxFpRelTol = 0.45 (< 0.5) rejects zeroed results (ratio 1.0),
+// sign flips (ratio 2.0), and dropped SIMD lanes (1/4 lanes -> 0.75,
+// 2/4 lanes -> 0.50), while accommodating genuine float rounding drift at
+// large N (up to ~0.32 on periodic 2D int8xint8 LCG inputs whose 4 SIMD lanes
+// accumulate large opposite-sign sums that cancel on horizontal reduction).
+// For double, N * epsilon stays tiny (~4.4e-9 at N = 20M) so the cap is unused.
+constexpr double kMaxFpRelTol = 0.45;
+
+// Tighter cap for the cancellation fallback path relative to
+// walk_scale = sum(|p_i|) / sqrt(N). Kept well below 0.5 so a broken zeroed
+// result (where |scalar_res| is typically ~0.5 * walk_scale for a zero-mean
+// random walk) cannot slip through the fallback.
+constexpr double kMaxFpWalkTol = 0.1;
+
+template <typename AccTy>
+double fp_mac_tol(unsigned N, double max_tol) {
+  return std::min(
+      static_cast<double>(N) * std::numeric_limits<AccTy>::epsilon(), max_tol);
+}
+
 template <typename AccTy, typename ProductFn>
 [[gnu::noinline]] bool fp_mac_fallback_equal(AccTy vec_res, AccTy scalar_res,
                                              unsigned N, ProductFn product_at) {
   const double v = static_cast<double>(vec_res);
   const double s = static_cast<double>(scalar_res);
-  const double tol =
-      static_cast<double>(N) * std::numeric_limits<AccTy>::epsilon();
   const double diff = std::abs(v - s);
-  const double max_res = std::max(std::abs(v), std::abs(s));
   double abs_sum = 0.0;
   for (unsigned i = 0; i < N; ++i) {
     abs_sum += std::abs(static_cast<double>(product_at(i)));
   }
   const double walk_scale =
       N > 0 ? abs_sum / std::sqrt(static_cast<double>(N)) : 0.0;
-  return diff <= tol * std::max(max_res, walk_scale);
+  return diff <= fp_mac_tol<AccTy>(N, kMaxFpWalkTol) * walk_scale;
 }
 
 // SIMD reductions reassociate floating-point additions across lanes (and may
@@ -42,8 +75,7 @@ bool mac_equal(AccTy vec_res, AccTy scalar_res, unsigned N,
     if (!std::isfinite(v) || !std::isfinite(s)) {
       return false;
     }
-    const double tol =
-        static_cast<double>(N) * std::numeric_limits<AccTy>::epsilon();
+    const double tol = fp_mac_tol<AccTy>(N, kMaxFpRelTol);
     const double diff = std::abs(v - s);
     const double max_res = std::max(std::abs(v), std::abs(s));
     if (diff <= tol * max_res) {
