@@ -43,8 +43,6 @@ Instead of decompressing weights back into 32-bit floats (`f32`) in memory, GGML
 - **CLI invocation:** `--op vec_dot_q --iterations 10 -3`
 - **What it does:**
   For each type, quantizes two 655,360-element `f32` arrays into that type with `from_float`. It then times `ggml_get_type_traits_cpu(type)->vec_dot(...)` on them, computing `sum(w_i * x_i)` directly on the compressed data.
-- **What dominates the wall-clock time:**
-  The two untimed setup `from_float` calls per type quantize weights, which is an offline operation in real inference. This setup takes roughly **85–90%** of this sub-benchmark's wall-clock time; the `vec_dot` kernels take only about 100 ms of the roughly 800 ms run (measured with V8 on x86-64). The largest contributors are the K-quant and `iq4_xs` weight quantizers (`quantize_row_q2_K`…`q6_K`, `quantize_row_iq4_xs`), which do iterative scale searches.
 - **What the timed kernels exercise in Wasm:**
     - **Hand-written Wasm SIMD dot products** (`arch/wasm/quants.c`) for `q4_0`, `q4_1`, `q5_0`, `q5_1`, `q8_0`, and `q2_K`–`q6_K`. These unpack 2- to 6-bit weights with `v128.and` / `i8x16.shr_u` / `i8x16.shl` / `v128.or`, sign-extend to 16-bit (`i16x8.extend_{low,high}_i8x16_s`), and multiply-accumulate with `i32x4.dot_i16x8_s`. Each block's integer sum is then scaled by its `fp16` scale factor (`f32x4.convert_i32x4_s`, `f32x4.mul`, `f32x4.add`).
     - **Scalar C fallbacks** (`*_generic`, possibly auto-vectorized by the compiler) for `iq4_nl`, `iq4_xs`, `mxfp4`, `nvfp4`, `q1_0`, `q2_0`, `tq1_0`, and `tq2_0`, which have no Wasm-specific kernel.
@@ -77,15 +75,3 @@ Instead of decompressing weights back into 32-bit floats (`f32`) in memory, GGML
 - **`quantize_row_q_reference`:** Unvectorized scalar C reference implementation used only for correctness testing.
 - **`quantize_row_q`:** Offline float32-to-quantized model weight compression (used when converting a model on disk, not during token generation).
 - **`dequantize_row_q`:** Unpacking quantized weights back to `f32` (only used as a fallback for operators that lack a direct `vec_dot_q` kernel).
-
----
-
-## Version Notes
-
-Scores are **not comparable across ggml versions**: the set of types in the loop and the kernels behind them change between releases. Changes from `v0.9.4` to `v1.0.0` that affect this benchmark:
-
-- **New types in the loop:** `nvfp4`, `q1_0`, `q2_0`, and `f8_e4m3` (17 → 21 types). In Wasm, the first three use scalar fallback kernels.
-- **`q4_1 · q8_1` dot product** gained a hand-written Wasm SIMD kernel (previously scalar).
-- **`f16`** now uses `f32` activations: its `quantize_row_q_dot` is a `memcpy` and its `vec_dot` is `ggml_vec_dot_f16_f32`.
-- **`iq4_xs` weight quantization** (part of `vec_dot_q` setup) became much faster.
-- **Build:** `ggml.c` now includes a CMake-generated `ggml-version.h`. Because `build-wasm.sh` bypasses CMake, it generates this header from `src/ggml-version.h.in`.
