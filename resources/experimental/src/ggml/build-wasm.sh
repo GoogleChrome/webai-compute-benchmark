@@ -28,9 +28,9 @@ trap 'rm -rf "$WORK_DIR"' EXIT
 GGML_SRC="$WORK_DIR/ggml"
 OBJ_DIR="$WORK_DIR/ggml-obj"
 
-# v0.9.4
-GGML_VERSION="0.9.4"
-GGML_COMMIT="72632094336524a9c809e129e8b1c52154543a5a"
+# v1.0.0
+GGML_VERSION="1.0.0"
+GGML_COMMIT="417a024b4fb6bc3116d41af7c067166a039bdf12"
 
 DEFAULT_CFLAGS=(
   -O3
@@ -59,8 +59,6 @@ EM_LDFLAGS=(
 
 DEFINES=(
   -DGGML_USE_CPU
-  -DGGML_VERSION=\"$GGML_VERSION\"
-  -DGGML_COMMIT=\"$GGML_COMMIT\"
   -ffile-prefix-map="$GGML_SRC"=ggml
 )
 
@@ -75,6 +73,12 @@ echo "[ggml] Downloading GGML source ($GGML_COMMIT)..."
 mkdir -p "$GGML_SRC"
 curl -LSsf "https://github.com/ggml-org/ggml/archive/$GGML_COMMIT.tar.gz" \
   | tar --strip-components=1 -xz -C "$GGML_SRC"
+
+# ggml.c includes ggml-version.h, which ggml's CMake build generates from
+# src/ggml-version.h.in. Generate it here since this script bypasses CMake.
+sed -e "s/@GGML_VERSION@/$GGML_VERSION/" \
+    -e "s/@GGML_BUILD_COMMIT@/$GGML_COMMIT/" \
+    "$GGML_SRC/src/ggml-version.h.in" > "$GGML_SRC/src/ggml-version.h"
 
 mkdir -p "$OBJ_DIR"
 pushd "$OBJ_DIR" >/dev/null
