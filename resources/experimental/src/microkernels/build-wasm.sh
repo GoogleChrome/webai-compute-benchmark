@@ -13,42 +13,32 @@ set -euo pipefail
 export LC_ALL=C
 
 MICROKERNELS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+MICROKERNELS_SRC="$MICROKERNELS_DIR/src"
 OUT_DIR="$MICROKERNELS_DIR/build"
 
 CXX="${CXX:-em++}"
-for cmd in "$CXX" curl patch; do
-  if ! command -v "$cmd" >/dev/null 2>&1; then
-    echo "Error: $cmd not found. Please activate emsdk (or set CXX) and install curl and patch." >&2
-    exit 1
-  fi
-done
+if ! command -v "$CXX" >/dev/null 2>&1; then
+  echo "Error: $CXX not found. Please activate emsdk or set CXX." >&2
+  exit 1
+fi
 EMCC_VERSION="$("$CXX" --version | head -n 1)"
 
 WORK_DIR="$(mktemp -d)"
 trap 'rm -rf "$WORK_DIR"' EXIT
 
-MICROKERNELS_SRC="$WORK_DIR/microkernels"
 # Build into a staging directory and only replace the checked-in output once
 # everything succeeded, so a failed build never leaves src/microkernels/build/
 # empty.
 STAGE_DIR="$WORK_DIR/out"
 
-# The microkernels sources live in the wasm-perf repository itself (there is no
-# upstream project), so they are fetched from a pinned wasm-perf commit.
+# The checked-in C++ sources in src/ are adapted from wasm-perf/benchmarks/microkernels.
 WASM_PERF_COMMIT="aee16b1a619868c65abf45ff89ca29160d9c36fd"
-WASM_PERF_SRC_BASE_URL="https://gitlab.arm.com/runtimes/wasm-perf/-/raw/$WASM_PERF_COMMIT/benchmarks/microkernels/src"
-SRC_FILES=(
-  "convert.h"
-  "mac.h"
-  "main.cc"
-  "util.h"
-)
 
 # wasm-perf builds microkernels with -O3 plus its common set of Wasm target
 # features. We add:
 # - -ffast-math -fno-finite-math-only: allows Clang to reassociate FP additions
 #   so float/double MAC reductions vectorize to Wasm SIMD, while keeping NaN/Inf
-#   checks live for result validation in mac.h (patched via microkernels.patch).
+#   checks live for result validation in src/mac.h.
 # - -fwrapv: makes signed integer overflow well-defined two's-complement
 #   wraparound for the signed integer MAC accumulators.
 DEFAULT_CXXFLAGS=(
@@ -87,13 +77,6 @@ PREFIX_MAP_FLAGS=(
   -ffile-prefix-map="$MICROKERNELS_SRC"=microkernels
 )
 
-echo "[microkernels] Downloading microkernels source (wasm-perf $WASM_PERF_COMMIT)..."
-mkdir -p "$MICROKERNELS_SRC"
-for f in "${SRC_FILES[@]}"; do
-  curl -LSsf "$WASM_PERF_SRC_BASE_URL/$f" -o "$MICROKERNELS_SRC/$f"
-done
-patch -i "$MICROKERNELS_DIR/microkernels.patch" -p 1 --directory="$MICROKERNELS_SRC"
-
 mkdir -p "$STAGE_DIR"
 
 echo "[microkernels] Compiling microkernels.mjs + microkernels.wasm with $EMCC_VERSION..."
@@ -113,7 +96,7 @@ to build or deploy the benchmark. To refresh them, activate emsdk and run:
 resources/experimental/build-wasm-workloads.sh microkernels
 \`\`\`
 
-- Source: [wasm-perf/benchmarks/microkernels](https://gitlab.arm.com/runtimes/wasm-perf/-/tree/$WASM_PERF_COMMIT/benchmarks/microkernels) ([\`$WASM_PERF_COMMIT\`](https://gitlab.arm.com/runtimes/wasm-perf/-/tree/$WASM_PERF_COMMIT), patched with \`microkernels.patch\`)
+- Source: \`resources/experimental/src/microkernels/src/\` (adapted from [wasm-perf/benchmarks/microkernels](https://gitlab.arm.com/runtimes/wasm-perf/-/tree/$WASM_PERF_COMMIT/benchmarks/microkernels) at [\`$WASM_PERF_COMMIT\`](https://gitlab.arm.com/runtimes/wasm-perf/-/tree/$WASM_PERF_COMMIT))
 - Compiler: \`$EMCC_VERSION\`
 - CXXFLAGS: \`${CXXFLAGS_ARR[*]}\`
 - LDFLAGS: \`${EM_LDFLAGS[*]}\`
