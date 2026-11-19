@@ -18,7 +18,7 @@ const testQuantizePerfUrl = new URL("./build/test-quantize-perf.wasm", import.me
 /**
  * `test-quantize-perf.cpp` supports 5 `--op` measurement modes testing distinct
  * phases of data transformation and math used during model loading and inference:
- *   https://github.com/ggml-org/ggml/blob/ffa4e8b80930029a35991f94e7c8a93cd67730ab/tests/test-quantize-perf.cpp#L4
+ *   https://github.com/ggml-org/ggml/blob/417a024b4fb6bc3116d41af7c067166a039bdf12/tests/test-quantize-perf.cpp#L4
  *
  * Kept measurements (real-time inference / token generation hot path):
  * - `vec_dot_q` (Vector Dot Product): Computes element-wise dot products directly
@@ -82,7 +82,7 @@ class GgmlBenchmark {
 }
 
 const appName = "GGML";
-const appVersion = "0.9.4";
+const appVersion = "1.0.0";
 
 try {
     const benchmark = new GgmlBenchmark();

@@ -9,7 +9,7 @@ to build or deploy the benchmark. To refresh them, activate emsdk and run:
 resources/experimental/build-wasm-workloads.sh ggml
 ```
 
-- Source: [ggml](https://github.com/ggml-org/ggml) v0.9.4 ([`72632094336524a9c809e129e8b1c52154543a5a`](https://github.com/ggml-org/ggml/tree/72632094336524a9c809e129e8b1c52154543a5a))
+- Source: [ggml](https://github.com/ggml-org/ggml) v1.0.0 ([`417a024b4fb6bc3116d41af7c067166a039bdf12`](https://github.com/ggml-org/ggml/tree/417a024b4fb6bc3116d41af7c067166a039bdf12))
 - Compiler: `emcc (Emscripten gcc/clang-like replacement + linker emulating GNU ld) 5.0.7 (263db4cffa6f9fc2ec514a70abac81362ea41849)`
 - CFLAGS: `-O3 -fno-exceptions -mbulk-memory -mextended-const -mmultivalue -mmutable-globals -mnontrapping-fptoint -mrelaxed-simd -msign-ext -msimd128`
 - LDFLAGS: `-sENVIRONMENT=web -sMODULARIZE=1 -sEXPORT_ES6=1 -sALLOW_MEMORY_GROWTH=1`
